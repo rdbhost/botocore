@@ -12,6 +12,8 @@
 # language governing permissions and limitations under the License.
 import copy
 import logging
+import asyncio
+
 from collections import defaultdict, deque, namedtuple
 from botocore.compat import accepts_kwargs, six
 
@@ -162,6 +164,7 @@ class BaseEventHooks(object):
 
 
 class HierarchicalEmitter(BaseEventHooks):
+
     def __init__(self):
         # We keep a reference to the handlers for quick
         # read only access (we never modify self._handlers).
@@ -172,6 +175,7 @@ class HierarchicalEmitter(BaseEventHooks):
         # registered once.
         self._unique_id_cache = {}
 
+    @asyncio.coroutine
     def _emit(self, event_name, kwargs, stop_on_response=False):
         """
         Emit an event with optional keyword arguments.
@@ -206,39 +210,41 @@ class HierarchicalEmitter(BaseEventHooks):
         responses = []
         for handler in handlers_to_call:
             logger.debug('Event %s: calling handler %s', event_name, handler)
-            response = handler(**kwargs)
+            response = yield from asyncio.coroutine(handler)(**kwargs)
             responses.append((handler, response))
             if stop_on_response and response is not None:
                 return responses
         return responses
 
+    @asyncio.coroutine
     def emit(self, event_name, **kwargs):
         """
         Emit an event by name with arguments passed as keyword args.
 
-            >>> responses = emitter.emit(
+            >>> responses = yield from emitter.emit(
             ...     'my-event.service.operation', arg1='one', arg2='two')
 
         :rtype: list
         :return: List of (handler, response) tuples from all processed
                  handlers.
         """
-        return self._emit(event_name, kwargs)
+        return (yield from self._emit(event_name, kwargs))
 
+    @asyncio.coroutine
     def emit_until_response(self, event_name, **kwargs):
         """
         Emit an event by name with arguments passed as keyword args,
         until the first non-``None`` response is received. This
         method prevents subsequent handlers from being invoked.
 
-            >>> handler, response = emitter.emit_until_response(
+            >>> handler, response = yield from emitter.emit_until_response(
                 'my-event.service.operation', arg1='one', arg2='two')
 
         :rtype: tuple
         :return: The first (handler, response) tuple where the response
                  is not ``None``, otherwise (``None``, ``None``).
         """
-        responses = self._emit(event_name, kwargs, stop_on_response=True)
+        responses = yield from self._emit(event_name, kwargs, stop_on_response=True)
         if responses:
             return responses[-1]
         else:

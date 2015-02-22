@@ -82,7 +82,7 @@ class TestGetResponse(unittest.TestCase):
         s3 = session.get_service('s3')
         operation = s3.get_operation('GetObject')
 
-        res = response.get_response(operation.model, http_response)
+        res = yield from response.get_response(operation.model, http_response)
         self.assertTrue(isinstance(res[1]['Body'], response.StreamingBody))
         self.assertEqual(res[1]['ETag'],
                          '"00000000000000000000000000000000"')
@@ -105,7 +105,7 @@ class TestGetResponse(unittest.TestCase):
         operation = s3.get_operation('GetObject') # streaming operation
 
         self.assertEqual(
-            response.get_response(operation.model, http_response)[1],
+            (yield from response.get_response(operation.model, http_response)[1]),
             {'Error': {'Message': 'Access Denied',
                        'Code': 'AccessDenied',},
              'ResponseMetadata': {'HostId': 'AAAAAAAAAAAAAAAAAAA',
@@ -133,7 +133,7 @@ class TestGetResponse(unittest.TestCase):
         operation = s3.get_operation('ListObjects') # non-streaming operation
 
         self.assertEqual(
-            response.get_response(operation.model, http_response)[1],
+            (yield from response.get_response(operation.model, http_response)[1]),
             { 'ResponseMetadata': {'RequestId': 'XXXXXXXXXXXXXXXX',
                                    'HostId': 'AAAAAAAAAAAAAAAAAAA',
                                    'HTTPStatusCode': 403},
@@ -160,7 +160,7 @@ class TestGetResponse(unittest.TestCase):
         operation = s3.get_operation('ListObjects') # non-streaming operation
 
         self.assertEqual(
-            response.get_response(operation.model, http_response)[1],
+            (yield from response.get_response(operation.model, http_response)[1]),
             {u'Contents': [{u'ETag': '"00000000000000000000000000000000"',
                             u'Key': 'test.png',
                             u'LastModified': datetime.datetime(2014, 3, 1, 17, 6, 40, tzinfo=tzutc()),

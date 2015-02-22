@@ -22,14 +22,14 @@ class TestKinesisListStreams(unittest.TestCase):
     REGION = 'us-east-1'
 
     def setUp(self):
-        self.client = self.session.create_client('kinesis', self.REGION)
+        self.client = yield from self.session.create_client('kinesis', self.REGION)
 
     @classmethod
     def setUpClass(cls):
         cls.session = botocore.session.get_session()
         cls.stream_name = 'botocore-test-%s-%s' % (int(time.time()),
                                                    random.randint(1, 100))
-        client = cls.session.create_client('kinesis', cls.REGION)
+        client = yield from cls.session.create_client('kinesis', cls.REGION)
         client.create_stream(StreamName=cls.stream_name,
                              ShardCount=1)
         waiter = client.get_waiter('stream_exists')
@@ -37,7 +37,7 @@ class TestKinesisListStreams(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        client = cls.session.create_client('kinesis', cls.REGION)
+        client = yield from cls.session.create_client('kinesis', cls.REGION)
         client.delete_stream(StreamName=cls.stream_name)
 
     def test_list_streams(self):

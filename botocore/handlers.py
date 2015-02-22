@@ -29,6 +29,7 @@ from botocore import utils
 from botocore import translate
 import botocore
 import botocore.auth
+import asyncio
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ REGISTER_LAST = object()
 
 
 
+@asyncio.coroutine
 def check_for_200_error(response, **kwargs):
     # From: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectCOPY.html
     # There are two opportunities for a copy request to return an error. One
@@ -63,19 +65,20 @@ def check_for_200_error(response, **kwargs):
         # trying to retrieve the response.  See Endpoint._get_response().
         return
     http_response, parsed = response
-    if _looks_like_special_case_error(http_response):
+    if (yield from _looks_like_special_case_error(http_response)):
         logger.debug("Error found for response with 200 status code, "
                         "errors: %s, changing status code to "
                         "500.", parsed)
         http_response.status_code = 500
 
 
+@asyncio.coroutine
 def _looks_like_special_case_error(http_response):
     if http_response.status_code == 200:
         parser = xml.etree.cElementTree.XMLParser(
             target=xml.etree.cElementTree.TreeBuilder(),
             encoding='utf-8')
-        parser.feed(http_response.content)
+        parser.feed((yield from http_response.content))
         root = parser.close()
         if root.tag == 'Error':
             return True
@@ -293,7 +296,7 @@ def quote_source_header(params, **kwargs):
         params['headers']['x-amz-copy-source'] = quote(
             value.encode('utf-8'), '/~')
 
-
+@asyncio.coroutine
 def copy_snapshot_encrypted(operation, params, request_signer, **kwargs):
     # The presigned URL that facilities copying an encrypted snapshot.
     # If the user does not provide this value, we will automatically
@@ -315,7 +318,7 @@ def copy_snapshot_encrypted(operation, params, request_signer, **kwargs):
     source_endpoint = operation.service.get_endpoint(region)
     presigner = request_signer.get_auth(
         'ec2', region, signature_version='v4-query')
-    request = source_endpoint.create_request(request_dict)
+    request = yield from source_endpoint.create_request(request_dict)
     presigner.add_auth(request=request.original)
     request = request.original.prepare()
     params['PresignedUrl'] = request.url
@@ -350,13 +353,14 @@ def _decode_policy_types(parsed, shape):
             _decode_policy_types(item, shape_member)
 
 
+@asyncio.coroutine
 def parse_get_bucket_location(parsed, http_response, **kwargs):
     # s3.GetBucketLocation cannot be modeled properly.  To
     # account for this we just manually parse the XML document.
     # The "parsed" passed in only has the ResponseMetadata
     # filled out.  This handler will fill in the LocationConstraint
     # value.
-    response_body = http_response.content
+    response_body = yield from http_response.content
     parser = xml.etree.cElementTree.XMLParser(
         target=xml.etree.cElementTree.TreeBuilder(),
         encoding='utf-8')

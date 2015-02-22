@@ -19,98 +19,47 @@ import inspect
 from botocore.vendored import six
 
 
-if six.PY3:
-    from six.moves import http_client
-    class HTTPHeaders(http_client.HTTPMessage):
-        pass
-    from urllib.parse import quote
-    from urllib.parse import urlencode
-    from urllib.parse import unquote
-    from urllib.parse import unquote_plus
-    from urllib.parse import urlsplit
-    from urllib.parse import urlunsplit
-    from urllib.parse import urljoin
-    from urllib.parse import parse_qsl
-    from urllib.parse import parse_qs
-    from http.client import HTTPResponse
-    from io import IOBase as _IOBase
-    from base64 import encodebytes
-    from email.utils import formatdate
-    from itertools import zip_longest
-    file_type = _IOBase
-    zip = zip
+from yieldfrom.http import client
+class HTTPHeaders(client.HTTPMessage):
+    pass
+from urllib.parse import quote
+from urllib.parse import urlencode
+from urllib.parse import unquote
+from urllib.parse import unquote_plus
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
+from urllib.parse import urljoin
+from urllib.parse import parse_qsl
+from urllib.parse import parse_qs
+from yieldfrom.http.client import HTTPResponse
+from io import IOBase as _IOBase
+from base64 import encodebytes
+from email.utils import formatdate
+from itertools import zip_longest
+file_type = _IOBase
+zip = zip
 
-    # In python3, unquote takes a str() object, url decodes it,
-    # then takes the bytestring and decodes it to utf-8.
-    # Python2 we'll have to do this ourself (see below).
-    unquote_str = unquote_plus
+# In python3, unquote takes a str() object, url decodes it,
+# then takes the bytestring and decodes it to utf-8.
+# Python2 we'll have to do this ourself (see below).
+unquote_str = unquote_plus
 
-    def set_socket_timeout(http_response, timeout):
-        """Set the timeout of the socket from an HTTPResponse.
+def set_socket_timeout(http_response, timeout):
+    """Set the timeout of the socket from an HTTPResponse.
 
-        :param http_response: An instance of ``httplib.HTTPResponse``
+    :param http_response: An instance of ``httplib.HTTPResponse``
 
-        """
-        http_response._fp.fp.raw._sock.settimeout(timeout)
+    """
+    http_response._fp.fp.raw._sock.settimeout(timeout)
 
-    def accepts_kwargs(func):
-        # In python3.4.1, there's backwards incompatible
-        # changes when using getargspec with functools.partials.
-        return inspect.getfullargspec(func)[2]
+def accepts_kwargs(func):
+    # In python3.4.1, there's backwards incompatible
+    # changes when using getargspec with functools.partials.
+    return inspect.getfullargspec(func)[2]
 
 
-else:
-    from urllib import quote
-    from urllib import urlencode
-    from urllib import unquote
-    from urllib import unquote_plus
-    from urlparse import urlsplit
-    from urlparse import urlunsplit
-    from urlparse import urljoin
-    from urlparse import parse_qsl
-    from urlparse import parse_qs
-    from email.message import Message
-    from email.Utils import formatdate
-    file_type = file
-    from itertools import izip as zip
-    from itertools import izip_longest as zip_longest
-    from httplib import HTTPResponse
-    from base64 import encodestring as encodebytes
 
-    class HTTPHeaders(Message):
-
-        # The __iter__ method is not available in python2.x, so we have
-        # to port the py3 version.
-        def __iter__(self):
-            for field, value in self._headers:
-                yield field
-
-    def unquote_str(value, encoding='utf-8'):
-        # In python2, unquote() gives us a string back that has the urldecoded
-        # bits, but not the unicode parts.  We need to decode this manually.
-        # unquote has special logic in which if it receives a unicode object it
-        # will decode it to latin1.  This is hard coded.  To avoid this, we'll
-        # encode the string with the passed in encoding before trying to
-        # unquote it.
-        byte_string = value.encode(encoding)
-        return unquote_plus(byte_string).decode(encoding)
-
-    def set_socket_timeout(http_response, timeout):
-        """Set the timeout of the socket from an HTTPResponse.
-
-        :param http_response: An instance of ``httplib.HTTPResponse``
-
-        """
-        http_response._fp.fp._sock.settimeout(timeout)
-
-    def accepts_kwargs(func):
-        return inspect.getargspec(func)[2]
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    # Python2.6 we use the 3rd party back port.
-    from ordereddict import OrderedDict
+from collections import OrderedDict
 
 
 if sys.version_info[:2] == (2, 6):

@@ -15,6 +15,7 @@ import datetime
 import hashlib
 import math
 import binascii
+import asyncio
 
 from six import string_types, text_type
 import dateutil.parser
@@ -22,7 +23,7 @@ from dateutil.tz import tzlocal, tzutc
 
 from botocore.exceptions import InvalidExpressionError, ConfigNotFound
 from botocore.compat import json, quote, zip_longest
-from botocore.vendored import requests
+from yieldfrom import requests
 from botocore.compat import OrderedDict
 
 
@@ -139,10 +140,11 @@ class InstanceMetadataFetcher(object):
         self._num_attempts = num_attempts
         self._url = url
 
+    @asyncio.coroutine
     def _get_request(self, url, timeout, num_attempts=1):
         for i in range(num_attempts):
             try:
-                response = requests.get(url, timeout=timeout)
+                response = yield from requests.get(url, timeout=timeout)
             except (requests.Timeout, requests.ConnectionError) as e:
                 logger.debug("Caught exception while trying to retrieve "
                              "credentials: %s", e, exc_info=True)
@@ -151,31 +153,34 @@ class InstanceMetadataFetcher(object):
                     return response
         raise _RetriesExceededError()
 
+    @asyncio.coroutine
     def retrieve_iam_role_credentials(self):
         data = {}
         url = self._url
         timeout = self._timeout
         num_attempts = self._num_attempts
         try:
-            r = self._get_request(url, timeout, num_attempts)
-            if r.content:
-                fields = r.content.decode('utf-8').split('\n')
+            r = yield from self._get_request(url, timeout, num_attempts)
+            if (yield from r.content):
+                fields = (yield from r.content).decode('utf-8').split('\n')
                 for field in fields:
                     if field.endswith('/'):
-                        data[field[0:-1]] = self.retrieve_iam_role_credentials(
+                        data[field[0:-1]] = yield from self.retrieve_iam_role_credentials(
                             url + field, timeout, num_attempts)
                     else:
-                        val = self._get_request(
+                        rVal = yield from self._get_request(
                             url + field,
                             timeout=timeout,
-                            num_attempts=num_attempts).content.decode('utf-8')
+                            num_attempts=num_attempts)
+                        val = (yield from rVal.content).decode('utf-8')
                         if val[0] == '{':
                             val = json.loads(val)
                         data[field] = val
             else:
+                rContent = yield from r.content
                 logger.debug("Metadata service returned non 200 status code "
                              "of %s for url: %s, content body: %s",
-                             r.status_code, url, r.content)
+                             r.status_code, url, rContent)
         except _RetriesExceededError:
             logger.debug("Max number of attempts exceeded (%s) when "
                          "attempting to retrieve data from metadata service.",

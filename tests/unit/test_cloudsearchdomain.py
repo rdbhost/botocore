@@ -40,4 +40,4 @@ class TestCloudsearchOperations(BaseSessionTest):
         # Note we're not giving a region name.
         endpoint = service.get_endpoint(endpoint_url='http://example.com')
         with self.assertRaises(NoRegionError):
-            operation.call(endpoint, contentType='application/json', documents=stream)
+            yield from operation.call(endpoint, contentType='application/json', documents=stream)

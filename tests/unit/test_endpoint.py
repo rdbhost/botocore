@@ -131,14 +131,14 @@ class TestEndpointFeatures(TestEndpointBase):
     def test_timeout_can_be_specified(self):
         timeout_override = 120
         self.endpoint.timeout = timeout_override
-        self.endpoint.make_request(self.op, request_dict())
+        yield from self.endpoint.make_request(self.op, request_dict())
         kwargs = self.http_session.send.call_args[1]
         self.assertEqual(kwargs['timeout'], timeout_override)
 
     def test_make_request_with_proxies(self):
         proxies = {'http': 'http://localhost:8888'}
         self.endpoint.proxies = proxies
-        self.endpoint.make_request(self.op, request_dict())
+        yield from self.endpoint.make_request(self.op, request_dict())
         prepared_request = self.http_session.send.call_args[0][0]
         self.http_session.send.assert_called_with(
             prepared_request, verify=True, stream=False,
@@ -147,7 +147,7 @@ class TestEndpointFeatures(TestEndpointBase):
 
     def test_make_request_with_no_auth(self):
         self.endpoint.auth = None
-        self.endpoint.make_request(self.op, request_dict())
+        yield from self.endpoint.make_request(self.op, request_dict())
 
         # http_session should be used to send the request.
         self.assertTrue(self.http_session.send.called)
@@ -161,7 +161,7 @@ class TestEndpointFeatures(TestEndpointBase):
             endpoint_prefix='ec2', event_emitter=self.event_emitter)
         self.endpoint.http_session = self.http_session
 
-        self.endpoint.make_request(self.op, request_dict())
+        yield from self.endpoint.make_request(self.op, request_dict())
 
         # http_session should be used to send the request.
         self.assertTrue(self.http_session.send.called)
@@ -200,7 +200,7 @@ class TestRetryInterface(TestEndpointBase):
         op.name = 'DescribeInstances'
         op.metadata = {'protocol': 'query'}
         op.has_streaming_output = False
-        self.endpoint.make_request(op, request_dict())
+        yield from self.endpoint.make_request(op, request_dict())
         call_args = self.event_emitter.emit.call_args
         self.assertEqual(call_args[0][0],
                          'needs-retry.ec2.DescribeInstances')
@@ -215,7 +215,7 @@ class TestRetryInterface(TestEndpointBase):
             [(None, None)], # Request created.
             [(None, None)]  # Check if retry needed. Retry not needed.
         ]
-        self.endpoint.make_request(op, request_dict())
+        yield from self.endpoint.make_request(op, request_dict())
         call_args = self.event_emitter.emit.call_args_list
         self.assertEqual(self.event_emitter.emit.call_count, 4)
         # Check that all of the events are as expected.
@@ -238,7 +238,7 @@ class TestRetryInterface(TestEndpointBase):
             [(None, None)]  # Check if retry needed. Retry not needed.
         ]
         self.http_session.send.side_effect = ConnectionError()
-        self.endpoint.make_request(op, request_dict())
+        yield from self.endpoint.make_request(op, request_dict())
         call_args = self.event_emitter.emit.call_args_list
         self.assertEqual(self.event_emitter.emit.call_count, 4)
         # Check that all of the events are as expected.
@@ -282,7 +282,7 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
             [(None, None)], # Request created.
             [(None, None)], # Finally emit no rety is needed.
         ]
-        self.endpoint.make_request(op, request)
+        yield from self.endpoint.make_request(op, request)
         self.assertEqual(body.total_resets, 2)
 
 

@@ -254,7 +254,7 @@ class TestCreateRetryConfiguration(unittest.TestCase):
         # This is not the crc32 of b'foo', so this should
         # fail the crc32 check.
         http_response.headers = {'x-amz-crc32': 2356372768}
-        http_response.content = b'foo'
+        http_response.content = b'foo'  # should be generator
         # The first 10 attempts we get a retry.
         self.assertEqual(handler(response=(http_response, {}), attempts=1,
                                  caught_exception=None), 1)
@@ -301,7 +301,7 @@ class TestCRC32Checker(unittest.TestCase):
         # This is the crc32 of b'foo', so this should
         # pass the crc32 check.
         http_response.headers = {'x-amz-crc32': 2356372769}
-        http_response.content = b'foo'
+        http_response.content = b'foo'  # should be generator
         self.assertIsNone(self.checker(
             response=(http_response, {}), attempt_number=1,
             caught_exception=None))
@@ -321,7 +321,7 @@ class TestCRC32Checker(unittest.TestCase):
         # This is not the crc32 of b'foo', so this should
         # fail the crc32 check.
         http_response.headers = {'x-amz-crc32': 2356372768}
-        http_response.content = b'foo'
+        http_response.content = b'foo'  # should be generator
         with self.assertRaises(ChecksumError):
             self.checker(response=(http_response, {}), attempt_number=1,
                          caught_exception=None)

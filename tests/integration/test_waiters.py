@@ -27,7 +27,7 @@ class TestWaiterLegacy(unittest.TestCase):
     def test_create_table_and_wait(self):
         table_name = 'botocoretestddb-%s' % random.randint(1, 10000)
         operation = self.service.get_operation('CreateTable')
-        http, parsed = operation.call(
+        http, parsed = yield from operation.call(
             self.endpoint, TableName=table_name,
             ProvisionedThroughput={"ReadCapacityUnits": 5,
                                    "WriteCapacityUnits": 5},
@@ -40,8 +40,9 @@ class TestWaiterLegacy(unittest.TestCase):
                         self.endpoint, TableName=table_name)
         waiter = self.service.get_waiter('TableExists', self.endpoint)
         waiter.wait(TableName=table_name)
-        parsed = self.service.get_operation('DescribeTable').call(
-            self.endpoint, TableName=table_name)[1]
+        parsed = yield from self.service.get_operation('DescribeTable').call(
+            self.endpoint, TableName=table_name)
+        parsed = parsed[1]
         self.assertEqual(parsed['Table']['TableStatus'], 'ACTIVE')
 
 
@@ -49,7 +50,7 @@ class TestWaiterLegacy(unittest.TestCase):
 class TestWaiterForDynamoDB(unittest.TestCase):
     def setUp(self):
         self.session = botocore.session.get_session()
-        self.client = self.session.create_client('dynamodb', 'us-west-2')
+        self.client = yield from self.session.create_client('dynamodb', 'us-west-2')
 
     def test_create_table_and_wait(self):
         table_name = 'botocoretestddb-%s' % random.randint(1, 10000)
@@ -73,7 +74,7 @@ class TestCanGetWaitersThroughClientInterface(unittest.TestCase):
         # for the service, it's email.  We want to make sure this does
         # not affect the lookup process.
         session = botocore.session.get_session()
-        client = session.create_client('ses', 'us-east-1')
+        client = yield from session.create_client('ses', 'us-east-1')
         # If we have at least one waiter in the list, we know that we have
         # actually loaded the waiters and this test has passed.
         self.assertTrue(len(client.waiter_names) > 0)

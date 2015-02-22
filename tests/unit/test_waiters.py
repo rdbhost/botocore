@@ -502,7 +502,7 @@ class TestOperationMethods(unittest.TestCase):
         http = mock.Mock()
         operation_object.call.return_value = (http, {})
         endpoint = mock.Mock()
-        op = LegacyOperationMethod(operation_object, endpoint)
+        op = yield from LegacyOperationMethod(operation_object, endpoint)
         op(Foo='a', Bar='b')
 
         operation_object.call.assert_called_with(
@@ -515,7 +515,7 @@ class TestOperationMethods(unittest.TestCase):
         exception.error_code = 'MyCode'
         operation_object.call.side_effect = exception
         endpoint = mock.Mock()
-        op = LegacyOperationMethod(operation_object, endpoint)
+        op = yield from LegacyOperationMethod(operation_object, endpoint)
         response = op(Foo='a', Bar='b')
         self.assertEqual(response,
                          {'Error': {'Code': 'MyCode', 'Message': 'Foo'}})
@@ -526,7 +526,7 @@ class TestOperationMethods(unittest.TestCase):
         # attrs will just be reraised.
         operation_object.call.side_effect = ValueError
         endpoint = mock.Mock()
-        op = LegacyOperationMethod(operation_object, endpoint)
+        op = yield from LegacyOperationMethod(operation_object, endpoint)
         with self.assertRaises(ValueError):
             op(Foo='a', Bar='b')
 

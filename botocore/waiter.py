@@ -16,6 +16,7 @@ import time
 
 from .exceptions import WaiterError, ClientError, WaiterConfigError
 from . import xform_name
+import asyncio
 
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ def create_waiter_with_client(waiter_name, waiter_model, client):
         waiter_name, single_waiter_config, operation_method
     )
 
-
+@asyncio.coroutine
 def create_waiter_from_legacy(waiter_name, waiter_config,
                               service_object, endpoint):
     """
@@ -69,7 +70,7 @@ def create_waiter_from_legacy(waiter_name, waiter_config,
     single_waiter_config = model.get_waiter(waiter_name)
     operation_object = service_object.get_operation(
         single_waiter_config.operation)
-    operation_method = LegacyOperationMethod(operation_object,
+    operation_method = yield from LegacyOperationMethod(operation_object,
                                              endpoint)
     return Waiter(waiter_name, single_waiter_config,
                   operation_method)
@@ -95,9 +96,10 @@ class LegacyOperationMethod(object):
         self._operation_object = operation_object
         self._endpoint = endpoint
 
+    @asyncio.coroutine
     def __call__(self, **kwargs):
         try:
-            http, parsed = self._operation_object.call(
+            http, parsed = yield from self._operation_object.call(
                 self._endpoint, **kwargs)
         except Exception as e:
             # In theory, a handler can raise an type of exception.

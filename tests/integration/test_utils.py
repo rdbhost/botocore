@@ -31,7 +31,7 @@ def test_can_generate_all_inputs():
     session = botocore.session.get_session()
     generator = ArgumentGenerator()
     for service_name in session.get_available_services():
-        service_model = session.get_service_model(service_name)
+        service_model = yield from session.get_service_model(service_name)
         for operation_name in service_model.operation_names:
             operation_model = service_model.operation_model(operation_name)
             input_shape = operation_model.input_shape

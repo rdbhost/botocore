@@ -32,7 +32,7 @@ class TestGlacier(unittest.TestCase):
 
     def setUp(self):
         self.session = botocore.session.get_session()
-        self.client = self.session.create_client('glacier', 'us-west-2')
+        self.client = yield from self.session.create_client('glacier', 'us-west-2')
         # There's no error if the vault already exists so we don't
         # need to catch any exceptions here.
         self.client.create_vault(vaultName=self.VAULT_NAME)

@@ -17,20 +17,17 @@ import select
 import functools
 import socket
 import inspect
+import asyncio
 
 from botocore.compat import six
-from botocore.vendored.requests import models
-from botocore.vendored.requests.sessions import REDIRECT_STATI
+from yieldfrom.requests import models
+from yieldfrom.requests.sessions import REDIRECT_STATI
 from botocore.compat import HTTPHeaders, HTTPResponse
 from botocore.exceptions import UnseekableStreamError
-from botocore.vendored.requests.packages.urllib3.connection import \
-    VerifiedHTTPSConnection
-from botocore.vendored.requests.packages.urllib3.connection import \
-    HTTPConnection
-from botocore.vendored.requests.packages.urllib3.connectionpool import \
-    HTTPConnectionPool
-from botocore.vendored.requests.packages.urllib3.connectionpool import \
-    HTTPSConnectionPool
+from yieldfrom.urllib3.connection import VerifiedHTTPSConnection
+from yieldfrom.urllib3.connection import HTTPConnection
+from yieldfrom.urllib3.connectionpool import HTTPConnectionPool
+from yieldfrom.urllib3.connectionpool import HTTPSConnectionPool
 
 
 logger = logging.getLogger(__name__)
@@ -77,38 +74,39 @@ class AWSHTTPConnection(HTTPConnection):
         # body is sent in all versions > 2.6.
         self._response_received = False
 
-    def _tunnel(self):
-        # Works around a bug in py26 which is fixed in later versions of
-        # python. Bug involves hitting an infinite loop if readline() returns
-        # nothing as opposed to just ``\r\n``.
-        # As much as I don't like having if py2: <foo> code blocks, this seems
-        # the cleanest way to handle this workaround.  Fortunately, the
-        # difference from py26 to py3 is very minimal.  We're essentially
-        # just overriding the while loop.
-        if sys.version_info[:2] != (2, 6):
-            return HTTPConnection._tunnel(self)
+    # def _tunnel(self):
+    #     # Works around a bug in py26 which is fixed in later versions of
+    #     # python. Bug involves hitting an infinite loop if readline() returns
+    #     # nothing as opposed to just ``\r\n``.
+    #     # As much as I don't like having if py2: <foo> code blocks, this seems
+    #     # the cleanest way to handle this workaround.  Fortunately, the
+    #     # difference from py26 to py3 is very minimal.  We're essentially
+    #     # just overriding the while loop.
+    #     if sys.version_info[:2] != (2, 6):
+    #         return HTTPConnection._tunnel(self)
+    #
+    #     # Otherwise we workaround the issue.
+    #     self._set_hostport(self._tunnel_host, self._tunnel_port)
+    #     self.send("CONNECT %s:%d HTTP/1.0\r\n" % (self.host, self.port))
+    #     for header, value in self._tunnel_headers.iteritems():
+    #         self.send("%s: %s\r\n" % (header, value))
+    #     self.send("\r\n")
+    #     response = self.response_class(self.sock, strict=self.strict,
+    #                                    method=self._method)
+    #     (version, code, message) = response._read_status()
+    #
+    #     if code != 200:
+    #         self.close()
+    #         raise socket.error("Tunnel connection failed: %d %s" %
+    #                            (code, message.strip()))
+    #     while True:
+    #         line = response.fp.readline()
+    #         if not line:
+    #             break
+    #         if line in (b'\r\n', b'\n', b''):
+    #             break
 
-        # Otherwise we workaround the issue.
-        self._set_hostport(self._tunnel_host, self._tunnel_port)
-        self.send("CONNECT %s:%d HTTP/1.0\r\n" % (self.host, self.port))
-        for header, value in self._tunnel_headers.iteritems():
-            self.send("%s: %s\r\n" % (header, value))
-        self.send("\r\n")
-        response = self.response_class(self.sock, strict=self.strict,
-                                       method=self._method)
-        (version, code, message) = response._read_status()
-
-        if code != 200:
-            self.close()
-            raise socket.error("Tunnel connection failed: %d %s" %
-                               (code, message.strip()))
-        while True:
-            line = response.fp.readline()
-            if not line:
-                break
-            if line in (b'\r\n', b'\n', b''):
-                break
-
+    @asyncio.coroutine
     def _send_request(self, method, url, body, headers):
         self._response_received = False
         if headers.get('Expect', '') == '100-continue':
@@ -116,11 +114,12 @@ class AWSHTTPConnection(HTTPConnection):
         else:
             self._expect_header_set = False
             self.response_class = self._original_response_cls
-        rval = HTTPConnection._send_request(
+        rval = yield from HTTPConnection._send_request(
             self, method, url, body, headers)
         self._expect_header_set = False
         return rval
 
+    @asyncio.coroutine
     def _send_output(self, message_body=None):
         self._buffer.extend((b"", b""))
         msg = b"\r\n".join(self._buffer)
@@ -131,15 +130,17 @@ class AWSHTTPConnection(HTTPConnection):
         if isinstance(message_body, bytes):
             msg += message_body
             message_body = None
-        self.send(msg)
+        yield from self.send(msg)
         if self._expect_header_set:
             # This is our custom behavior.  If the Expect header was
             # set, it will trigger this custom behavior.
             logger.debug("Waiting for 100 Continue response.")
+
             # Wait for 1 second for the server to send a response.
-            read, write, exc = select.select([self.sock], [], [self.sock], 1)
+            #read, write, exc = select.select([self.sock], [], [self.sock], 1)
+            read = yield from asyncio.wait_for(self.notSock.read(), 1.0)
             if read:
-                self._handle_expect_response(message_body)
+                yield from self._handle_expect_response(message_body)
                 return
             else:
                 # From the RFC:
@@ -156,8 +157,9 @@ class AWSHTTPConnection(HTTPConnection):
         if message_body is not None:
             # message_body was not a string (i.e. it is a file), and
             # we must run the risk of Nagle.
-            self.send(message_body)
+            yield from self.send(message_body)
 
+    @asyncio.coroutine
     def _consume_headers(self, fp):
         # Most servers (including S3) will just return
         # the CLRF after the 100 continue response.  However,
@@ -168,21 +170,22 @@ class AWSHTTPConnection(HTTPConnection):
         # that come immediately after the 100 continue response.
         current = None
         while current != b'\r\n':
-            current = fp.readline()
+            current = yield from fp.readline()
 
+    @asyncio.coroutine
     def _handle_expect_response(self, message_body):
         # This is called when we sent the request headers containing
         # an Expect: 100-continue header and received a response.
         # We now need to figure out what to do.
-        fp = self.sock.makefile('rb', 0)
+        fp = self.notSock  # self.sock.makefile('rb', 0)
         try:
-            maybe_status_line = fp.readline()
+            maybe_status_line = yield from fp.readline()
             parts = maybe_status_line.split(None, 2)
             if self._is_100_continue_status(maybe_status_line):
-                self._consume_headers(fp)
+                yield from self._consume_headers(fp)
                 logger.debug("100 Continue response seen, "
                              "now sending request body.")
-                self._send_message_body(message_body)
+                yield from self._send_message_body(message_body)
             elif len(parts) == 3 and parts[0].startswith(b'HTTP/'):
                 # From the RFC:
                 # Requirements for HTTP/1.1 origin servers:
@@ -205,18 +208,22 @@ class AWSHTTPConnection(HTTPConnection):
                 self.response_class = response_class
                 self._response_received = True
         finally:
-            fp.close()
+            #fp.close()
+            pass
 
+    @asyncio.coroutine
     def _send_message_body(self, message_body):
         if message_body is not None:
-            self.send(message_body)
+            yield from self.send(message_body)
 
+    @asyncio.coroutine
     def send(self, str):
         if self._response_received:
             logger.debug("send() called, but reseponse already received. "
                          "Not sending data.")
             return
-        return HTTPConnection.send(self, str)
+        _r = yield from HTTPConnection.send(self, str)
+        return _r
 
     def _is_100_continue_status(self, maybe_status_line):
         parts = maybe_status_line.split(None, 2)
@@ -227,14 +234,18 @@ class AWSHTTPConnection(HTTPConnection):
 
 
 class AWSHTTPSConnection(VerifiedHTTPSConnection):
-    pass
+
+    def __init__(self, *args, **kws):
+        VerifiedHTTPSConnection.__init__(self, *args, **kws)
+        self._original_response_cls = self.response_class
+        self._response_received = False
 
 
 # Now we need to set the methods we overrode from AWSHTTPConnection
 # onto AWSHTTPSConnection.  This is just a shortcut to avoid
 # copy/pasting the same code into AWSHTTPSConnection.
 for name, function in AWSHTTPConnection.__dict__.items():
-    if inspect.isfunction(function):
+    if inspect.isfunction(function) and name != '__init__':
         setattr(AWSHTTPSConnection, name, function)
 
 
@@ -293,7 +304,9 @@ class AWSPreparedRequest(models.PreparedRequest):
         self.hooks.setdefault('response', []).append(
             self.reset_stream_on_redirect)
 
+    @asyncio.coroutine
     def reset_stream_on_redirect(self, response, **kwargs):
+        yield None
         if response.status_code in REDIRECT_STATI and \
                 self._looks_like_file(self.body):
             logger.debug("Redirect received, rewinding stream: %s", self.body)

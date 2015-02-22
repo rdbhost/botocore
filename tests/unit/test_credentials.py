@@ -105,7 +105,7 @@ class TestEnvVar(BaseEnvVar):
             'AWS_SECRET_ACCESS_KEY': 'bar',
         }
         provider = credentials.EnvProvider(environ)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'foo')
         self.assertEqual(creds.secret_key, 'bar')
@@ -118,7 +118,7 @@ class TestEnvVar(BaseEnvVar):
             'AWS_SECURITY_TOKEN': 'baz',
         }
         provider = credentials.EnvProvider(environ)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'foo')
         self.assertEqual(creds.secret_key, 'bar')
@@ -132,7 +132,7 @@ class TestEnvVar(BaseEnvVar):
             'AWS_SESSION_TOKEN': 'baz',
         }
         provider = credentials.EnvProvider(environ)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'foo')
         self.assertEqual(creds.secret_key, 'bar')
@@ -141,7 +141,7 @@ class TestEnvVar(BaseEnvVar):
 
     def test_envvars_not_found(self):
         provider = credentials.EnvProvider(environ={})
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNone(creds)
 
     def test_can_override_env_var_mapping(self):
@@ -160,7 +160,7 @@ class TestEnvVar(BaseEnvVar):
         provider = credentials.EnvProvider(
             environ, mapping
         )
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertEqual(creds.access_key, 'foo')
         self.assertEqual(creds.secret_key, 'bar')
         self.assertEqual(creds.token, 'baz')
@@ -178,7 +178,7 @@ class TestEnvVar(BaseEnvVar):
         provider = credentials.EnvProvider(
             environ, {'access_key': 'FOO_ACCESS_KEY'}
         )
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertEqual(creds.access_key, 'foo')
         self.assertEqual(creds.secret_key, 'bar')
         self.assertEqual(creds.token, 'baz')
@@ -193,7 +193,7 @@ class TestEnvVar(BaseEnvVar):
         }
         provider = credentials.EnvProvider(environ)
         with self.assertRaises(botocore.exceptions.PartialCredentialsError):
-            provider.load()
+            yield from provider.load()
 
 
 class TestSharedCredentialsProvider(BaseEnvVar):
@@ -211,7 +211,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         provider = credentials.SharedCredentialProvider(
             creds_filename='~/.aws/creds', profile_name='default',
             ini_parser=self.ini_parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'foo')
         self.assertEqual(creds.secret_key, 'bar')
@@ -229,7 +229,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
             creds_filename='~/.aws/creds', profile_name='default',
             ini_parser=self.ini_parser)
         with self.assertRaises(botocore.exceptions.PartialCredentialsError):
-            provider.load()
+            yield from provider.load()
 
     def test_credentials_file_exists_with_session_token(self):
         self.ini_parser.return_value = {
@@ -242,7 +242,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         provider = credentials.SharedCredentialProvider(
             creds_filename='~/.aws/creds', profile_name='default',
             ini_parser=self.ini_parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'foo')
         self.assertEqual(creds.secret_key, 'bar')
@@ -267,7 +267,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         provider = credentials.SharedCredentialProvider(
             creds_filename='~/.aws/creds', profile_name='dev',
             ini_parser=self.ini_parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'd')
         self.assertEqual(creds.secret_key, 'e')
@@ -282,7 +282,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         provider = credentials.SharedCredentialProvider(
             creds_filename='~/.aws/creds', profile_name='dev',
             ini_parser=self.ini_parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNone(creds)
 
 
@@ -306,7 +306,7 @@ class TestConfigFileProvider(BaseEnvVar):
     def test_config_file_exists(self):
         provider = credentials.ConfigProvider('cli.cfg', 'default',
                                               self.parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
@@ -319,7 +319,7 @@ class TestConfigFileProvider(BaseEnvVar):
         profile_name = 'NOT-default'
         provider = credentials.ConfigProvider('cli.cfg', profile_name,
                                               self.parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNone(creds)
 
     def test_config_file_errors_ignored(self):
@@ -329,7 +329,7 @@ class TestConfigFileProvider(BaseEnvVar):
             path='cli.cfg')
         provider = credentials.ConfigProvider('cli.cfg', 'default',
                                               self.parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNone(creds)
 
     def test_partial_creds_is_error(self):
@@ -342,7 +342,7 @@ class TestConfigFileProvider(BaseEnvVar):
         parser.return_value = parsed
         provider = credentials.ConfigProvider('cli.cfg', 'default', parser)
         with self.assertRaises(botocore.exceptions.PartialCredentialsError):
-            provider.load()
+            yield from provider.load()
 
 
 class TestBotoProvider(BaseEnvVar):
@@ -362,7 +362,7 @@ class TestBotoProvider(BaseEnvVar):
         }
         provider = credentials.BotoProvider(environ=environ,
                                             ini_parser=self.ini_parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
@@ -383,7 +383,7 @@ class TestBotoProvider(BaseEnvVar):
         }
         provider = credentials.BotoProvider(environ=environ,
                                             ini_parser=self.ini_parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
@@ -399,7 +399,7 @@ class TestBotoProvider(BaseEnvVar):
             path='foo')
         provider = credentials.BotoProvider(environ={},
                                             ini_parser=self.ini_parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNone(creds)
 
     def test_partial_creds_is_error(self):
@@ -413,14 +413,14 @@ class TestBotoProvider(BaseEnvVar):
         provider = credentials.BotoProvider(environ={},
                                             ini_parser=ini_parser)
         with self.assertRaises(botocore.exceptions.PartialCredentialsError):
-            provider.load()
+            yield from provider.load()
 
 
 class TestOriginalEC2Provider(BaseEnvVar):
 
     def test_load_ec2_credentials_file_not_exist(self):
         provider = credentials.OriginalEC2Provider(environ={})
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNone(creds)
 
     def test_load_ec2_credentials_file_exists(self):
@@ -434,7 +434,7 @@ class TestOriginalEC2Provider(BaseEnvVar):
         }
         provider = credentials.OriginalEC2Provider(environ=environ,
                                                    parser=parser)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
@@ -454,7 +454,7 @@ class TestInstanceMetadataProvider(BaseEnvVar):
         }
         provider = credentials.InstanceMetadataProvider(
             iam_role_fetcher=fetcher)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
@@ -466,7 +466,7 @@ class TestInstanceMetadataProvider(BaseEnvVar):
         fetcher.retrieve_iam_role_credentials.return_value = {}
         provider = credentials.InstanceMetadataProvider(
             iam_role_fetcher=fetcher)
-        creds = provider.load()
+        creds = yield from provider.load()
         self.assertIsNone(creds)
         fetcher.retrieve_iam_role_credentials.assert_called_with()
 
@@ -483,7 +483,7 @@ class CredentialResolverTest(BaseEnvVar):
     def test_load_credentials_single_provider(self):
         self.provider1.load.return_value = self.fake_creds
         resolver = credentials.CredentialResolver(providers=[self.provider1])
-        creds = resolver.load_credentials()
+        creds = yield from resolver.load_credentials()
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
         self.assertEqual(creds.token, 'c')
@@ -493,7 +493,7 @@ class CredentialResolverTest(BaseEnvVar):
         self.provider2.load.return_value = self.fake_creds
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
-        creds = resolver.load_credentials()
+        creds = yield from resolver.load_credentials()
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
         self.assertEqual(creds.token, 'c')
@@ -505,7 +505,7 @@ class CredentialResolverTest(BaseEnvVar):
         self.provider2.load.return_value = None
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
-        creds = resolver.load_credentials()
+        creds = yield from resolver.load_credentials()
         self.assertIsNone(creds)
 
     def test_inject_additional_providers_after_existing(self):
@@ -524,7 +524,7 @@ class CredentialResolverTest(BaseEnvVar):
 
         resolver.insert_after('provider1', new_provider)
 
-        creds = resolver.load_credentials()
+        creds = yield from resolver.load_credentials()
         self.assertIsNotNone(creds)
 
         self.assertEqual(creds.access_key, 'd')
@@ -544,7 +544,7 @@ class CredentialResolverTest(BaseEnvVar):
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
         resolver.insert_before(self.provider1.METHOD, new_provider)
-        creds = resolver.load_credentials()
+        creds = yield from resolver.load_credentials()
         self.assertEqual(creds.access_key, 'x')
         self.assertEqual(creds.secret_key, 'y')
         self.assertEqual(creds.token, 'z')
@@ -557,7 +557,7 @@ class CredentialResolverTest(BaseEnvVar):
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
         resolver.remove('provider1')
-        creds = resolver.load_credentials()
+        creds = yield from resolver.load_credentials()
         self.assertIsNotNone(creds)
         self.assertEqual(creds.access_key, 'd')
         self.assertEqual(creds.secret_key, 'e')

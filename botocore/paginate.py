@@ -12,6 +12,7 @@
 # language governing permissions and limitations under the License.
 
 from itertools import tee
+import asyncio
 
 import jmespath
 from botocore.exceptions import PaginationError
@@ -20,6 +21,7 @@ from botocore.utils import set_value_from_jmespath, merge_dicts
 
 
 class PageIterator(object):
+
     def __init__(self, method, input_token, output_token, more_results,
                  result_keys, non_aggregate_keys, limit_key, max_items,
                  starting_token, page_size, op_kwargs):
@@ -375,6 +377,7 @@ class ResultKeyIterator(object):
 # supported during a transition period.  Eventually these two
 # interfaces will be removed.
 class DeprecatedPageIterator(PageIterator):
+
     def __init__(self, operation, endpoint, input_token,
                  output_token, more_results,
                  result_keys, non_aggregate_keys, limit_key, max_items,
@@ -386,8 +389,10 @@ class DeprecatedPageIterator(PageIterator):
         self._operation = operation
         self._endpoint = endpoint
 
+    @asyncio.coroutine
     def _make_request(self, current_kwargs):
-        return self._operation.call(self._endpoint, **current_kwargs)
+        _r = yield from self._operation.call(self._endpoint, **current_kwargs)
+        return _r
 
     def _extract_parsed_response(self, response):
         return response[1]

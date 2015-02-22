@@ -12,6 +12,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import asyncio
 
 class Provider(object):
 
@@ -24,10 +25,12 @@ class Provider(object):
         return 'Provider(%s)' % self.name
 
     @property
+    @asyncio.coroutine
     def services(self):
         if self._services is None:
-            self._services = [self.session.get_service(sn) for
-                              sn in self.session.get_available_services()]
+            self._services = []
+            for sn in self.session.get_available_services():
+                yield from self.session.get_service(sn)
         return self._services
 
 

@@ -10,6 +10,7 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
 import time
 import random
 import logging
@@ -23,9 +24,10 @@ from six import StringIO
 
 
 class TestBucketWithVersions(unittest.TestCase):
+
     def setUp(self):
         self.session = botocore.session.get_session()
-        self.client = self.session.create_client('s3', region_name='us-west-2')
+        self.client = yield from self.session.create_client('s3', region_name='us-west-2')
         self.bucket_name = 'botocoretest%s-%s' % (
             int(time.time()), random.randint(1, 1000000))
 
@@ -88,7 +90,7 @@ class TestResponseLog(unittest.TestCase):
         # we can refactor the code however we want, as long as we don't
         # lose this feature.
         session = botocore.session.get_session()
-        client = session.create_client('s3', region_name='us-west-2')
+        client = yield from session.create_client('s3', region_name='us-west-2')
         debug_log = StringIO()
         session.set_stream_logger('', logging.DEBUG, debug_log)
         client.list_buckets()
@@ -98,9 +100,10 @@ class TestResponseLog(unittest.TestCase):
 
 
 class TestAcceptedDateTimeFormats(unittest.TestCase):
+
     def setUp(self):
         self.session = botocore.session.get_session()
-        self.client = self.session.create_client('emr', 'us-west-2')
+        self.client = yield from self.session.create_client('emr', 'us-west-2')
 
     def test_accepts_datetime_object(self):
         response = self.client.list_clusters(
@@ -137,7 +140,7 @@ class TestClientCanBeCloned(unittest.TestCase):
         # a service object:
         service = self.session.get_service('s3')
         # We should also be able to create a client object.
-        client = self.session.create_client('s3', region_name='us-west-2')
+        client = yield from self.session.create_client('s3', region_name='us-west-2')
         # We really just want to ensure create_client doesn't raise
         # an exception, but we'll double check that the client looks right.
         self.assertTrue(hasattr(client, 'list_buckets'))

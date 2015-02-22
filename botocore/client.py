@@ -27,7 +27,7 @@ import botocore.serialize
 from botocore import credentials
 from botocore.signers import RequestSigner
 from botocore.endpoint import EndpointCreator
-
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -267,11 +267,12 @@ class ClientCreator(object):
 
     def _create_api_method(self, py_operation_name, operation_name,
                            service_model):
+        @asyncio.coroutine
         def _api_call(self, **kwargs):
             operation_model = service_model.operation_model(operation_name)
             event_name = (
                 'before-parameter-build.{endpoint_prefix}.{operation_name}')
-            self.meta.events.emit(
+            yield from self.meta.events.emit(
                 event_name.format(
                     endpoint_prefix=service_model.endpoint_prefix,
                     operation_name=operation_name),
@@ -280,7 +281,7 @@ class ClientCreator(object):
             request_dict = self._serializer.serialize_to_request(
                 kwargs, operation_model)
 
-            self.meta.events.emit(
+            yield from self.meta.events.emit(
                 'before-call.{endpoint_prefix}.{operation_name}'.format(
                     endpoint_prefix=service_model.endpoint_prefix,
                     operation_name=operation_name),
@@ -288,10 +289,10 @@ class ClientCreator(object):
                 request_signer=self._request_signer
             )
 
-            http, parsed_response = self._endpoint.make_request(
+            http, parsed_response = yield from self._endpoint.make_request(
                 operation_model, request_dict)
 
-            self.meta.events.emit(
+            yield from self.meta.events.emit(
                 'after-call.{endpoint_prefix}.{operation_name}'.format(
                     endpoint_prefix=service_model.endpoint_prefix,
                     operation_name=operation_name),

@@ -16,9 +16,10 @@ import os
 import logging
 import time
 import threading
+import asyncio
 
-from botocore.vendored.requests.sessions import Session
-from botocore.vendored.requests.utils import get_environ_proxies
+from yieldfrom.requests.sessions import Session
+from yieldfrom.requests.utils import get_environ_proxies
 
 import botocore.response
 import botocore.exceptions
@@ -35,7 +36,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60
 NOT_SET = object()
 
-
+@asyncio.coroutine
 def convert_to_response_dict(http_response, operation_model):
     """Convert an HTTP response object to a request dict.
 
@@ -57,12 +58,12 @@ def convert_to_response_dict(http_response, operation_model):
         'status_code': http_response.status_code,
     }
     if response_dict['status_code'] >= 300:
-        response_dict['body'] = http_response.content
+        response_dict['body'] = yield from http_response.content
     elif operation_model.has_streaming_output:
         response_dict['body'] = StreamingBody(
             http_response.raw, response_dict['headers'].get('content-length'))
     else:
-        response_dict['body'] = http_response.content
+        response_dict['body'] = yield from http_response.content
     return response_dict
 
 
@@ -99,18 +100,21 @@ class Endpoint(object):
     def __repr__(self):
         return '%s(%s)' % (self._endpoint_prefix, self.host)
 
+    @asyncio.coroutine
     def make_request(self, operation_model, request_dict):
         logger.debug("Making request for %s (verify_ssl=%s) with params: %s",
                      operation_model, self.verify, request_dict)
-        return self._send_request(request_dict, operation_model)
+        _r = yield from self._send_request(request_dict, operation_model)
+        return _r
 
+    @asyncio.coroutine
     def create_request(self, params, operation_model=None):
         request = self._create_request_object(params)
         if operation_model:
             event_name = 'request-created.{endpoint_prefix}.{op_name}'.format(
                 endpoint_prefix=self._endpoint_prefix,
                 op_name=operation_model.name)
-            self._event_emitter.emit(event_name, request=request,
+            yield from self._event_emitter.emit(event_name, request=request,
                 operation_name=operation_model.name)
         prepared_request = self.prepare_request(
             request)
@@ -136,13 +140,14 @@ class Endpoint(object):
     def prepare_request(self, request):
         return request.prepare()
 
+    @asyncio.coroutine
     def _send_request(self, request_dict, operation_model):
         attempts = 1
-        request = self.create_request(request_dict, operation_model)
-        response, exception = self._get_response(
+        request = yield from self.create_request(request_dict, operation_model)
+        response, exception = yield from self._get_response(
             request, operation_model, attempts)
-        while self._needs_retry(attempts, operation_model,
-                                response, exception):
+        while (yield from self._needs_retry(attempts, operation_model,
+                                response, exception)):
             attempts += 1
             # If there is a stream associated with the request, we need
             # to reset it before attempting to send the request again.
@@ -150,16 +155,18 @@ class Endpoint(object):
             # body.
             request.reset_stream()
             # Create a new request when retried (including a new signature).
-            request = self.create_request(
+            request = yield from self.create_request(
                 request_dict, operation_model=operation_model)
-            response, exception = self._get_response(request, operation_model,
+            response, exception = yield from self._get_response(request, operation_model,
                                                      attempts)
+
         return response
 
+    @asyncio.coroutine
     def _get_response(self, request, operation_model, attempts):
         try:
             logger.debug("Sending http request: %s", request)
-            http_response = self.http_session.send(
+            http_response = yield from self.http_session.send(
                 request, verify=self.verify,
                 stream=operation_model.has_streaming_output,
                 proxies=self.proxies, timeout=self.timeout)
@@ -168,7 +175,7 @@ class Endpoint(object):
                          exc_info=True)
             return (None, e)
         # This returns the http_response and the parsed_data.
-        response_dict = convert_to_response_dict(http_response,
+        response_dict = yield from convert_to_response_dict(http_response,
                                                  operation_model)
         parser = self._response_parser_factory.create_parser(
             operation_model.metadata['protocol'])
@@ -176,11 +183,12 @@ class Endpoint(object):
                                              operation_model.output_shape)),
                 None)
 
+    @asyncio.coroutine
     def _needs_retry(self, attempts, operation_model, response=None,
                      caught_exception=None):
         event_name = 'needs-retry.%s.%s' % (self._endpoint_prefix,
                                             operation_model.name)
-        responses = self._event_emitter.emit(
+        responses = yield from self._event_emitter.emit(
             event_name, response=response, endpoint=self,
             operation=operation_model, attempts=attempts,
             caught_exception=caught_exception)

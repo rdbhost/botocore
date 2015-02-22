@@ -25,7 +25,7 @@ class TestEC2(unittest.TestCase):
         service = self.session.get_service('ec2')
         endpoint = service.get_endpoint('us-west-2')
         operation = service.get_operation('DescribeAvailabilityZones')
-        http, result = operation.call(endpoint)
+        http, result = yield from operation.call(endpoint)
         zones = list(sorted(a['ZoneName'] for a in result['AvailabilityZones']))
         self.assertEqual(zones, ['us-west-2a', 'us-west-2b', 'us-west-2c'])
 
@@ -69,7 +69,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
         self.copy_snapshot = self.service.get_operation('CopySnapshot')
         # However, all the test fixture setup/cleanup can use
         # the client interface.
-        self.client = self.session.create_client('ec2', 'us-west-2')
+        self.client = yield from self.session.create_client('ec2', 'us-west-2')
         self.us_east_1 = self.service.get_endpoint('us-east-1')
         self.us_west_2 = self.service.get_endpoint('us-west-2')
 
@@ -92,7 +92,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
         return snapshot_id
 
     def cleanup_copied_snapshot(self, snapshot_id):
-        dest_client = self.session.create_client('ec2', 'us-east-1')
+        dest_client = yield from self.session.create_client('ec2', 'us-east-1')
         self.addCleanup(dest_client.delete_snapshot,
                         SnapshotId=snapshot_id)
         dest_client.get_waiter('snapshot_completed').wait(

@@ -65,13 +65,13 @@ class TestElasticTranscoder(unittest.TestCase):
 
     def test_list_streams(self):
         operation = self.service.get_operation('ListPipelines')
-        http, parsed = operation.call(self.endpoint)
+        http, parsed = yield from operation.call(self.endpoint)
         self.assertEqual(http.status_code, 200)
         self.assertIn('Pipelines', parsed)
 
     def test_list_presets(self):
         operation = self.service.get_operation('ListPresets')
-        http, parsed = operation.call(self.endpoint, ascending='true')
+        http, parsed = yield from operation.call(self.endpoint, ascending='true')
         self.assertEqual(http.status_code, 200)
         self.assertIn('Presets', parsed)
 
@@ -84,7 +84,7 @@ class TestElasticTranscoder(unittest.TestCase):
         pipeline_name = 'botocore-test-create-%s' % (random.randint(1, 1000000))
 
         operation = self.service.get_operation('CreatePipeline')
-        http, parsed = operation.call(
+        http, parsed = yield from operation.call(
             self.endpoint, input_bucket=input_bucket, output_bucket=output_bucket,
             role=role, name=pipeline_name,
             notifications={'Progressing': '', 'Completed': '',

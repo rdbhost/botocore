@@ -90,7 +90,7 @@ def test_can_make_request():
 
 def _make_call(service, endpoint, operation_name, kwargs):
     operation = service.get_operation(operation_name)
-    response, parsed = operation.call(endpoint, **kwargs)
+    response, parsed = yield from operation.call(endpoint, **kwargs)
     assert_equals(response.status_code, 200)
 
 
@@ -99,7 +99,7 @@ def test_can_make_request_with_client():
     # instead of service/operations.
     session = botocore.session.get_session()
     for service_name in SMOKE_TESTS:
-        client = session.create_client(service_name, region_name=REGION)
+        client = yield from session.create_client(service_name, region_name=REGION)
         for operation_name in SMOKE_TESTS[service_name]:
             kwargs = SMOKE_TESTS[service_name][operation_name]
             method_name = xform_name(operation_name)
@@ -115,7 +115,7 @@ def _make_client_call(client, operation_name, kwargs):
 def test_can_make_request_and_understand_errors_with_client():
     session = botocore.session.get_session()
     for service_name in ERROR_TESTS:
-        client = session.create_client(service_name, region_name=REGION)
+        client = yield from session.create_client(service_name, region_name=REGION)
         for operation_name in ERROR_TESTS[service_name]:
             kwargs = ERROR_TESTS[service_name][operation_name]
             method_name = xform_name(operation_name)
@@ -136,7 +136,7 @@ def _make_error_client_call(client, operation_name, kwargs):
 def test_can_retry_request_properly():
     session = botocore.session.get_session()
     for service_name in SMOKE_TESTS:
-        client = session.create_client(service_name, region_name=REGION)
+        client = yield from session.create_client(service_name, region_name=REGION)
         for operation_name in SMOKE_TESTS[service_name]:
             kwargs = SMOKE_TESTS[service_name][operation_name]
             yield (_make_call_with_errors, session, service_name,
@@ -157,7 +157,7 @@ def _make_call_with_errors(session, service_name,
             return original_send(self, *args, **kwargs)
     with mock.patch('botocore.vendored.requests.adapters.HTTPAdapter.send',
                     mock_http_adapter_send):
-        response = operation.call(endpoint, **kwargs)[1]
+        response = yield from operation.call(endpoint, **kwargs)[1]
         assert_true('Error' not in response,
                     "Request was not retried properly, "
                     "received error:\n%s" % pformat(response))

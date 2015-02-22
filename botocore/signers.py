@@ -11,6 +11,8 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import asyncio
+
 import botocore
 import botocore.auth
 
@@ -57,6 +59,7 @@ class RequestSigner(object):
         # can be used for many requests in a single client.
         self._cache = {}
 
+    @asyncio.coroutine
     def sign(self, operation_name, request):
         """
         Sign a request before it goes out over the wire.
@@ -72,7 +75,7 @@ class RequestSigner(object):
         # Allow overriding signature version. A response of a blank
         # string means no signing is performed. A response of ``None``
         # means that the default signing method is used.
-        handler, response = self._event_emitter.emit_until_response(
+        handler, response = yield from self._event_emitter.emit_until_response(
             'choose-signer.{0}.{1}'.format(self._service_name, operation_name),
             signing_name=self._signing_name, region_name=self._region_name,
             signature_version=signature_version)
@@ -80,7 +83,7 @@ class RequestSigner(object):
             signature_version = response
 
         # Allow mutating request before signing
-        self._event_emitter.emit(
+        yield from self._event_emitter.emit(
             'before-sign.{0}.{1}'.format(self._service_name, operation_name),
             request=request, signing_name=self._signing_name,
             region_name=self._region_name,

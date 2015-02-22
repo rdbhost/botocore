@@ -31,7 +31,7 @@ class TestCanChangeParsing(unittest.TestCase):
         # objects, but we should also add a test for clients.
         s3 = self.session.get_service('s3')
         endpoint = s3.get_endpoint('us-west-2')
-        http, parsed = s3.get_operation('ListBuckets').call(endpoint)
+        http, parsed = yield from s3.get_operation('ListBuckets').call(endpoint)
         dates = [bucket['CreationDate'] for bucket in parsed['Buckets']]
         self.assertTrue(all(isinstance(date, str) for date in dates))
 
@@ -42,7 +42,7 @@ class TestCanChangeParsing(unittest.TestCase):
         # Now if we get a response with timestamps in the model, they
         # will be returned as strings. We're testing service/operation
         # objects, but we should also add a test for clients.
-        s3 = self.session.create_client('s3', 'us-west-2')
+        s3 = yield from self.session.create_client('s3', 'us-west-2')
         parsed = s3.list_buckets()
         dates = [bucket['CreationDate'] for bucket in parsed['Buckets']]
         self.assertTrue(all(isinstance(date, str) for date in dates),

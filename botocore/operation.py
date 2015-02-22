@@ -25,7 +25,7 @@ from botocore import BotoCoreObject, xform_name
 
 from botocore.validate import ParamValidator
 from botocore.exceptions import ParamValidationError
-
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +98,7 @@ class Operation(BotoCoreObject):
 
         return signature_version, region_name
 
+    @asyncio.coroutine
     def call(self, endpoint, **kwargs):
         logger.debug("%s called with kwargs: %s", self, kwargs)
         # It probably seems a little weird to be firing two different
@@ -110,19 +111,19 @@ class Operation(BotoCoreObject):
         event = self.session.create_event('before-parameter-build',
                                           self.service.endpoint_prefix,
                                           self.name)
-        self.session.emit(event, endpoint=endpoint,
+        yield from self.session.emit(event, endpoint=endpoint,
                           model=self.model,
                           params=kwargs)
         request_dict = self.build_parameters(**kwargs)
 
         service_name = self.service.service_name
-        service_model = self.session.get_service_model(service_name)
+        service_model = yield from self.session.get_service_model(service_name)
 
         signature_version, region_name = \
             self._get_signature_version_and_region(
                 endpoint, service_model)
 
-        credentials = self.session.get_credentials()
+        credentials = yield from self.session.get_credentials()
         event_emitter = self.session.get_component('event_emitter')
         signer = RequestSigner(service_model.service_name,
                                region_name, service_model.signing_name,
@@ -135,7 +136,7 @@ class Operation(BotoCoreObject):
         # The operation kwargs is being passed in kwargs to support
         # handlers that still depend on this value.  Eventually
         # everything should move over to the model/endpoint args.
-        self.session.emit(event, endpoint=endpoint,
+        yield from self.session.emit(event, endpoint=endpoint,
                           model=self.model,
                           params=request_dict,
                           operation=self,
@@ -147,6 +148,7 @@ class Operation(BotoCoreObject):
         # issues. It's possible a request will be signed more than
         # once. Once the request has been made, we unregister the
         # handler.
+        @asyncio.coroutine
         def request_created(request, **kwargs):
             # This first check lets us quickly determine when
             # a request has already been signed without needing
@@ -154,14 +156,16 @@ class Operation(BotoCoreObject):
             if not getattr(request, '_is_signed', False):
                 with threading.Lock():
                     if not getattr(request, '_is_signed', False):
-                        signer.sign(self.name, request)
+                        yield from signer.sign(self.name, request)
                         request._is_signed = True
 
         event_emitter.register('request-created.{0}.{1}'.format(
             self.service.endpoint_prefix, self.name), request_created)
 
         try:
-            response = endpoint.make_request(self.model, request_dict)
+            response = yield from endpoint.make_request(self.model, request_dict)
+            #response = response[0]
+            #response.content
         finally:
             event_emitter.unregister('request-created.{0}.{1}'.format(
                 self.service.endpoint_prefix, self.name), request_created)
@@ -169,7 +173,7 @@ class Operation(BotoCoreObject):
         event = self.session.create_event('after-call',
                                           self.service.endpoint_prefix,
                                           self.name)
-        self.session.emit(event,
+        yield from self.session.emit(event,            # LocationConstraint problem in here
                           http_response=response[0],
                           model=self.model,
                           operation=self,

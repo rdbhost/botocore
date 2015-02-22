@@ -24,7 +24,7 @@ from botocore.awsrequest import AWSRequest
 from botocore.compat import quote, six
 from botocore.model import OperationModel, ServiceModel
 from botocore import handlers
-
+import asyncio
 
 class TestHandlers(BaseSessionTest):
 
@@ -72,7 +72,7 @@ class TestHandlers(BaseSessionTest):
         request_signer._region_name = 'us-east-1'
 
         params = {'SourceRegion': 'us-west-2'}
-        handlers.copy_snapshot_encrypted(operation, {'body': params},
+        yield from handlers.copy_snapshot_encrypted(operation, {'body': params},
                                          request_signer)
         self.assertEqual(params['PresignedUrl'], 'SIGNED_REQUEST')
         # We created an endpoint in the source region.
@@ -98,12 +98,13 @@ class TestHandlers(BaseSessionTest):
         # The user provides us-east-1, but we will override this to
         # endpoint.region_name, of 'us-west-1' in this case.
         params = {'SourceRegion': 'us-west-2', 'DestinationRegion': 'us-east-1'}
-        handlers.copy_snapshot_encrypted(operation, {'body': params},
+        yield from handlers.copy_snapshot_encrypted(operation, {'body': params},
                                          request_signer)
         # Always use the DestinationRegion from the endpoint, regardless of
         # whatever value the user provides.
         self.assertEqual(params['DestinationRegion'], 'us-west-1')
 
+    @asyncio.coroutine
     def test_500_status_code_set_for_200_response(self):
         http_response = mock.Mock()
         http_response.status_code = 200
@@ -114,22 +115,24 @@ class TestHandlers(BaseSessionTest):
               <RequestId>id</RequestId>
               <HostId>hostid</HostId>
             </Error>
-        """
-        handlers.check_for_200_error((http_response, {}))
+        """ # should be generator
+        yield from handlers.check_for_200_error((http_response, {}))
         self.assertEqual(http_response.status_code, 500)
 
+    @asyncio.coroutine
     def test_200_response_with_no_error_left_untouched(self):
         http_response = mock.Mock()
         http_response.status_code = 200
-        http_response.content = "<NotAnError></NotAnError>"
-        handlers.check_for_200_error((http_response, {}))
+        http_response.content = "<NotAnError></NotAnError>" # should be generator
+        yield from handlers.check_for_200_error((http_response, {}))
         # We don't touch the status code since there are no errors present.
         self.assertEqual(http_response.status_code, 200)
 
+    @asyncio.coroutine
     def test_500_response_can_be_none(self):
         # A 500 response can raise an exception, which means the response
         # object is None.  We need to handle this case.
-        handlers.check_for_200_error(None)
+        yield from handlers.check_for_200_error(None)
 
     def test_sse_params(self):
         for op in ('HeadObject', 'GetObject', 'PutObject', 'CopyObject',

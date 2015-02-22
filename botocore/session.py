@@ -37,6 +37,7 @@ from botocore import regions
 from botocore.model import ServiceModel
 import botocore.service
 from botocore import waiter
+import asyncio
 
 
 class Session(object):
@@ -145,7 +146,7 @@ class Session(object):
         if session_vars:
             self.session_var_map.update(session_vars)
         if event_hooks is None:
-            self._events = HierarchicalEmitter()
+            self._events = HierarchicalEmitter()  # HierarchicalEmitter has coroutine emit, _emit
         else:
             self._events = event_hooks
         if include_builtin_handlers:
@@ -212,7 +213,7 @@ class Session(object):
                 event_name, handler, register_type = spec
                 if register_type is handlers.REGISTER_FIRST:
                     self._events.register_first(event_name, handler)
-                elif register_first is handlers.REGISTER_LAST:
+                elif register_type is handlers.REGISTER_LAST:  # typo correction?
                     self._events.register_last(event_name, handler)
 
     @property
@@ -429,7 +430,7 @@ class Session(object):
         self._credentials = botocore.credentials.Credentials(access_key,
                                                              secret_key,
                                                              token)
-
+    @asyncio.coroutine
     def get_credentials(self):
         """
         Return the :class:`botocore.credential.Credential` object
@@ -440,8 +441,7 @@ class Session(object):
 
         """
         if self._credentials is None:
-            self._credentials = self._components.get_component(
-                'credential_provider').load_credentials()
+            self._credentials = yield from self._components.get_component('credential_provider').load_credentials()
         return self._credentials
 
     def user_agent(self):
@@ -484,6 +484,7 @@ class Session(object):
         """
         return self.get_component('data_loader').load_data(data_path)
 
+    @asyncio.coroutine
     def get_service_model(self, service_name, api_version=None):
         """Get the service model object.
 
@@ -498,7 +499,7 @@ class Session(object):
         :return: The botocore service model for the service.
 
         """
-        service_description = self.get_service_data(service_name, api_version)
+        service_description = yield from self.get_service_data(service_name, api_version)
         return ServiceModel(service_description)
 
     def get_waiter_model(self, service_name, api_version=None):
@@ -509,6 +510,7 @@ class Session(object):
         waiter_config = loader.load_data(waiter_path)
         return waiter.WaiterModel(waiter_config)
 
+    @asyncio.coroutine
     def get_service_data(self, service_name, api_version=None):
         """
         Retrieve the fully merged data associated with a service.
@@ -519,7 +521,7 @@ class Session(object):
             api_version=api_version
         )
         event_name = self.create_event('service-data-loaded', service_name)
-        self._events.emit(event_name, service_data=service_data,
+        yield from self._events.emit(event_name, service_data=service_data,
                           service_name=service_name, session=self)
         return service_data
 
@@ -531,6 +533,7 @@ class Session(object):
         return self.get_component('data_loader')\
                 .list_available_services(data_path)
 
+    @asyncio.coroutine
     def get_service(self, service_name, api_version=None):
         """
         Get information about a service.
@@ -540,11 +543,11 @@ class Session(object):
 
         :returns: :class:`botocore.service.Service`
         """
-        service = botocore.service.get_service(self, service_name,
+        service = yield from botocore.service.get_service(self, service_name,
                                                self.provider,
                                                api_version=api_version)
         event = self.create_event('service-created')
-        self._events.emit(event, service=service)
+        yield from self._events.emit(event, service=service)
         return service
 
     def set_debug_logger(self, logger_name='botocore'):
@@ -731,11 +734,13 @@ class Session(object):
             return event
         raise EventNotFound(event_name=event_name)
 
+    @asyncio.coroutine
     def emit(self, event_name, **kwargs):
-        return self._events.emit(event_name, **kwargs)
+        return (yield from self._events.emit(event_name, **kwargs))
 
+    @asyncio.coroutine
     def emit_first_non_none_response(self, event_name, **kwargs):
-        responses = self._events.emit(event_name, **kwargs)
+        responses = yield from self._events.emit(event_name, **kwargs)
         return first_non_none_response(responses)
 
     def get_component(self, name):
@@ -747,6 +752,7 @@ class Session(object):
     def lazy_register_component(self, name, component):
         self._components.lazy_register_component(name, component)
 
+    @asyncio.coroutine
     def create_client(self, service_name, region_name=None, api_version=None,
                       use_ssl=True, verify=None, endpoint_url=None,
                       aws_access_key_id=None, aws_secret_access_key=None,
@@ -824,12 +830,12 @@ class Session(object):
                 secret_key=aws_secret_access_key,
                 token=aws_session_token)
         else:
-            credentials = self.get_credentials()
+            credentials = yield from self.get_credentials()
         endpoint_resolver = self.get_component('endpoint_resolver')
         client_creator = botocore.client.ClientCreator(
             loader, endpoint_resolver, self.user_agent(), event_emitter,
             response_parser_factory)
-        client = client_creator.create_client(
+        client = yield from client_creator.create_client(
             service_name, region_name, use_ssl, endpoint_url, verify,
             credentials, scoped_config=self.get_scoped_config(),
             client_config=config)

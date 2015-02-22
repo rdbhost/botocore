@@ -17,10 +17,12 @@ import functools
 import logging
 from binascii import crc32
 
-from botocore.vendored.requests import ConnectionError, Timeout
-from botocore.vendored.requests.packages.urllib3.exceptions import ClosedPoolError
+from yieldfrom.requests import ConnectionError, Timeout
+from yieldfrom.urllib3.exceptions import ClosedPoolError
 
 from botocore.exceptions import ChecksumError
+import asyncio
+import types
 
 
 logger = logging.getLogger(__name__)
@@ -170,6 +172,7 @@ class RetryHandler(object):
         self._checker = checker
         self._action = action
 
+    @asyncio.coroutine
     def __call__(self, attempts, response, caught_exception, **kwargs):
         """Handler for a retry.
 
@@ -177,7 +180,8 @@ class RetryHandler(object):
         this will process retries appropriately.
 
         """
-        if self._checker(attempts, response, caught_exception):
+        checker_res = yield from self._checker(attempts, response, caught_exception)
+        if checker_res:
             result = self._action(attempts=attempts)
             logger.debug("Retry needed, action of: %s", result)
             return result
@@ -191,6 +195,7 @@ class BaseChecker(object):
     whether or not a retry should not happen.
 
     """
+    @asyncio.coroutine
     def __call__(self, attempt_number, response, caught_exception):
         """Determine if retry criteria matches.
 
@@ -214,12 +219,13 @@ class BaseChecker(object):
         # The default implementation allows subclasses to not have to check
         # whether or not response is None or not.
         if response is not None:
-            return self._check_response(attempt_number, response)
+            return (yield from self._check_response(attempt_number, response))
         elif caught_exception is not None:
             return self._check_caught_exception(attempt_number, caught_exception)
         else:
             raise ValueError("Both response and caught_exception are None.")
 
+    @asyncio.coroutine
     def _check_response(self, attempt_number, response):
         pass
 
@@ -242,6 +248,7 @@ class MaxAttemptsDecorator(BaseChecker):
         self._max_attempts = max_attempts
         self._retryable_exceptions = retryable_exceptions
 
+    @asyncio.coroutine
     def __call__(self, attempt_number, response, caught_exception):
         should_retry = self._should_retry(attempt_number, response,
                                           caught_exception)
@@ -274,6 +281,7 @@ class HTTPStatusCodeChecker(BaseChecker):
     def __init__(self, status_code):
         self._status_code = status_code
 
+    @asyncio.coroutine
     def _check_response(self, attempt_number, response):
         if response[0].status_code == self._status_code:
             logger.debug(
@@ -289,6 +297,7 @@ class ServiceErrorCodeChecker(BaseChecker):
         self._status_code = status_code
         self._error_code = error_code
 
+    @asyncio.coroutine
     def _check_response(self, attempt_number, response):
         if response[0].status_code == self._status_code:
             actual_error_code = response[1].get('Error', {}).get('Code')
@@ -301,13 +310,16 @@ class ServiceErrorCodeChecker(BaseChecker):
 
 
 class MultiChecker(BaseChecker):
+
     def __init__(self, checkers):
         self._checkers = checkers
 
+    @asyncio.coroutine
     def __call__(self, attempt_number, response, caught_exception):
         for checker in self._checkers:
-            checker_response = checker(attempt_number, response,
+            checker_response = yield from checker(attempt_number, response,
                                        caught_exception)
+            assert type(checker_response) is not types.GeneratorType
             if checker_response:
                 return checker_response
         return False
@@ -318,6 +330,7 @@ class CRC32Checker(BaseChecker):
         # The header where the expected crc32 is located.
         self._header_name = header
 
+    @asyncio.coroutine
     def _check_response(self, attempt_number, response):
         http_response = response[0]
         expected_crc = http_response.headers.get(self._header_name)
@@ -325,7 +338,8 @@ class CRC32Checker(BaseChecker):
             logger.debug("crc32 check skipped, the %s header is not "
                          "in the http response.", self._header_name)
         else:
-            actual_crc32 = crc32(response[0].content) & 0xffffffff
+            content = yield from response[0].content
+            actual_crc32 = crc32(content) & 0xffffffff
             if not actual_crc32 == int(expected_crc):
                 logger.debug(
                     "retry needed: crc32 check failed, expected != actual: "

@@ -16,6 +16,7 @@ import datetime
 import functools
 import logging
 import os
+import asyncio
 
 from botocore.compat import six
 from six.moves import configparser
@@ -67,9 +68,10 @@ def create_credential_resolver(session):
     return resolver
 
 
+@asyncio.coroutine
 def get_credentials(session):
     resolver = create_credential_resolver(session)
-    return resolver.load_credentials()
+    return (yield from resolver.load_credentials())
 
 
 def _local_now():
@@ -139,8 +141,9 @@ class RefreshableCredentials(Credentials):
         return instance
 
     @property
+    @asyncio.coroutine
     def access_key(self):
-        self._refresh()
+        yield from self._refresh()
         return self._access_key
 
     @access_key.setter
@@ -148,8 +151,9 @@ class RefreshableCredentials(Credentials):
         self._access_key = value
 
     @property
+    @asyncio.coroutine
     def secret_key(self):
-        self._refresh()
+        yield from self._refresh()
         return self._secret_key
 
     @secret_key.setter
@@ -157,8 +161,9 @@ class RefreshableCredentials(Credentials):
         self._secret_key = value
 
     @property
+    @asyncio.coroutine
     def token(self):
-        self._refresh()
+        yield from self._refresh()
         return self._token
 
     @token.setter
@@ -184,11 +189,12 @@ class RefreshableCredentials(Credentials):
         logger.debug("Credentials need to be refreshed.")
         return True
 
+    @asyncio.coroutine
     def _refresh(self):
         if not self.refresh_needed():
             return
 
-        metadata = self._refresh_using()
+        metadata = yield from self._refresh_using()
         self._set_from_data(metadata)
 
     @staticmethod
@@ -247,12 +253,13 @@ class InstanceMetadataProvider(CredentialProvider):
     def __init__(self, iam_role_fetcher):
         self._role_fetcher = iam_role_fetcher
 
+    @asyncio.coroutine
     def load(self):
         fetcher = self._role_fetcher
         # We do the first request, to see if we get useful data back.
         # If not, we'll pass & move on to whatever's next in the credential
         # chain.
-        metadata = fetcher.retrieve_iam_role_credentials()
+        metadata = yield from fetcher.retrieve_iam_role_credentials()
         if not metadata:
             return None
         logger.info('Found credentials from IAM Role: %s', metadata['role_name'])
@@ -310,10 +317,12 @@ class EnvProvider(CredentialProvider):
                 var_mapping['token'] = [var_mapping['token']]
         return var_mapping
 
+    @asyncio.coroutine
     def load(self):
         """
         Search for credentials in explicit environment variables.
         """
+        yield None
         if self._mapping['access_key'] in self.environ:
             logger.info('Found credentials in environment variables.')
             access_key, secret_key = self._extract_creds_from_mapping(
@@ -346,10 +355,12 @@ class OriginalEC2Provider(CredentialProvider):
         self._environ = environ
         self._parser = parser
 
+    @asyncio.coroutine
     def load(self):
         """
         Search for a credential file used by original EC2 CLI tools.
         """
+        yield None
         if 'AWS_CREDENTIAL_FILE' in self._environ:
             full_path = os.path.expanduser(self._environ['AWS_CREDENTIAL_FILE'])
             creds = self._parser(full_path)
@@ -382,7 +393,9 @@ class SharedCredentialProvider(CredentialProvider):
             ini_parser = botocore.config.raw_config_parse
         self._ini_parser = ini_parser
 
+    @asyncio.coroutine
     def load(self):
+        yield None
         try:
             available_creds = self._ini_parser(self._creds_filename)
         except ConfigNotFound:
@@ -430,11 +443,13 @@ class ConfigProvider(CredentialProvider):
             config_parser = botocore.config.load_config
         self._config_parser = config_parser
 
+    @asyncio.coroutine
     def load(self):
         """
         If there is are credentials in the configuration associated with
         the session, use those.
         """
+        yield None
         try:
             full_config = self._config_parser(self._config_filename)
         except ConfigNotFound:
@@ -474,10 +489,12 @@ class BotoProvider(CredentialProvider):
         self._environ = environ
         self._ini_parser = ini_parser
 
+    @asyncio.coroutine
     def load(self):
         """
         Look for credentials in boto config file.
         """
+        yield None
         if self.BOTO_CONFIG_ENV in self._environ:
             potential_locations = [self._environ[self.BOTO_CONFIG_ENV]]
         else:
@@ -565,6 +582,7 @@ class CredentialResolver(object):
         offset = available_methods.index(name)
         self.providers.pop(offset)
 
+    @asyncio.coroutine
     def load_credentials(self):
         """
         Goes through the credentials chain, returning the first ``Credentials``
@@ -573,7 +591,7 @@ class CredentialResolver(object):
         # First provider to return a non-None response wins.
         for provider in self.providers:
             logger.debug("Looking for credentials via: %s", provider.METHOD)
-            creds = provider.load()
+            creds = yield from provider.load()
             if creds is not None:
                 return creds
 

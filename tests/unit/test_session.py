@@ -18,6 +18,7 @@ import os
 import logging
 import tempfile
 import shutil
+import asyncio
 
 import mock
 
@@ -130,7 +131,7 @@ class SessionTest(BaseSessionTest):
         temp_file = os.path.join(tempdir, 'file_logger')
         self.session.set_file_logger(logging.DEBUG, temp_file)
         self.addCleanup(self.close_log_file_handler, tempdir, temp_file)
-        self.session.get_credentials()
+        yield from self.session.get_credentials()
         self.assertTrue(os.path.isfile(temp_file))
         with open(temp_file) as logfile:
             s = logfile.read()
@@ -192,7 +193,7 @@ class SessionTest(BaseSessionTest):
         session.register('foo', lambda **kwargs: None)
         session.register('foo', lambda **kwargs: 'first')
         session.register('foo', lambda **kwargs: 'second')
-        response = session.emit_first_non_none_response('foo')
+        response = yield from session.emit_first_non_none_response('foo')
         self.assertEqual(response, 'first')
 
     def test_create_events(self):
@@ -328,7 +329,7 @@ class TestGetServiceModel(BaseSessionTest):
         loader = mock.Mock()
         loader.load_service_model.return_value = {}
         self.session.register_component('data_loader', loader)
-        model = self.session.get_service_model('made_up')
+        model = yield from self.session.get_service_model('made_up')
         self.assertIsInstance(model, ServiceModel)
 
 
@@ -349,15 +350,18 @@ class TestGetWaiterModel(BaseSessionTest):
 
 
 class TestCreateClient(BaseSessionTest):
+
+    @asyncio.coroutine
     def test_can_create_client(self):
-        sts_client = self.session.create_client('sts', 'us-west-2')
+        sts_client = yield from self.session.create_client('sts', 'us-west-2')
         self.assertIsInstance(sts_client, client.BaseClient)
 
+    @asyncio.coroutine
     def test_credential_provider_not_called_when_creds_provided(self):
         cred_provider = mock.Mock()
         self.session.register_component(
             'credential_provider', cred_provider)
-        self.session.create_client(
+        yield from self.session.create_client(
             'sts', 'us-west-2',
             aws_access_key_id='foo',
             aws_secret_access_key='bar',
@@ -368,9 +372,10 @@ class TestCreateClient(BaseSessionTest):
                          "create_client call.")
 
     @mock.patch('botocore.client.ClientCreator')
+    @asyncio.coroutine
     def test_config_passed_to_client_creator(self, client_creator):
         config = client.Config()
-        self.session.create_client('sts', config=config)
+        yield from self.session.create_client('sts', config=config)
 
         client_creator.return_value.create_client.assert_called_with(
             mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY,

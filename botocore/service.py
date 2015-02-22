@@ -21,6 +21,7 @@ from .exceptions import UnknownEndpointError
 from .model import ServiceModel, OperationModel
 from .translate import denormalize_waiters
 from . import waiter
+import asyncio
 
 
 logger = logging.getLogger(__name__)
@@ -43,13 +44,7 @@ class Service(object):
     def __init__(self, session, provider, service_name,
                  path='/', port=None, api_version=None):
         self.timestamp_format = 'iso8601'
-        sdata = session.get_service_data(
-            service_name,
-            api_version=None
-        )
-        self._model = session.get_service_model(service_name)
-        self.__dict__.update(sdata)
-        self._operations_data = self.__dict__.pop('operations')
+        self._model = None  # complete with __init()
         self._operations = None
         self.session = session
         self.provider = provider
@@ -66,10 +61,21 @@ class Service(object):
         self.service_name = service_name
         self._signature_version = NOT_SET
         self._has_custom_signature_version = False
+
+    @asyncio.coroutine
+    def _init(self):
+        self._model = yield from self.session.get_service_model(self.service_name)
+        sdata = yield from self.session.get_service_data(
+            self.service_name,
+            api_version=None
+        )
+        self.__dict__.update(sdata)
+        self._operations_data = self.__dict__.pop('operations')
         # Not all services have a top level documentation key,
         # so we'll add one if needed.
         if 'documentation' not in self.__dict__:
             self.documentation = ''
+
 
     @property
     def service_full_name(self):
@@ -199,6 +205,7 @@ class Service(object):
         return config
 
 
+@asyncio.coroutine
 def get_service(session, service_name, provider, api_version=None):
     """
     Return a Service object for a given provider name and service name.
@@ -210,4 +217,6 @@ def get_service(session, service_name, provider, api_version=None):
     :param provider: The Provider object associated with the session.
     """
     logger.debug("Creating service object for: %s", service_name)
-    return Service(session, provider, service_name)
+    s = Service(session, provider, service_name)
+    yield from s._init()
+    return s
