@@ -12,6 +12,8 @@
 # language governing permissions and limitations under the License.
 
 import mock
+import asyncio
+import functools
 
 import botocore
 import botocore.auth
@@ -21,6 +23,19 @@ from botocore.exceptions import NoRegionError, UnknownSignatureVersionError
 from botocore.signers import RequestSigner
 
 from tests import unittest
+
+def async_test(f):
+
+    testLoop = asyncio.get_event_loop()
+
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        coro = asyncio.coroutine(f)
+        future = coro(*args, **kwargs)
+        testLoop.run_until_complete(future)
+    return wrapper
+
+async_test.__test__ = False # not a test
 
 
 class TestSigner(unittest.TestCase):
@@ -32,13 +47,20 @@ class TestSigner(unittest.TestCase):
             'service_name', 'region_name', 'signing_name',
             'v4', self.credentials, self.emitter)
 
+    @async_test
     def test_region_required_for_sigv4(self):
         self.signer = RequestSigner(
             'service_name', None, 'signing_name', 'v4', self.credentials,
             self.emitter)
+        _f = asyncio.Future()
+        _f.set_result( (None, None))
+        self.emitter.emit_until_response.return_value = _f
+        _g = asyncio.Future()
+        _g.set_result((None,))
+        self.emitter.emit.return_value = _g
 
         with self.assertRaises(NoRegionError):
-            self.signer.sign('operation_name', mock.Mock())
+            yield from self.signer.sign('operation_name', mock.Mock())
 
     def test_get_auth(self):
         auth_cls = mock.Mock()
@@ -77,37 +99,59 @@ class TestSigner(unittest.TestCase):
             self.signer.get_auth('service_name', 'region_name',
                                  signature_version='bad')
 
+    @async_test
     def test_emits_choose_signer(self):
         request = mock.Mock()
 
+        _f = asyncio.Future()
+        _f.set_result((None, 'v4'))
+        self.emitter.emit_until_response.return_value = _f
+        _g = asyncio.Future()
+        _g.set_result((None,))
+        self.emitter.emit.return_value = _g
+
         with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
                              {'v4': mock.Mock()}):
-            self.signer.sign('operation_name', request)
+            yield from self.signer.sign('operation_name', request)
 
         self.emitter.emit_until_response.assert_called_with(
             'choose-signer.service_name.operation_name',
             signing_name='signing_name', region_name='region_name',
             signature_version='v4')
 
+    @async_test
     def test_choose_signer_override(self):
         request = mock.Mock()
         auth = mock.Mock()
         auth.REQUIRES_REGION = False
-        self.emitter.emit_until_response.return_value = (None, 'custom')
+        _f = asyncio.Future()
+        _f.set_result( (None, 'custom'))
+        self.emitter.emit_until_response.return_value = _f
+        _g = asyncio.Future()
+        _g.set_result((None,))
+        self.emitter.emit.return_value = _g
 
         with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
                              {'custom': auth}):
-            self.signer.sign('operation_name', request)
+            yield from self.signer.sign('operation_name', request)
 
         auth.assert_called_with(credentials=self.credentials)
         auth.return_value.add_auth.assert_called_with(request=request)
 
+    @asyncio.coroutine
     def test_emits_before_sign(self):
         request = mock.Mock()
 
+        _f = asyncio.Future()
+        _f.set_result( (None, 'custom'))
+        self.emitter.emit_until_response.return_value = _f
+        _g = asyncio.Future()
+        _g.set_result((None,))
+        self.emitter.emit.return_value = _g
+
         with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
                              {'v4': mock.Mock()}):
-            self.signer.sign('operation_name', request)
+            yield from self.signer.sign('operation_name', request)
 
         self.emitter.emit.assert_called_with(
             'before-sign.service_name.operation_name',
@@ -119,11 +163,14 @@ class TestSigner(unittest.TestCase):
         # Returning botocore.UNSIGNED from choose-signer disables signing!
         request = mock.Mock()
         auth = mock.Mock()
+        _g = asyncio.Future()
+        _g.set_result((None,))
+        self.emitter.emit.return_value = _g
         self.emitter.emit_until_response.return_value = (None,
                                                          botocore.UNSIGNED)
 
         with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
                              {'v4': auth}):
-            self.signer.sign('operation_name', request)
+            yield from self.signer.sign('operation_name', request)
 
         auth.assert_not_called()

@@ -573,6 +573,8 @@ class HmacV1Auth(BaseSigner):
         signature = self.get_signature(request.method, split,
                                        request.headers,
                                        auth_path=request.auth_path)
+        logger.debug("Calculated signature: {}".format(signature))
+        logger.debug("Access_key: {}".format(self.credentials.access_key))
         if 'Authorization' in request.headers:
             # We have to do this because request.headers is not
             # normal dictionary.  It has the (unintuitive) behavior

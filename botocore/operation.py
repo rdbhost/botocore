@@ -173,7 +173,7 @@ class Operation(BotoCoreObject):
         event = self.session.create_event('after-call',
                                           self.service.endpoint_prefix,
                                           self.name)
-        yield from self.session.emit(event,            # LocationConstraint problem in here
+        yield from self.session.emit(event,
                           http_response=response[0],
                           model=self.model,
                           operation=self,

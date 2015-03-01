@@ -42,6 +42,7 @@ class StreamingBody(object):
         self._raw_stream = raw_stream
         self._content_length = content_length
         self._amount_read = 0
+        self._socket_timeout = 0
 
     def set_socket_timeout(self, timeout):
         """Set the timeout seconds on the socket."""
@@ -55,19 +56,21 @@ class StreamingBody(object):
         # grab the socket object, which we can set the timeout on.  We're
         # putting in a check here so in case this interface goes away, we'll
         # know.
-        try:
-            # To further complicate things, the way to grab the
-            # underlying socket object from an HTTPResponse is different
-            # in py2 and py3.  So this code has been pushed to botocore.compat.
-            set_socket_timeout(self._raw_stream, timeout)
-        except AttributeError:
-            logger.error("Cannot access the socket object of "
-                         "a streaming response.  It's possible "
-                         "the interface has changed.", exc_info=True)
-            raise
+        self._socket_timeout = timeout
+        # try:
+        #     # To further complicate things, the way to grab the
+        #     # underlying socket object from an HTTPResponse is different
+        #     # in py2 and py3.  So this code has been pushed to botocore.compat.
+        #     set_socket_timeout(self._raw_stream, timeout)
+        # except AttributeError:
+        #     logger.error("Cannot access the socket object of "
+        #                  "a streaming response.  It's possible "
+        #                  "the interface has changed.", exc_info=True)
+        #     raise
 
+    @asyncio.coroutine
     def read(self, amt=None):
-        chunk = self._raw_stream.read(amt)
+        chunk = yield from self._raw_stream.read(amt)
         self._amount_read += len(chunk)
         if not chunk or amt is None:
             # If the server sends empty contents or

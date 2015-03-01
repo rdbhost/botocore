@@ -76,8 +76,7 @@ class TestHMACV1(unittest.TestCase):
     def test_query_string(self):
         split = urlsplit('/quotes/nelson?uploads')
         pairs = [('Date', 'Thu, 17 Nov 2005 18:49:58 GMT')]
-        sig = self.hmacv1.get_signature('PUT', split,
-                                        HTTPHeaders.from_pairs(pairs))
+        sig = self.hmacv1.get_signature('PUT', split, HTTPHeaders.from_pairs(pairs))
         self.assertEqual(sig, 'P7pBz3Z4p3GxysRSJ/gR8nk7D4o=')
 
     def test_bucket_operations(self):
@@ -322,8 +321,7 @@ class TestSigV4Resign(unittest.TestCase):
     def setUp(self):
         self.credentials = botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
-        self.auth = botocore.auth.SigV4Auth(self.credentials,
-                                            'ec2', 'us-west-2')
+        self.auth = botocore.auth.SigV4Auth(self.credentials, 'ec2', 'us-west-2')
         self.request = AWSRequest()
         self.request.method = 'PUT'
         self.request.url = 'https://ec2.amazonaws.com/'

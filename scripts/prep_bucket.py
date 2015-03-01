@@ -13,7 +13,7 @@ import botocore.auth
 import botocore.credentials
 import yieldfrom.requests as requests
 
-BUCKET_NAME = 'botocoretest%s-%s' % (2, 2)  # (int(time.time()), random.randint(1, 1000))
+BUCKET_NAME = 'botocoretest%s-%s' % (1, 1)  # (int(time.time()), random.randint(1, 1000))
 BUCKET_LOCATION = 'us-west-2'
 
 
@@ -35,7 +35,7 @@ async_test.__test__ = False # not a test
 def create_bucket():
 
     session = botocore.session.get_session()
-    service = session.get_service('s3')
+    service = yield from session.get_service('s3')
     region = 'us-east-1'
     endpoint = service.get_endpoint(region)
 

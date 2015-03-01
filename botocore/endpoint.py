@@ -31,6 +31,7 @@ from botocore.hooks import first_non_none_response
 from botocore.response import StreamingBody
 from botocore import parsers
 
+import botocore.request_sessions_fixer
 
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60

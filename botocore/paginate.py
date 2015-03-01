@@ -69,7 +69,7 @@ class PageIterator(object):
         starting_truncation = 0
         self._inject_starting_params(current_kwargs)
         while True:
-            response = self._make_request(current_kwargs)
+            response = yield from self._make_request(current_kwargs)
             parsed = self._extract_parsed_response(response)
             if first_request:
                 # The first request is handled differently.  We could

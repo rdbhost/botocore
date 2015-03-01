@@ -217,6 +217,8 @@ def fix_s3_host(request, signature_version, region_name, **kwargs):
         else:
             logger.debug('Not changing URI, bucket is not DNS compatible: %s',
                          bucket_name)
+        #### todo - take this out
+        #request.url = 'https://botocoretest1-1.s3-us-west-2.amazonaws.com'
 
 
 def _is_get_bucket_location_request(request):

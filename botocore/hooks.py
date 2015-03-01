@@ -16,6 +16,7 @@ import asyncio
 
 from collections import defaultdict, deque, namedtuple
 from botocore.compat import accepts_kwargs, six
+import types
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +211,9 @@ class HierarchicalEmitter(BaseEventHooks):
         responses = []
         for handler in handlers_to_call:
             logger.debug('Event %s: calling handler %s', event_name, handler)
-            response = yield from asyncio.coroutine(handler)(**kwargs)
+            response = handler(**kwargs)
+            if type(response) == types.GeneratorType:
+                response = yield from response
             responses.append((handler, response))
             if stop_on_response and response is not None:
                 return responses

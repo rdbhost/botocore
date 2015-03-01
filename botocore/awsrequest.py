@@ -29,6 +29,7 @@ from yieldfrom.urllib3.connection import HTTPConnection
 from yieldfrom.urllib3.connectionpool import HTTPConnectionPool
 from yieldfrom.urllib3.connectionpool import HTTPSConnectionPool
 
+import botocore.request_sessions_fixer
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +41,14 @@ class AWSHTTPResponse(HTTPResponse):
         self._status_tuple = kwargs.pop('status_tuple')
         HTTPResponse.__init__(self, *args, **kwargs)
 
+    @asyncio.coroutine
     def _read_status(self):
         if self._status_tuple is not None:
             status_tuple = self._status_tuple
             self._status_tuple = None
             return status_tuple
         else:
-            return HTTPResponse._read_status(self)
+            return (yield from HTTPResponse._read_status(self))
 
 
 class AWSHTTPConnection(HTTPConnection):
@@ -138,9 +140,9 @@ class AWSHTTPConnection(HTTPConnection):
 
             # Wait for 1 second for the server to send a response.
             #read, write, exc = select.select([self.sock], [], [self.sock], 1)
-            read = yield from asyncio.wait_for(self.notSock.read(), 1.0)
+            read = yield from asyncio.wait_for(self.notSock.readexactly(1), 1.0)
             if read:
-                yield from self._handle_expect_response(message_body)
+                yield from self._handle_expect_response(read, message_body)
                 return
             else:
                 # From the RFC:
@@ -173,13 +175,14 @@ class AWSHTTPConnection(HTTPConnection):
             current = yield from fp.readline()
 
     @asyncio.coroutine
-    def _handle_expect_response(self, message_body):
+    def _handle_expect_response(self, begin, message_body):
         # This is called when we sent the request headers containing
         # an Expect: 100-continue header and received a response.
         # We now need to figure out what to do.
         fp = self.notSock  # self.sock.makefile('rb', 0)
         try:
             maybe_status_line = yield from fp.readline()
+            maybe_status_line = begin + maybe_status_line
             parts = maybe_status_line.split(None, 2)
             if self._is_100_continue_status(maybe_status_line):
                 yield from self._consume_headers(fp)
@@ -219,7 +222,7 @@ class AWSHTTPConnection(HTTPConnection):
     @asyncio.coroutine
     def send(self, str):
         if self._response_received:
-            logger.debug("send() called, but reseponse already received. "
+            logger.debug("send() called, but response already received. "
                          "Not sending data.")
             return
         _r = yield from HTTPConnection.send(self, str)

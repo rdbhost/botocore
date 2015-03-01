@@ -265,8 +265,7 @@ class ClientCreator(object):
             mapping[py_operation_name] = operation_name
         return mapping
 
-    def _create_api_method(self, py_operation_name, operation_name,
-                           service_model):
+    def _create_api_method(self, py_operation_name, operation_name, service_model):
         @asyncio.coroutine
         def _api_call(self, **kwargs):
             operation_model = service_model.operation_model(operation_name)
@@ -327,10 +326,11 @@ class BaseClient(object):
         if self.meta.events:
             self.meta.events.register('request-created', self._sign_request)
 
+    @asyncio.coroutine
     def _sign_request(self, operation_name=None, request=None, **kwargs):
         # Sign the request. This fires its own events and will
         # mutate the request as needed.
-        self._request_signer.sign(operation_name, request)
+        yield from self._request_signer.sign(operation_name, request)
 
     def clone_client(self, serializer=None, endpoint=None,
                      response_parser=None, request_signer=None):

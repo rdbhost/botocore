@@ -22,6 +22,22 @@ from botocore import credentials
 import botocore.exceptions
 import botocore.session
 from tests import unittest, BaseEnvVar
+import asyncio
+import functools
+
+def async_test(f):
+
+    testLoop = asyncio.get_event_loop()
+
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        coro = asyncio.coroutine(f)
+        future = coro(*args, **kwargs)
+        testLoop.run_until_complete(future)
+    return wrapper
+
+async_test.__test__ = False # not a test
+
 
 
 # Passed to session to keep it from finding default config file
@@ -53,6 +69,7 @@ def path(filename):
 
 
 class TestRefreshableCredentials(BaseEnvVar):
+
     def setUp(self):
         super(TestRefreshableCredentials, self).setUp()
         self.refresher = mock.Mock()
@@ -63,9 +80,10 @@ class TestRefreshableCredentials(BaseEnvVar):
             'expiry_time': '2015-03-07T15:24:46Z',
             'role_name': 'rolename',
         }
-        self.refresher.return_value = self.metadata
-        self.expiry_time = \
-            datetime.datetime.now(tzlocal()) - datetime.timedelta(minutes=30)
+        _f = asyncio.Future()
+        _f.set_result(self.metadata)
+        self.refresher.return_value = _f
+        self.expiry_time = datetime.datetime.now(tzlocal()) - datetime.timedelta(minutes=30)
         self.mock_time = mock.Mock()
         self.creds = credentials.RefreshableCredentials(
             'ORIGINAL-ACCESS', 'ORIGINAL-SECRET', 'ORIGINAL-TOKEN',
@@ -73,6 +91,7 @@ class TestRefreshableCredentials(BaseEnvVar):
             time_fetcher=self.mock_time
         )
 
+    @async_test
     def test_refresh_needed(self):
         # The expiry time was set for 30 minutes ago, so if we
         # say the current time is utcnow(), then we should need
@@ -81,10 +100,11 @@ class TestRefreshableCredentials(BaseEnvVar):
         self.assertTrue(self.creds.refresh_needed())
         # We should refresh creds, if we try to access "access_key"
         # or any of the cred vars.
-        self.assertEqual(self.creds.access_key, 'NEW-ACCESS')
-        self.assertEqual(self.creds.secret_key, 'NEW-SECRET')
-        self.assertEqual(self.creds.token, 'NEW-TOKEN')
+        self.assertEqual((yield from self.creds.access_key), 'NEW-ACCESS')
+        self.assertEqual((yield from self.creds.secret_key), 'NEW-SECRET')
+        self.assertEqual((yield from self.creds.token), 'NEW-TOKEN')
 
+    @async_test
     def test_no_refresh_needed(self):
         # The expiry time was 30 minutes ago, let's say it's an hour
         # ago currently.  That would mean we don't need a refresh.
@@ -92,13 +112,17 @@ class TestRefreshableCredentials(BaseEnvVar):
             datetime.datetime.now(tzlocal()) - datetime.timedelta(minutes=60))
         self.assertTrue(not self.creds.refresh_needed())
 
-        self.assertEqual(self.creds.access_key, 'ORIGINAL-ACCESS')
-        self.assertEqual(self.creds.secret_key, 'ORIGINAL-SECRET')
-        self.assertEqual(self.creds.token, 'ORIGINAL-TOKEN')
+        self.assertEqual((yield from self.creds.access_key), 'ORIGINAL-ACCESS')
+        self.assertEqual((yield from self.creds.secret_key), 'ORIGINAL-SECRET')
+        self.assertEqual((yield from self.creds.token), 'ORIGINAL-TOKEN')
+#        self.assertEqual(self.creds.access_key, 'ORIGINAL-ACCESS')
+#        self.assertEqual(self.creds.secret_key, 'ORIGINAL-SECRET')
+#        self.assertEqual(self.creds.token, 'ORIGINAL-TOKEN')
 
 
 class TestEnvVar(BaseEnvVar):
 
+    @async_test
     def test_envvars_are_found_no_token(self):
         environ = {
             'AWS_ACCESS_KEY_ID': 'foo',
@@ -111,6 +135,7 @@ class TestEnvVar(BaseEnvVar):
         self.assertEqual(creds.secret_key, 'bar')
         self.assertEqual(creds.method, 'env')
 
+    @async_test
     def test_envvars_found_with_security_token(self):
         environ = {
             'AWS_ACCESS_KEY_ID': 'foo',
@@ -125,6 +150,7 @@ class TestEnvVar(BaseEnvVar):
         self.assertEqual(creds.token, 'baz')
         self.assertEqual(creds.method, 'env')
 
+    @async_test
     def test_envvars_found_with_session_token(self):
         environ = {
             'AWS_ACCESS_KEY_ID': 'foo',
@@ -139,11 +165,13 @@ class TestEnvVar(BaseEnvVar):
         self.assertEqual(creds.token, 'baz')
         self.assertEqual(creds.method, 'env')
 
+    @async_test
     def test_envvars_not_found(self):
         provider = credentials.EnvProvider(environ={})
         creds = yield from provider.load()
         self.assertIsNone(creds)
 
+    @async_test
     def test_can_override_env_var_mapping(self):
         # We can change the env var provider to
         # use our specified env var names.
@@ -165,6 +193,7 @@ class TestEnvVar(BaseEnvVar):
         self.assertEqual(creds.secret_key, 'bar')
         self.assertEqual(creds.token, 'baz')
 
+    @async_test
     def test_can_override_partial_env_var_mapping(self):
         # Only changing the access key mapping.
         # The other 2 use the default values of
@@ -183,6 +212,7 @@ class TestEnvVar(BaseEnvVar):
         self.assertEqual(creds.secret_key, 'bar')
         self.assertEqual(creds.token, 'baz')
 
+    @async_test
     def test_partial_creds_is_an_error(self):
         # If the user provides an access key, they must also
         # provide a secret key.  Not doing so will generate an
@@ -201,6 +231,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         super(TestSharedCredentialsProvider, self).setUp()
         self.ini_parser = mock.Mock()
 
+    @async_test
     def test_credential_file_exists_default_profile(self):
         self.ini_parser.return_value = {
             'default': {
@@ -218,6 +249,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         self.assertIsNone(creds.token)
         self.assertEqual(creds.method, 'shared-credentials-file')
 
+    @async_test
     def test_partial_creds_raise_error(self):
         self.ini_parser.return_value = {
             'default': {
@@ -231,6 +263,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         with self.assertRaises(botocore.exceptions.PartialCredentialsError):
             yield from provider.load()
 
+    @async_test
     def test_credentials_file_exists_with_session_token(self):
         self.ini_parser.return_value = {
             'default': {
@@ -249,6 +282,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         self.assertEqual(creds.token, 'baz')
         self.assertEqual(creds.method, 'shared-credentials-file')
 
+    @async_test
     def test_credentials_file_with_multiple_profiles(self):
         self.ini_parser.return_value = {
             # Here the user has a 'default' and a 'dev' profile.
@@ -274,6 +308,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         self.assertEqual(creds.token, 'f')
         self.assertEqual(creds.method, 'shared-credentials-file')
 
+    @async_test
     def test_credentials_file_does_not_exist_returns_none(self):
         # It's ok if the credentials file does not exist, we should
         # just catch the appropriate errors and return None.
@@ -303,6 +338,7 @@ class TestConfigFileProvider(BaseEnvVar):
         parser.return_value = parsed
         self.parser = parser
 
+    @async_test
     def test_config_file_exists(self):
         provider = credentials.ConfigProvider('cli.cfg', 'default',
                                               self.parser)
@@ -313,6 +349,7 @@ class TestConfigFileProvider(BaseEnvVar):
         self.assertEqual(creds.token, 'c')
         self.assertEqual(creds.method, 'config-file')
 
+    @async_test
     def test_config_file_missing_profile_config(self):
         # Referring to a profile that's not in the config file
         # will result in session.config returning an empty dict.
@@ -322,6 +359,7 @@ class TestConfigFileProvider(BaseEnvVar):
         creds = yield from provider.load()
         self.assertIsNone(creds)
 
+    @async_test
     def test_config_file_errors_ignored(self):
         # We should move on to the next provider if the config file
         # can't be found.
@@ -332,6 +370,7 @@ class TestConfigFileProvider(BaseEnvVar):
         creds = yield from provider.load()
         self.assertIsNone(creds)
 
+    @async_test
     def test_partial_creds_is_error(self):
         profile_config = {
             'aws_access_key_id': 'a',
@@ -350,6 +389,7 @@ class TestBotoProvider(BaseEnvVar):
         super(TestBotoProvider, self).setUp()
         self.ini_parser = mock.Mock()
 
+    @async_test
     def test_boto_config_file_exists_in_home_dir(self):
         environ = {}
         self.ini_parser.return_value = {
@@ -369,6 +409,7 @@ class TestBotoProvider(BaseEnvVar):
         self.assertIsNone(creds.token)
         self.assertEqual(creds.method, 'boto-config')
 
+    @async_test
     def test_env_var_set_for_boto_location(self):
         environ = {
             'BOTO_CONFIG': 'alternate-config.cfg'
@@ -394,6 +435,7 @@ class TestBotoProvider(BaseEnvVar):
         # in the env var.
         self.ini_parser.assert_called_with('alternate-config.cfg')
 
+    @async_test
     def test_no_boto_config_file_exists(self):
         self.ini_parser.side_effect = botocore.exceptions.ConfigNotFound(
             path='foo')
@@ -402,6 +444,7 @@ class TestBotoProvider(BaseEnvVar):
         creds = yield from provider.load()
         self.assertIsNone(creds)
 
+    @async_test
     def test_partial_creds_is_error(self):
         ini_parser = mock.Mock()
         ini_parser.return_value = {
@@ -418,11 +461,13 @@ class TestBotoProvider(BaseEnvVar):
 
 class TestOriginalEC2Provider(BaseEnvVar):
 
+    @async_test
     def test_load_ec2_credentials_file_not_exist(self):
         provider = credentials.OriginalEC2Provider(environ={})
         creds = yield from provider.load()
         self.assertIsNone(creds)
 
+    @async_test
     def test_load_ec2_credentials_file_exists(self):
         environ = {
             'AWS_CREDENTIAL_FILE': 'foo.cfg',
@@ -443,24 +488,29 @@ class TestOriginalEC2Provider(BaseEnvVar):
 
 
 class TestInstanceMetadataProvider(BaseEnvVar):
+
+    @async_test
     def test_load_from_instance_metadata(self):
-        fetcher = mock.Mock()
-        fetcher.retrieve_iam_role_credentials.return_value = {
+
+        _f = asyncio.Future()
+        _f.set_result({
             'access_key': 'a',
             'secret_key': 'b',
             'token': 'c',
             'expiry_time': '2014-04-23T15:24:46Z',
             'role_name': 'myrole',
-        }
-        provider = credentials.InstanceMetadataProvider(
-            iam_role_fetcher=fetcher)
+        })
+        fetcher = mock.Mock()
+        fetcher.retrieve_iam_role_credentials.return_value = _f
+        provider = credentials.InstanceMetadataProvider(iam_role_fetcher=fetcher)
         creds = yield from provider.load()
         self.assertIsNotNone(creds)
-        self.assertEqual(creds.access_key, 'a')
-        self.assertEqual(creds.secret_key, 'b')
-        self.assertEqual(creds.token, 'c')
+        self.assertEqual((yield from creds.access_key), 'a')
+        self.assertEqual((yield from creds.secret_key), 'b')
+        self.assertEqual((yield from creds.token), 'c')
         self.assertEqual(creds.method, 'iam-role')
 
+    @async_test
     def test_no_role_creds_exist(self):
         fetcher = mock.Mock()
         fetcher.retrieve_iam_role_credentials.return_value = {}
@@ -480,19 +530,26 @@ class CredentialResolverTest(BaseEnvVar):
         self.provider2.METHOD = 'provider2'
         self.fake_creds = credentials.Credentials('a', 'b', 'c')
 
+    @async_test
     def test_load_credentials_single_provider(self):
-        self.provider1.load.return_value = self.fake_creds
+        _f = asyncio.Future()
+        _f.set_result(self.fake_creds)
+        self.provider1.load.return_value = _f
         resolver = credentials.CredentialResolver(providers=[self.provider1])
         creds = yield from resolver.load_credentials()
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
         self.assertEqual(creds.token, 'c')
 
+    @async_test
     def test_first_credential_non_none_wins(self):
-        self.provider1.load.return_value = None
-        self.provider2.load.return_value = self.fake_creds
-        resolver = credentials.CredentialResolver(providers=[self.provider1,
-                                                             self.provider2])
+        _f = asyncio.Future()
+        _f.set_result(None)
+        self.provider1.load.return_value = _f
+        _g = asyncio.Future()
+        _g.set_result(self.fake_creds)
+        self.provider2.load.return_value = _g
+        resolver = credentials.CredentialResolver(providers=[self.provider1, self.provider2])
         creds = yield from resolver.load_credentials()
         self.assertEqual(creds.access_key, 'a')
         self.assertEqual(creds.secret_key, 'b')
@@ -500,27 +557,40 @@ class CredentialResolverTest(BaseEnvVar):
         self.provider1.load.assert_called_with()
         self.provider2.load.assert_called_with()
 
+    @async_test
     def test_no_creds_loaded(self):
-        self.provider1.load.return_value = None
-        self.provider2.load.return_value = None
+        _f = asyncio.Future()
+        _f.set_result(None)
+        self.provider1.load.return_value = _f
+        _g = asyncio.Future()
+        _g.set_result(None)
+        self.provider2.load.return_value = _g
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
         creds = yield from resolver.load_credentials()
         self.assertIsNone(creds)
 
+    @async_test
     def test_inject_additional_providers_after_existing(self):
-        self.provider1.load.return_value = None
-        self.provider2.load.return_value = self.fake_creds
-        resolver = credentials.CredentialResolver(providers=[self.provider1,
-                                                             self.provider2])
+        _p1 = asyncio.Future()
+        _p1.set_result(None)
+        self.provider1.load.return_value = _p1
+        _p2 = asyncio.Future()
+        _p2.set_result(self.fake_creds)
+        self.provider2.load.return_value = _p2
+
+        resolver = credentials.CredentialResolver(providers=[self.provider1, self.provider2])
         # Now, if we were to call resolver.load() now, provider2 would
         # win because it's returning a non None response.
         # However we can inject a new provider before provider2 to
         # override this process.
         # Providers can be added by the METHOD name of each provider.
+        _f = asyncio.Future()
+        _f.set_result(credentials.Credentials('d', 'e', 'f'))
         new_provider = mock.Mock()
+        new_provider.load.return_value = _f
         new_provider.METHOD = 'new_provider'
-        new_provider.load.return_value = credentials.Credentials('d', 'e', 'f')
+#        new_provider.load.return_value = credentials.Credentials('d', 'e', 'f')
 
         resolver.insert_after('provider1', new_provider)
 
@@ -536,10 +606,13 @@ class CredentialResolverTest(BaseEnvVar):
         self.provider1.load.assert_called_with()
         self.assertTrue(not self.provider2.called)
 
+    @async_test
     def test_inject_provider_before_existing(self):
+        _f = asyncio.Future()
+        _f.set_result(credentials.Credentials('x', 'y', 'z'))
         new_provider = mock.Mock()
         new_provider.METHOD = 'override'
-        new_provider.load.return_value = credentials.Credentials('x', 'y', 'z')
+        new_provider.load.return_value = _f
 
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
@@ -549,11 +622,14 @@ class CredentialResolverTest(BaseEnvVar):
         self.assertEqual(creds.secret_key, 'y')
         self.assertEqual(creds.token, 'z')
 
+    @async_test
     def test_can_remove_providers(self):
-        self.provider1.load.return_value = credentials.Credentials(
-            'a', 'b', 'c')
-        self.provider2.load.return_value = credentials.Credentials(
-            'd', 'e', 'f')
+        _f = asyncio.Future()
+        _f.set_result(credentials.Credentials('a', 'b', 'c'))
+        self.provider1.load.return_value = _f
+        _g = asyncio.Future()
+        _g.set_result(credentials.Credentials('d', 'e', 'f'))
+        self.provider2.load.return_value = _g
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
         resolver.remove('provider1')
@@ -565,6 +641,7 @@ class CredentialResolverTest(BaseEnvVar):
         self.assertTrue(not self.provider1.load.called)
         self.provider2.load.assert_called_with()
 
+    @async_test
     def test_provider_unknown(self):
         resolver = credentials.CredentialResolver(providers=[self.provider1,
                                                              self.provider2])
@@ -577,6 +654,8 @@ class CredentialResolverTest(BaseEnvVar):
 
 
 class TestCreateCredentialResolver(BaseEnvVar):
+
+    @async_test
     def test_create_credential_resolver(self):
         fake_session = mock.Mock()
         config = {
