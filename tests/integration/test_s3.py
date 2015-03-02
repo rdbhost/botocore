@@ -231,7 +231,7 @@ class TestS3Objects(TestS3BaseWithBucket):
         self.assertEqual(response.status_code, 204)
 
     @async_test
-    def tst_can_paginate(self):
+    def test_can_paginate(self):
         for i in range(5):
             key_name = 'key%s' % i
             yield from self.create_object(key_name)
@@ -240,14 +240,18 @@ class TestS3Objects(TestS3BaseWithBucket):
         operation = self.service.get_operation('ListObjects')
         generator = operation.paginate(self.endpoint, max_keys=1,
                                        bucket=self.bucket_name)
-        responses = list(generator)
+        responses = []
+        r = yield from generator.next()
+        while r:
+            responses.append(r)
+            r = yield from generator.next()
         self.assertEqual(len(responses), 5, responses)
         data = [r[1] for r in responses]
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
     @async_test
-    def tst_can_paginate_with_page_size(self):
+    def test_can_paginate_with_page_size(self):
         for i in range(5):
             key_name = 'key%s' % i
             yield from self.create_object(key_name)
@@ -256,14 +260,19 @@ class TestS3Objects(TestS3BaseWithBucket):
         operation = self.service.get_operation('ListObjects')
         generator = operation.paginate(self.endpoint, page_size=1,
                                        bucket=self.bucket_name)
-        responses = list(generator)
+        responses = []
+        r = yield from generator.next()
+        while r:
+            responses.append(r)
+            r = yield from generator.next()
+
         self.assertEqual(len(responses), 5, responses)
         data = [r[1] for r in responses]
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
     @async_test
-    def tst_client_can_paginate_with_page_size(self):
+    def test_client_can_paginate_with_page_size(self):
         for i in range(5):
             key_name = 'key%s' % i
             yield from self.create_object(key_name)
@@ -271,9 +280,14 @@ class TestS3Objects(TestS3BaseWithBucket):
         time.sleep(3)
         client = yield from self.session.create_client('s3', region_name=self.region)
         paginator = client.get_paginator('list_objects')
-        generator = paginator.paginate(page_size=1,
-                                       Bucket=self.bucket_name)
-        responses = list(generator)
+        generator = paginator.paginate(page_size=1, Bucket=self.bucket_name)
+        responses = []
+        r = yield from generator.next()
+        while r:
+            responses.append(r)
+            r = yield from generator.next()
+        # responses = list(generator)
+
         self.assertEqual(len(responses), 5, responses)
         data = [r for r in responses]
         key_names = [el['Contents'][0]['Key'] for el in data]
@@ -325,7 +339,7 @@ class TestS3Objects(TestS3BaseWithBucket):
         self.assertEqual((yield from body.read()).decode('utf-8'), 'ody contents')
 
     @async_test
-    def tst_paginate_max_items(self):
+    def test_paginate_max_items(self):
         yield from self.create_multipart_upload('foo/key1')
         yield from self.create_multipart_upload('foo/key1')
         yield from self.create_multipart_upload('foo/key1')
@@ -347,11 +361,11 @@ class TestS3Objects(TestS3BaseWithBucket):
         pages = operation.paginate(self.endpoint,
                                    max_items=1,
                                    bucket=self.bucket_name)
-        full_result = pages.build_full_result()
+        full_result = yield from pages.build_full_result()
         self.assertEqual(len(full_result['Uploads']), 1)
 
     @async_test
-    def tst_paginate_within_page_boundaries(self):
+    def test_paginate_within_page_boundaries(self):
         yield from self.create_object('a')
         yield from self.create_object('b')
         yield from self.create_object('c')
@@ -361,25 +375,25 @@ class TestS3Objects(TestS3BaseWithBucket):
         # results.
         pages = operation.paginate(self.endpoint, max_items=1,
                                    bucket=self.bucket_name)
-        first = pages.build_full_result()
+        first = yield from pages.build_full_result()
         t1 = first['NextToken']
 
         pages = operation.paginate(self.endpoint, max_items=1,
                                    starting_token=t1,
                                    bucket=self.bucket_name)
-        second = pages.build_full_result()
+        second = yield from pages.build_full_result()
         t2 = second['NextToken']
 
         pages = operation.paginate(self.endpoint, max_items=1,
                                    starting_token=t2,
                                    bucket=self.bucket_name)
-        third = pages.build_full_result()
+        third = yield from pages.build_full_result()
         t3 = third['NextToken']
 
         pages = operation.paginate(self.endpoint, max_items=1,
                                    starting_token=t3,
                                    bucket=self.bucket_name)
-        fourth = pages.build_full_result()
+        fourth = yield from pages.build_full_result()
 
         self.assertEqual(first['Contents'][-1]['Key'], 'a')
         self.assertEqual(second['Contents'][-1]['Key'], 'b')
@@ -678,8 +692,9 @@ class BaseS3ClientTest(BaseS3Test):
 
     @asyncio.coroutine
     def abort_multipart_upload(self, bucket_name, key, upload_id):
-        response = self.client.abort_multipart_upload(
+        response = yield from self.client.abort_multipart_upload(
             UploadId=upload_id, Bucket=self.bucket_name, Key=key)
+        pass
 
     @asyncio.coroutine
     def delete_object(self, key, bucket_name):
@@ -728,13 +743,14 @@ class TestS3SigV4Client(BaseS3ClientTest):
         state = mock.Mock()
         state.error_raised = False
 
+        @asyncio.coroutine
         def mock_http_adapter_send(self, *args, **kwargs):
             if not state.error_raised:
                 state.error_raised = True
                 raise ConnectionError("Simulated ConnectionError raised.")
             else:
-                return original_send(self, *args, **kwargs)
-        with mock.patch('botocore.vendored.requests.adapters.HTTPAdapter.send',
+                return (yield from original_send(self, *args, **kwargs))
+        with mock.patch('yieldfrom.requests.adapters.HTTPAdapter.send',
                         mock_http_adapter_send):
             response = yield from self.client.put_object(Bucket=self.bucket_name,
                                               Key='foo.txt', Body=body)
@@ -742,7 +758,7 @@ class TestS3SigV4Client(BaseS3ClientTest):
             self.keys.append('foo.txt')
 
     @async_test
-    def tst_paginate_list_objects_unicode(self):
+    def test_paginate_list_objects_unicode(self):
         key_names = [
             u'non-ascii-key-\xe4\xf6\xfc-01.txt',
             u'non-ascii-key-\xe4\xf6\xfc-02.txt',
@@ -757,15 +773,18 @@ class TestS3SigV4Client(BaseS3ClientTest):
 
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
-        for response in list_objs_paginator.paginate(Bucket=self.bucket_name,
-                                                     page_size=2):
+        pageIterator = list_objs_paginator.paginate(Bucket=self.bucket_name,
+                                                     page_size=2)
+        response = yield from pageIterator.next()
+        while response:
             for content in response['Contents']:
                 key_refs.append(content['Key'])
+            response = yield from pageIterator.next()
 
         self.assertEqual(key_names, key_refs)
 
     @async_test
-    def tst_paginate_list_objects_safe_chars(self):
+    def test_paginate_list_objects_safe_chars(self):
 
         key_names = [
             u'-._~safe-chars-key-01.txt',
@@ -781,10 +800,12 @@ class TestS3SigV4Client(BaseS3ClientTest):
 
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
-        for response in list_objs_paginator.paginate(Bucket=self.bucket_name,
-                                                     page_size=2):
+        pageIterator = list_objs_paginator.paginate(Bucket=self.bucket_name, page_size=2)
+        response = yield from pageIterator.next()
+        while response:
             for content in response['Contents']:
                 key_refs.append(content['Key'])
+            response = yield from pageIterator.next()
 
         self.assertEqual(key_names, key_refs)
 

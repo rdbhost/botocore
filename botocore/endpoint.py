@@ -15,7 +15,7 @@
 import os
 import logging
 import time
-import threading
+#import threading
 import asyncio
 
 from yieldfrom.requests.sessions import Session
@@ -93,7 +93,7 @@ class Endpoint(object):
         self.proxies = proxies
         self.http_session = Session()
         self.timeout = timeout
-        self._lock = threading.Lock()
+        #self._lock = threading.Lock()  # perhaps eliminate
         if response_parser_factory is None:
             response_parser_factory = parsers.ResponseParserFactory()
         self._response_parser_factory = response_parser_factory

@@ -14,7 +14,7 @@
 
 import functools
 import logging
-import threading
+#import threading
 from botocore.exceptions import MissingParametersError
 from botocore.exceptions import UnknownParameterError
 from botocore.exceptions import NoRegionError
@@ -154,7 +154,7 @@ class Operation(BotoCoreObject):
             # a request has already been signed without needing
             # to acquire the lock.
             if not getattr(request, '_is_signed', False):
-                with threading.Lock():
+                with (yield from asyncio.Lock()):
                     if not getattr(request, '_is_signed', False):
                         yield from signer.sign(self.name, request)
                         request._is_signed = True

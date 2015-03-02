@@ -40,6 +40,8 @@ class PageIterator(object):
         self._non_aggregate_key_exprs = non_aggregate_keys
         self._non_aggregate_part = {}
 
+        self._iter_init()
+
     @property
     def result_keys(self):
         return self._result_keys
@@ -58,61 +60,69 @@ class PageIterator(object):
     def non_aggregate_part(self):
         return self._non_aggregate_part
 
-    def __iter__(self):
-        current_kwargs = self._op_kwargs
-        previous_next_token = None
-        next_token = [None for _ in range(len(self._input_token))]
+    def _iter_init(self):
+        self._current_kwargs = self._op_kwargs
+        self._previous_next_token = None
+        self._next_token = [None for _ in range(len(self._input_token))]
         # The number of items from result_key we've seen so far.
-        total_items = 0
-        first_request = True
-        primary_result_key = self.result_keys[0]
-        starting_truncation = 0
-        self._inject_starting_params(current_kwargs)
-        while True:
-            response = yield from self._make_request(current_kwargs)
+        self._total_items = 0
+        self._first_request = True
+        self._primary_result_key = self.result_keys[0]
+        self._starting_truncation = 0
+        self._is_complete = False
+        self._inject_starting_params(self._current_kwargs)
+
+    @asyncio.coroutine
+    def next(self):
+        if self._is_complete:
+            self._iter_init()
+            return None
+        else:
+            response = yield from self._make_request(self._current_kwargs)
             parsed = self._extract_parsed_response(response)
-            if first_request:
+            if self._first_request:
                 # The first request is handled differently.  We could
                 # possibly have a resume/starting token that tells us where
                 # to index into the retrieved page.
                 if self._starting_token is not None:
-                    starting_truncation = self._handle_first_request(
-                        parsed, primary_result_key, starting_truncation)
-                first_request = False
+                    self._starting_truncation = self._handle_first_request(
+                        parsed, self._primary_result_key, self._starting_truncation)
+                self._first_request = False
                 self._record_non_aggregate_key_values(parsed)
-            current_response = primary_result_key.search(parsed)
+            current_response = self._primary_result_key.search(parsed)
             if current_response is None:
                 current_response = []
             num_current_response = len(current_response)
             truncate_amount = 0
             if self._max_items is not None:
-                truncate_amount = (total_items + num_current_response) \
+                truncate_amount = (self._total_items + num_current_response) \
                     - self._max_items
             if truncate_amount > 0:
-                self._truncate_response(parsed, primary_result_key,
-                                        truncate_amount, starting_truncation,
-                                        next_token)
-                yield response
-                break
+                self._truncate_response(parsed, self._primary_result_key,
+                                        truncate_amount, self._starting_truncation,
+                                        self._next_token)
+                self._is_complete = True
+                return response
             else:
-                yield response
-                total_items += num_current_response
+                self._total_items += num_current_response
                 next_token = self._get_next_token(parsed)
                 if all(t is None for t in next_token):
-                    break
+                    self._is_complete = True
+                    return response
                 if self._max_items is not None and \
-                        total_items == self._max_items:
+                        self._total_items == self._max_items:
                     # We're on a page boundary so we can set the current
                     # next token to be the resume token.
                     self.resume_token = next_token
-                    break
-                if previous_next_token is not None and \
-                        previous_next_token == next_token:
-                    message = ("The same next token was received "
-                               "twice: %s" % next_token)
+                    self._is_complete = True
+                    return response
+                if self._previous_next_token is not None and \
+                        self._previous_next_token == next_token:
+                    message = ("The same next token was received twice: %s" % next_token)
                     raise PaginationError(message=message)
-                self._inject_token_into_kwargs(current_kwargs, next_token)
-                previous_next_token = next_token
+                self._inject_token_into_kwargs(self._current_kwargs, next_token)
+                self._previous_next_token = next_token
+                return response
 
     def _make_request(self, current_kwargs):
         return self._method(**current_kwargs)
@@ -203,18 +213,28 @@ class PageIterator(object):
             next_tokens.append(token.search(parsed))
         return next_tokens
 
+    @asyncio.coroutine
     def result_key_iters(self):
-        teed_results = tee(self, len(self.result_keys))
+        tmp = []
+        t = yield from self.next()
+        while t:
+            tmp.append(t)
+            t = yield from self.next()
+        teed_results = tee(tmp, len(self.result_keys))
         return [ResultKeyIterator(i, result_key) for i, result_key
                 in zip(teed_results, self.result_keys)]
 
+    @asyncio.coroutine
     def build_full_result(self):
         complete_result = {}
         # Prepopulate the result keys with an empty list.
         for result_expression in self.result_keys:
             set_value_from_jmespath(complete_result,
                                     result_expression.expression, [])
-        for _, page in self:
+
+        response = yield from self.next()
+        while response:
+            _, page = response
             # We're incrementally building the full response page
             # by page.  For each page in the response we need to
             # inject the necessary components from the page
@@ -230,6 +250,8 @@ class PageIterator(object):
                 result_value = result_expression.search(page)
                 if result_value is not None:
                     existing_value.extend(result_value)
+            response = yield from self.next()
+
         merge_dicts(complete_result, self.non_aggregate_part)
         if self.resume_token is not None:
             complete_result['NextToken'] = self.resume_token
@@ -362,15 +384,21 @@ class ResultKeyIterator(object):
     def __init__(self, pages_iterator, result_key):
         self._pages_iterator = pages_iterator
         self.result_key = result_key
+        self._cache_results = []
 
-    def __iter__(self):
-        for _, page in self._pages_iterator:
-            results = self.result_key.search(page)
-            if results is None:
-                results = []
-            for result in results:
-                yield result
-
+    @asyncio.coroutine
+    def next(self):
+        if self._cache_results:
+            return self._cache_results.pop(0)
+        r = yield from self._pages_iterator.next()
+        if not r:
+            return None
+        _, page = r
+        results = self.result_key.search(page)
+        if results is None:
+            results = []
+        self._cache_results.extend(results)
+        return (yield from self.next())
 
 # These two class use the Operation.call() interface that is
 # being deprecated.  This is here so that both interfaces can be
