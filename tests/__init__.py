@@ -19,7 +19,7 @@ import random
 import shutil
 import contextlib
 import tempfile
-
+import asyncio
 
 # The unittest module got a significant overhaul
 # in 2.7, so if we're in 2.6 we can use the backported
@@ -107,13 +107,15 @@ class BaseSessionTest(BaseEnvVar):
 
 
 class TestParamSerialization(BaseSessionTest):
+
     def setUp(self):
         super(TestParamSerialization, self).setUp()
         self.session = create_session()
 
+    @asyncio.coroutine
     def assert_params_serialize_to(self, dotted_name, input_params,
                                    serialized_params):
-        serialized = self.get_serialized_params(dotted_name, input_params)
+        serialized = yield from self.get_serialized_params(dotted_name, input_params)
         actual_body_params = serialized['body']
         # For query, we can remove the Action and Version params.
         if isinstance(actual_body_params, dict):
@@ -123,9 +125,10 @@ class TestParamSerialization(BaseSessionTest):
         else:
             self.assertEqual(serialized_params, actual_body_params)
 
+    @asyncio.coroutine
     def get_serialized_params(self, dotted_name, input_params):
         service_name, operation_name = dotted_name.split('.')
-        service = self.session.get_service(service_name)
+        service = yield from self.session.get_service(service_name)
         operation = service.get_operation(operation_name)
         serialized = operation.build_parameters(**input_params)
         return serialized

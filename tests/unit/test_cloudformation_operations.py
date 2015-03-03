@@ -13,28 +13,35 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
+
 from tests import TestParamSerialization
 import botocore.session
 
 
 class TestCloudformationOperations(TestParamSerialization):
 
+    @async_test
     def test_create_stack(self):
         result = {'StackName': 'foobar',
                   'TemplateURL': 'http://foo.com/bar.json',
                   'StackPolicyURL': 'http://fie.com/baz.json'}
-        self.assert_params_serialize_to(
+        yield from self.assert_params_serialize_to(
             'cloudformation.CreateStack',
             input_params={'StackName': 'foobar',
                           'TemplateURL': 'http://foo.com/bar.json',
                           'StackPolicyURL': 'http://fie.com/baz.json'},
             serialized_params=result)
 
+    @async_test
     def test_update_stack(self):
         result = {'StackName': 'foobar',
                   'TemplateURL': 'http://foo.com/bar.json',
                   'StackPolicyURL': 'http://fie.com/baz.json'}
-        self.assert_params_serialize_to(
+        yield from self.assert_params_serialize_to(
             'cloudformation.UpdateStack',
             input_params={'StackName': 'foobar',
                           'TemplateURL': 'http://foo.com/bar.json',

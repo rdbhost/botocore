@@ -17,23 +17,30 @@ from tests import BaseSessionTest
 from botocore.exceptions import NoRegionError
 from botocore.compat import six
 
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
+
 
 class TestCloudsearchOperations(BaseSessionTest):
 
+    @async_test
     def test_streaming_json_upload(self):
         stream = six.BytesIO(b'{"fakejson": true}')
-        service = self.session.get_service('cloudsearchdomain')
+        service = yield from self.session.get_service('cloudsearchdomain')
         operation = service.get_operation('UploadDocuments')
         built = operation.build_parameters(
             contentType='application/json', documents=stream)
         endpoint = service.get_endpoint(region_name='us-east-1',
                                         endpoint_url='http://example.com')
-        request = endpoint.create_request(built)
+        request = yield from endpoint.create_request(built)
         self.assertEqual(request.body, stream)
 
+    @async_test
     def test_region_required_due_to_sigv4(self):
         stream = six.StringIO('{"fakejson": true}')
-        service = self.session.get_service('cloudsearchdomain')
+        service = yield from self.session.get_service('cloudsearchdomain')
         operation = service.get_operation('UploadDocuments')
         built = operation.build_parameters(
             contentType='application/json', documents=stream)

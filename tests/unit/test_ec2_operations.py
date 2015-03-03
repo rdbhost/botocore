@@ -13,6 +13,11 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
 from tests import TestParamSerialization
 import base64
 from botocore.compat import six
@@ -22,35 +27,42 @@ import botocore.session
 class TestEC2Operations(TestParamSerialization):
     maxDiff = None
 
-    def setUp(self):
-        super(TestEC2Operations, self).setUp()
-        self.ec2 = self.session.get_service('ec2')
+    @asyncio.coroutine
+    def set_up(self):
+        TestParamSerialization.setUp(self)
+        self.ec2 = yield from self.session.get_service('ec2')
 
+    @async_test
     def test_describe_instances_no_params(self):
-        self.assert_params_serialize_to('ec2.DescribeInstances', {}, {})
+        yield from self.assert_params_serialize_to('ec2.DescribeInstances', {}, {})
 
+    @async_test
     def test_describe_instances_instance_id(self):
         params = dict(instance_ids=['i-12345678'])
         result = {'InstanceId.1': 'i-12345678'}
-        self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
+        yield from self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
 
+    @async_test
     def test_describe_instances_instance_ids(self):
         params = dict(instance_ids=['i-12345678', 'i-87654321'])
         result = {'InstanceId.1': 'i-12345678', 'InstanceId.2': 'i-87654321'}
-        self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
+        yield from self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
 
+    @async_test
     def test_describe_instances_filter(self):
         params = dict(filters=[{'Name': 'group-name', 'Values': ['foobar']}])
         result = {'Filter.1.Value.1': 'foobar', 'Filter.1.Name': 'group-name'}
-        self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
+        yield from self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
 
+    @async_test
     def test_describe_instances_filter_values(self):
         params = dict(filters=[{'Name': 'group-name', 'Values': ['foobar', 'fiebaz']}])
         result = {'Filter.1.Value.2': 'fiebaz',
                   'Filter.1.Value.1': 'foobar',
                   'Filter.1.Name': 'group-name'}
-        self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
+        yield from self.assert_params_serialize_to('ec2.DescribeInstances', params, result)
 
+    @async_test
     def test_create_tags(self):
         params = dict(resources=['i-12345678', 'i-87654321'],
                       tags=[{'Key': 'key1', 'Value': 'value1'},
@@ -59,8 +71,9 @@ class TestEC2Operations(TestParamSerialization):
                   'ResourceId.2': 'i-87654321',
                   'Tag.1.Key': 'key1', 'Tag.1.Value': 'value1',
                   'Tag.2.Key': 'key2', 'Tag.2.Value': 'value2'}
-        self.assert_params_serialize_to('ec2.CreateTags', params, result)
+        yield from self.assert_params_serialize_to('ec2.CreateTags', params, result)
 
+    @async_test
     def test_request_spot_instances(self):
         op = self.ec2.get_operation('RequestSpotInstances')
         params = dict(spot_price='1.00', instance_count=1,
@@ -84,8 +97,9 @@ class TestEC2Operations(TestParamSerialization):
                   'LaunchSpecification.BlockDeviceMapping.2.VirtualName': 'ephemeral1',
                   'LaunchSpecification.BlockDeviceMapping.3.VirtualName': 'ephemeral2',
                   'LaunchSpecification.BlockDeviceMapping.4.VirtualName': 'ephemeral3'}
-        self.assert_params_serialize_to('ec2.RequestSpotInstances', params, result)
+        yield from self.assert_params_serialize_to('ec2.RequestSpotInstances', params, result)
 
+    @async_test
     def test_authorize_security_groups_ingress(self):
         params = dict(
             group_name='MyGroup',
@@ -98,8 +112,9 @@ class TestEC2Operations(TestParamSerialization):
                   'IpPermissions.1.ToPort': 22,
                   'IpPermissions.1.IpProtocol': 'tcp',
                   'IpPermissions.1.IpRanges.1.CidrIp': '0.0.0.0/0',}
-        self.assert_params_serialize_to('ec2.AuthorizeSecurityGroupIngress', params, result)
+        yield from self.assert_params_serialize_to('ec2.AuthorizeSecurityGroupIngress', params, result)
 
+    @async_test
     def test_modify_volume_attribute(self):
         params = dict(
             volume_id='vol-12345678',
@@ -108,4 +123,4 @@ class TestEC2Operations(TestParamSerialization):
         result = {'VolumeId': 'vol-12345678',
                   'AutoEnableIO.Value': 'true'}
 
-        self.assert_params_serialize_to('ec2.ModifyVolumeAttribute', params, result)
+        yield from self.assert_params_serialize_to('ec2.ModifyVolumeAttribute', params, result)
