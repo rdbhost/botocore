@@ -12,6 +12,7 @@
 # language governing permissions and limitations under the License.
 
 import os
+import sys
 import time
 import random
 from tests import unittest, temporary_file
@@ -21,7 +22,6 @@ import shutil
 import threading
 import mock
 import asyncio
-import functools
 try:
     from itertools import izip_longest as zip_longest
 except ImportError:
@@ -38,32 +38,8 @@ import yieldfrom.requests as requests
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-
-def async_test(f):
-
-    testLoop = asyncio.get_event_loop()
-    #asyncio.set_event_loop(testLoop)
-
-    @functools.wraps(f)
-    def wrapper(inst, *args, **kwargs):
-        if hasattr(inst, 'set_up'):
-            testLoop.run_until_complete(inst.set_up())
-            #print('test.set_up has run')
-        coro = asyncio.coroutine(f)
-        future = coro(inst, *args, **kwargs)
-        testLoop.run_until_complete(future)
-        #print('test has run')
-        if hasattr(inst, 'tear_down'):
-            testLoop.run_until_complete(inst.tear_down())
-            #print('test.tear_down has run')
-        inst._cleanups.reverse()
-        for cu in inst._cleanups:
-            meth, args, kws = cu
-            testLoop.run_until_complete(meth(*args, **kws))
-        inst._cleanups = []
-    return wrapper
-
-async_test.__test__ = False  # not a test
+sys.path.append('..')
+from asyncio_test_utils import async_test
 
 
 class BaseS3Test(unittest.TestCase):

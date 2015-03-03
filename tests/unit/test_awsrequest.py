@@ -17,8 +17,13 @@ import os
 import tempfile
 import shutil
 import io
-import socket
+#import socket
+import mock
+import asyncio
+
 import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
 
 from mock import Mock, patch
 
@@ -33,22 +38,50 @@ class IgnoreCloseBytesIO(io.BytesIO):
         pass
 
 
-class FakeSocket(object):
+class FakeStreamWriter():
+    def __init__(self, parent):
+        self._parent = parent
+
+    def write(self, data):
+        self._parent.sent_data += data
+
+    def can_write_eof(self):
+        return True
+    def write_eof(self):
+        pass
+    def close(self):
+        pass
+
+    @asyncio.coroutine
+    def drain(self):
+        yield None
+
+
+
+class FakeNotSocket(object):
     def __init__(self, read_data, fileclass=IgnoreCloseBytesIO):
         self.sent_data = b''
-        self.read_data = read_data
-        self.fileclass = fileclass
-        self._fp_object = None
+        self.reader = asyncio.StreamReader()
+        self.reader.feed_data(read_data)
+        self.writer = FakeStreamWriter(self)
+        self.readexactly = self.reader.readexactly
+        self.readline = self.reader.readline
+        self.transportRefCt = 0
 
     def sendall(self, data):
         self.sent_data += data
 
-    def makefile(self, mode, bufsize=None):
-        if self._fp_object is None:
-            self._fp_object = self.fileclass(self.read_data)
-        return self._fp_object
+    # def makefile(self, mode, bufsize=None):
+    #     if self._fp_object is None:
+    #         self._fp_object = self.fileclass(self.read_data)
+    #     return self._fp_object
+    @asyncio.coroutine
+    def writeAndDrain(self, data):
+        self.writer.write(data)
+        yield from self.writer.drain()
 
     def close(self):
+        self.reader.feed_eof()
         pass
 
 
@@ -82,6 +115,7 @@ class TestAWSRequest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
+    @async_test
     def test_should_reset_stream(self):
         with open(self.filename, 'wb') as f:
             f.write(b'foobarbaz')
@@ -97,11 +131,12 @@ class TestAWSRequest(unittest.TestCase):
             fake_response.status_code = 307
 
             # Then requests calls our reset_stream hook.
-            self.prepared_request.reset_stream_on_redirect(fake_response)
+            yield from self.prepared_request.reset_stream_on_redirect(fake_response)
 
             # The stream should now be reset.
             self.assertEqual(body.tell(), 0)
 
+    @async_test
     def test_cannot_reset_stream_raises_error(self):
         with open(self.filename, 'wb') as f:
             f.write(b'foobarbaz')
@@ -118,8 +153,9 @@ class TestAWSRequest(unittest.TestCase):
 
             # Then requests calls our reset_stream hook.
             with self.assertRaises(UnseekableStreamError):
-                self.prepared_request.reset_stream_on_redirect(fake_response)
+                yield from self.prepared_request.reset_stream_on_redirect(fake_response)
 
+    @async_test
     def test_duck_type_for_file_check(self):
         # As part of determining whether or not we can rewind a stream
         # we first need to determine if the thing is a file like object.
@@ -142,15 +178,16 @@ class TestAWSRequest(unittest.TestCase):
         fake_response.status_code = 307
 
         # Then requests calls our reset_stream hook.
-        self.prepared_request.reset_stream_on_redirect(fake_response)
+        yield from self.prepared_request.reset_stream_on_redirect(fake_response)
 
         # The stream should now be reset.
         self.assertTrue(looks_like_file.seek_called)
 
 
 class TestAWSHTTPConnection(unittest.TestCase):
+
     def create_tunneled_connection(self, url, port, response):
-        s = FakeSocket(response)
+        s = FakeNotSocket(response)
         conn = AWSHTTPConnection(url, port)
         conn.sock = s
         conn._tunnel_host = url
@@ -175,123 +212,137 @@ class TestAWSHTTPConnection(unittest.TestCase):
                 new_component += delimeter
             side_effect.append(new_component)
 
-        self.mock_response.fp.readline.side_effect = side_effect
+        fpr = asyncio.Future()
+        fpr.set_result(side_effect)
+        self.mock_response.fp.readline.return_value = fpr
 
         response_components = response.split(b' ')
-        self.mock_response._read_status.return_value = (
-            response_components[0], int(response_components[1]),
-            response_components[2]
-        )
+        rses = []
+        for rc in response_components:
+            rs = asyncio.Future()
+            rs.set_result(rc)
+            rses.append(rs)
+        self.mock_response._read_status.return_value = iter(rses)
         conn.response_class = Mock()
         conn.response_class.return_value = self.mock_response
         return conn
 
+    @async_test
     def test_expect_100_continue_returned(self):
-        with patch('select.select') as select_mock:
-            # Shows the server first sending a 100 continue response
-            # then a 200 ok response.
-            s = FakeSocket(b'HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 200 OK\r\n')
-            conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-            conn.sock = s
-            select_mock.return_value = ([s], [], [])
-            conn.request('GET', '/bucket/foo', b'body',
-                         {'Expect': '100-continue'})
-            response = conn.getresponse()
-            # Now we should verify that our final response is the 200 OK
-            self.assertEqual(response.status, 200)
+        #with patch('select.select') as select_mock:
+        # Shows the server first sending a 100 continue response
+        # then a 200 ok response.
+        s = FakeNotSocket(b'HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 200 OK\r\n\r\n')
+        conn = AWSHTTPConnection('s3.amazonaws.com', 443)
+        conn.notSock = s
+        #select_mock.return_value = ([s], [], [])
+        yield from conn.request('GET', '/bucket/foo', b'body', {'Expect': '100-continue'})
+        response = yield from conn.getresponse()
+        # Now we should verify that our final response is the 200 OK
+        self.assertEqual(response.status, 200)
 
+    @async_test
     def test_expect_100_sends_connection_header(self):
         # When using squid as an HTTP proxy, it will also send
         # a Connection: keep-alive header back with the 100 continue
         # response.  We need to ensure we handle this case.
-        with patch('select.select') as select_mock:
-            # Shows the server first sending a 100 continue response
-            # then a 500 response.  We're picking 500 to confirm we
-            # actually parse the response instead of getting the
-            # default status of 200 which happens when we can't parse
-            # the response.
-            s = FakeSocket(b'HTTP/1.1 100 Continue\r\n'
-                           b'Connection: keep-alive\r\n'
-                           b'\r\n'
-                           b'HTTP/1.1 500 Internal Service Error\r\n')
-            conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-            conn.sock = s
-            select_mock.return_value = ([s], [], [])
-            conn.request('GET', '/bucket/foo', b'body',
-                         {'Expect': '100-continue'})
-            response = conn.getresponse()
-            self.assertEqual(response.status, 500)
+        #with patch('select.select') as select_mock:
 
+        # Shows the server first sending a 100 continue response
+        # then a 500 response.  We're picking 500 to confirm we
+        # actually parse the response instead of getting the
+        # default status of 200 which happens when we can't parse
+        # the response.
+        s = FakeNotSocket(b'HTTP/1.1 100 Continue\r\n'
+                       b'Connection: keep-alive\r\n'
+                       b'\r\n'
+                       b'HTTP/1.1 500 Internal Service Error\r\n'
+                       b'\r\n')
+        conn = AWSHTTPConnection('s3.amazonaws.com', 443)
+        conn.notSock = s
+        # select_mock.return_value = ([s], [], [])
+        yield from conn.request('GET', '/bucket/foo', b'body', {'Expect': '100-continue'})
+        response = yield from conn.getresponse()
+        self.assertEqual(response.status, 500)
+
+    @async_test
     def test_expect_100_continue_sends_307(self):
         # This is the case where we send a 100 continue and the server
         # immediately sends a 307
-        with patch('select.select') as select_mock:
-            # Shows the server first sending a 100 continue response
-            # then a 200 ok response.
-            s = FakeSocket(
-                b'HTTP/1.1 307 Temporary Redirect\r\n'
-                b'Location: http://example.org\r\n')
-            conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-            conn.sock = s
-            select_mock.return_value = ([s], [], [])
-            conn.request('GET', '/bucket/foo', b'body',
-                         {'Expect': '100-continue'})
-            response = conn.getresponse()
-            # Now we should verify that our final response is the 307.
-            self.assertEqual(response.status, 307)
+        #with patch('select.select') as select_mock:
 
+        # Shows the server first sending a 100 continue response
+        # then a 200 ok response.
+        s = FakeNotSocket(
+            b'HTTP/1.1 307 Temporary Redirect\r\n'
+            b'Location: http://example.org\r\n'
+            b'\r\n')
+        conn = AWSHTTPConnection('s3.amazonaws.com', 443)
+        conn.notSock = s
+        # select_mock.return_value = ([s], [], [])
+        yield from conn.request('GET', '/bucket/foo', b'body', {'Expect': '100-continue'})
+        response = yield from conn.getresponse()
+        # Now we should verify that our final response is the 307.
+        self.assertEqual(response.status, 307)
+
+    @async_test
     def test_expect_100_continue_no_response_from_server(self):
-        with patch('select.select') as select_mock:
-            # Shows the server first sending a 100 continue response
-            # then a 200 ok response.
-            s = FakeSocket(
-                b'HTTP/1.1 307 Temporary Redirect\r\n'
-                b'Location: http://example.org\r\n')
-            conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-            conn.sock = s
-            # By settings select_mock to return empty lists, this indicates
-            # that the server did not send any response.  In this situation
-            # we should just send the request anyways.
-            select_mock.return_value = ([], [], [])
-            conn.request('GET', '/bucket/foo', b'body',
-                         {'Expect': '100-continue'})
-            response = conn.getresponse()
-            self.assertEqual(response.status, 307)
+        #with patch('select.select') as select_mock:
 
+        # Shows the server first sending a 100 continue response
+        # then a 200 ok response.
+        s = FakeNotSocket(
+            b'HTTP/1.1 307 Temporary Redirect\r\n'
+            b'Location: http://example.org\r\n'
+            b'\r\n')
+        conn = AWSHTTPConnection('s3.amazonaws.com', 443)
+        conn.notSock = s
+        # By settings select_mock to return empty lists, this indicates
+        # that the server did not send any response.  In this situation
+        # we should just send the request anyways.
+        #select_mock.return_value = ([], [], [])
+        yield from conn.request('GET', '/bucket/foo', b'body',
+                     {'Expect': '100-continue'})
+        response = yield from conn.getresponse()
+        self.assertEqual(response.status, 307)
+
+    @async_test
     def test_message_body_is_file_like_object(self):
         # Shows the server first sending a 100 continue response
         # then a 200 ok response.
         body = BytesIOWithLen(b'body contents')
-        s = FakeSocket(b'HTTP/1.1 200 OK\r\n')
+        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n\r\n')
         conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-        conn.sock = s
-        conn.request('GET', '/bucket/foo', body)
-        response = conn.getresponse()
+        conn.notSock = s
+        yield from conn.request('GET', '/bucket/foo', body)
+        response = yield from conn.getresponse()
         self.assertEqual(response.status, 200)
 
+    @async_test
     def test_no_expect_header_set(self):
         # Shows the server first sending a 100 continue response
         # then a 200 ok response.
-        s = FakeSocket(b'HTTP/1.1 200 OK\r\n')
+        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n\r\n')
         conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-        conn.sock = s
-        conn.request('GET', '/bucket/foo', b'body')
-        response = conn.getresponse()
+        conn.notSock = s
+        yield from conn.request('GET', '/bucket/foo', b'body')
+        response = yield from conn.getresponse()
         self.assertEqual(response.status, 200)
 
-    def test_tunnel_readline_none_bugfix(self):
+    @async_test
+    def tst_tunnel_readline_none_bugfix(self):
         # Tests whether ``_tunnel`` function is able to work around the
         # py26 bug of avoiding infinite while loop if nothing is returned.
         conn = self.create_tunneled_connection(
             url='s3.amazonaws.com',
             port=443,
-            response=b'HTTP/1.1 200 OK\r\n',
+            response=b'HTTP/1.1 200 OK\r\n\r\n',
         )
-        conn._tunnel()
+        yield from conn._tunnel()
         # Ensure proper amount of readline calls were made.
         self.assertEqual(self.mock_response.fp.readline.call_count, 2)
 
-    def test_tunnel_readline_normal(self):
+    def tst_tunnel_readline_normal(self):
         # Tests that ``_tunnel`` function behaves normally when it comes
         # across the usual http ending.
         conn = self.create_tunneled_connection(
@@ -303,7 +354,7 @@ class TestAWSHTTPConnection(unittest.TestCase):
         # Ensure proper amount of readline calls were made.
         self.assertEqual(self.mock_response.fp.readline.call_count, 2)
 
-    def test_tunnel_raises_socket_error(self):
+    def tst_tunnel_raises_socket_error(self):
         # Tests that ``_tunnel`` function throws appropriate error when
         # not 200 status.
         conn = self.create_tunneled_connection(
@@ -317,8 +368,8 @@ class TestAWSHTTPConnection(unittest.TestCase):
     @unittest.skipIf(sys.version_info[:2] == (2, 6),
                      ("``_tunnel()`` function defaults to standard "
                       "http library function when not py26."))
-    def test_tunnel_uses_std_lib(self):
-        s = FakeSocket(b'HTTP/1.1 200 OK\r\n')
+    def tst_tunnel_uses_std_lib(self):
+        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n')
         conn = AWSHTTPConnection('s3.amazonaws.com', 443)
         conn.sock = s
         # Test that the standard library method was used by patching out
