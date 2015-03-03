@@ -187,8 +187,7 @@ class Endpoint(object):
     @asyncio.coroutine
     def _needs_retry(self, attempts, operation_model, response=None,
                      caught_exception=None):
-        event_name = 'needs-retry.%s.%s' % (self._endpoint_prefix,
-                                            operation_model.name)
+        event_name = 'needs-retry.%s.%s' % (self._endpoint_prefix, operation_model.name)
         responses = yield from self._event_emitter.emit(
             event_name, response=response, endpoint=self,
             operation=operation_model, attempts=attempts,

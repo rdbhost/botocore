@@ -139,7 +139,7 @@ def _create_single_response_checker(response):
         checker = CRC32Checker(header=response['crc32body'])
     else:
         # TODO: send a signal.
-        raise ValueError("Unknown retry policy: %s" % config)
+        raise ValueError("Unknown retry policy")  #: %s" % config)
     return checker
 
 
@@ -250,8 +250,7 @@ class MaxAttemptsDecorator(BaseChecker):
 
     @asyncio.coroutine
     def __call__(self, attempt_number, response, caught_exception):
-        should_retry = self._should_retry(attempt_number, response,
-                                          caught_exception)
+        should_retry = yield from self._should_retry(attempt_number, response, caught_exception)
         if should_retry:
             if attempt_number >= self._max_attempts:
                 logger.debug("Reached the maximum number of retry "
@@ -262,11 +261,11 @@ class MaxAttemptsDecorator(BaseChecker):
         else:
             return False
 
+    @asyncio.coroutine
     def _should_retry(self, attempt_number, response, caught_exception):
-        if self._retryable_exceptions and \
-                attempt_number < self._max_attempts:
+        if self._retryable_exceptions and attempt_number < self._max_attempts:
             try:
-                return self._checker(attempt_number, response, caught_exception)
+                return (yield from self._checker(attempt_number, response, caught_exception))
             except self._retryable_exceptions as e:
                 logger.debug("retry needed, retryable exception caught: %s",
                              e, exc_info=True)
@@ -274,7 +273,7 @@ class MaxAttemptsDecorator(BaseChecker):
         else:
             # If we've exceeded the max attempts we just let the exception
             # propogate if one has occurred.
-            return self._checker(attempt_number, response, caught_exception)
+            return (yield from self._checker(attempt_number, response, caught_exception))
 
 
 class HTTPStatusCodeChecker(BaseChecker):
