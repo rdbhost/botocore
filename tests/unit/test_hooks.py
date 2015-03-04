@@ -12,11 +12,16 @@
 # language governing permissions and limitations under the License.
 import copy
 import functools
+import asyncio
 
 from tests import unittest
 from functools import partial
 
 from botocore.hooks import HierarchicalEmitter, first_non_none_response
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
 
 
 class TestHierarchicalEventEmitter(unittest.TestCase):
@@ -27,16 +32,19 @@ class TestHierarchicalEventEmitter(unittest.TestCase):
     def hook(self, **kwargs):
         self.hook_calls.append(kwargs)
 
+    @async_test
     def test_non_dot_behavior(self):
         self.emitter.register('no-dot', self.hook)
         yield from self.emitter.emit('no-dot')
         self.assertEqual(len(self.hook_calls), 1)
 
+    @async_test
     def test_with_dots(self):
         self.emitter.register('foo.bar.baz', self.hook)
         yield from self.emitter.emit('foo.bar.baz')
         self.assertEqual(len(self.hook_calls), 1)
 
+    @async_test
     def test_catch_all_hook(self):
         self.emitter.register('foo', self.hook)
         self.emitter.register('foo.bar', self.hook)
@@ -47,6 +55,7 @@ class TestHierarchicalEventEmitter(unittest.TestCase):
         self.assertEqual([e['event_name'] for e in self.hook_calls],
                          ['foo.bar.baz', 'foo.bar.baz', 'foo.bar.baz'])
 
+    @async_test
     def test_hook_called_in_proper_order(self):
         # We should call the hooks from most specific to least
         # specific.
@@ -77,6 +86,7 @@ class TestStopProcessing(unittest.TestCase):
         self.hook_calls.append('hook3')
         return 'hook3-response'
 
+    @async_test
     def test_all_hooks(self):
         # Here we register three hooks and sanity check
         # that all three would be called by a normal emit.
@@ -89,17 +99,19 @@ class TestStopProcessing(unittest.TestCase):
 
         self.assertEqual(self.hook_calls, ['hook1', 'hook2', 'hook3'])
 
+    @async_test
     def test_stop_processing_after_first_response(self):
         # Here we register three hooks, but only the first
         # two should ever execute.
         self.emitter.register('foo', self.hook1)
         self.emitter.register('foo', self.hook2)
         self.emitter.register('foo', self.hook3)
-        handler, response = self.emitter.emit_until_response('foo')
+        handler, response = yield from self.emitter.emit_until_response('foo')
 
         self.assertEqual(response, 'hook2-response')
         self.assertEqual(self.hook_calls, ['hook1', 'hook2'])
 
+    @async_test
     def test_no_responses(self):
         # Here we register a handler that will not return a response
         # and ensure we get back proper values.
@@ -109,6 +121,7 @@ class TestStopProcessing(unittest.TestCase):
         self.assertEqual(self.hook_calls, ['hook1'])
         self.assertEqual(responses, [(self.hook1, None)])
 
+    @async_test
     def test_no_handlers(self):
         # Here we have no handlers, but still expect a tuple of return
         # values.
@@ -152,6 +165,7 @@ class TestWildcardHandlers(unittest.TestCase):
         self.emitter.register(event_name, func)
         return func
 
+    @asyncio.coroutine
     def assert_hook_is_called_given_event(self, event):
         starting = len(self.hook_calls)
         yield from self.emitter.emit(event)
@@ -160,6 +174,7 @@ class TestWildcardHandlers(unittest.TestCase):
             self.fail("Handler was not called for event: %s" % event)
         self.assertEqual(self.hook_calls[-1]['event_name'], event)
 
+    @asyncio.coroutine
     def assert_hook_is_not_called_given_event(self, event):
         starting = len(self.hook_calls)
         yield from self.emitter.emit(event)
@@ -169,6 +184,7 @@ class TestWildcardHandlers(unittest.TestCase):
                       "suppose to be called: %s, last_event: %s" %
                       (event, self.hook_calls[-1]))
 
+    @async_test
     def test_one_level_wildcard_handler(self):
         self.emitter.register('foo.*.baz', self.hook)
         # Also register for a number of other events to check
@@ -178,78 +194,84 @@ class TestWildcardHandlers(unittest.TestCase):
         self.emitter.register('dont.call.me', self.hook)
         self.emitter.register('dont', self.hook)
         # These calls should trigger our hook.
-        self.assert_hook_is_called_given_event('foo.bar.baz')
-        self.assert_hook_is_called_given_event('foo.qux.baz')
-        self.assert_hook_is_called_given_event('foo.anything.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz')
+        yield from self.assert_hook_is_called_given_event('foo.qux.baz')
+        yield from self.assert_hook_is_called_given_event('foo.anything.baz')
 
         # These calls should not match our hook.
-        self.assert_hook_is_not_called_given_event('foo')
-        self.assert_hook_is_not_called_given_event('foo.bar')
-        self.assert_hook_is_not_called_given_event('bar.qux.baz')
-        self.assert_hook_is_not_called_given_event('foo-bar')
+        yield from self.assert_hook_is_not_called_given_event('foo')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar')
+        yield from self.assert_hook_is_not_called_given_event('bar.qux.baz')
+        yield from self.assert_hook_is_not_called_given_event('foo-bar')
 
+    @async_test
     def test_hierarchical_wildcard_handler(self):
         self.emitter.register('foo.*.baz', self.hook)
-        self.assert_hook_is_called_given_event('foo.bar.baz.qux')
-        self.assert_hook_is_called_given_event('foo.bar.baz.qux.foo')
-        self.assert_hook_is_called_given_event('foo.qux.baz.qux')
-        self.assert_hook_is_called_given_event('foo.qux.baz.qux.foo')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.qux')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.qux.foo')
+        yield from self.assert_hook_is_called_given_event('foo.qux.baz.qux')
+        yield from self.assert_hook_is_called_given_event('foo.qux.baz.qux.foo')
 
-        self.assert_hook_is_not_called_given_event('bar.qux.baz.foo')
+        yield from self.assert_hook_is_not_called_given_event('bar.qux.baz.foo')
 
+    @async_test
     def test_multiple_wildcard_events(self):
         self.emitter.register('foo.*.*.baz', self.hook)
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
-        self.assert_hook_is_called_given_event('foo.ANY.THING.baz')
-        self.assert_hook_is_called_given_event('foo.AT.ALL.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.ANY.THING.baz')
+        yield from self.assert_hook_is_called_given_event('foo.AT.ALL.baz')
 
         # More specific than what we registered for.
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz.extra')
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz.extra.stuff')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz.extra')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz.extra.stuff')
 
         # Too short:
-        self.assert_hook_is_not_called_given_event('foo')
-        self.assert_hook_is_not_called_given_event('foo.bar')
-        self.assert_hook_is_not_called_given_event('foo.bar.baz')
+        yield from self.assert_hook_is_not_called_given_event('foo')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar.baz')
 
         # Bad ending segment.
-        self.assert_hook_is_not_called_given_event('foo.ANY.THING.notbaz')
-        self.assert_hook_is_not_called_given_event('foo.ANY.THING.stillnotbaz')
+        yield from self.assert_hook_is_not_called_given_event('foo.ANY.THING.notbaz')
+        yield from self.assert_hook_is_not_called_given_event('foo.ANY.THING.stillnotbaz')
 
+    @async_test
     def test_can_unregister_for_wildcard_events(self):
         self.emitter.register('foo.*.*.baz', self.hook)
         # Call multiple times to verify caching behavior.
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
 
         self.emitter.unregister('foo.*.*.baz', self.hook)
-        self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
-        self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
-        self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
 
         self.emitter.register('foo.*.*.baz', self.hook)
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
 
+    @async_test
     def test_unregister_does_not_exist(self):
         self.emitter.register('foo.*.*.baz', self.hook)
         self.emitter.unregister('foo.*.*.baz', self.hook)
         self.emitter.unregister('foo.*.*.baz', self.hook)
-        self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
 
+    @async_test
     def test_cache_cleared_properly(self):
         self.emitter.register('foo.*.*.baz', self.hook)
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
 
         self.emitter.register('foo.*.*.bar', self.hook)
-        self.assert_hook_is_called_given_event('foo.bar.baz.baz')
-        self.assert_hook_is_called_given_event('foo.bar.baz.bar')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.bar')
 
         self.emitter.unregister('foo.*.*.baz', self.hook)
-        self.assert_hook_is_called_given_event('foo.bar.baz.bar')
-        self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.bar')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar.baz.baz')
 
+    @async_test
     def test_complicated_register_unregister(self):
         r = self.emitter.register
         u = partial(self.emitter.unregister, handler=self.hook)
@@ -262,12 +284,13 @@ class TestWildcardHandlers(unittest.TestCase):
         u('foo')
         u('foo.bar')
 
-        self.assert_hook_is_called_given_event('foo.bar.baz.qux')
+        yield from self.assert_hook_is_called_given_event('foo.bar.baz.qux')
 
-        self.assert_hook_is_not_called_given_event('foo.bar.baz')
-        self.assert_hook_is_not_called_given_event('foo.bar')
-        self.assert_hook_is_not_called_given_event('foo')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar.baz')
+        yield from self.assert_hook_is_not_called_given_event('foo.bar')
+        yield from self.assert_hook_is_not_called_given_event('foo')
 
+    @async_test
     def test_register_multiple_handlers_for_same_event(self):
         self.emitter.register('foo.bar.baz', self.hook)
         self.emitter.register('foo.bar.baz', self.hook)
@@ -275,6 +298,7 @@ class TestWildcardHandlers(unittest.TestCase):
         yield from self.emitter.emit('foo.bar.baz')
         self.assertEqual(len(self.hook_calls), 2)
 
+    @async_test
     def test_register_with_unique_id(self):
         self.emitter.register('foo.bar.baz', self.hook, unique_id='foo')
         # Since we're using the same unique_id, this registration is ignored.
@@ -291,6 +315,7 @@ class TestWildcardHandlers(unittest.TestCase):
         yield from self.emitter.emit('foo.other')
         self.assertEqual(len(self.hook_calls), 0)
 
+    @async_test
     def test_remove_handler_with_unique_id(self):
         hook2 = lambda **kwargs: self.hook_calls.append(kwargs)
         self.emitter.register('foo.bar.baz', self.hook, unique_id='foo')
@@ -316,6 +341,7 @@ class TestWildcardHandlers(unittest.TestCase):
         # unregister multiple times and not get an exception.
         self.emitter.unregister('foo.bar.baz', unique_id='foo')
 
+    @async_test
     def test_remove_handler_with_and_without_unique_id(self):
         self.emitter.register('foo.bar.baz', self.hook, unique_id='foo')
         self.emitter.register('foo.bar.baz', self.hook)
@@ -344,6 +370,7 @@ class TestWildcardHandlers(unittest.TestCase):
             self.emitter.register('foo', self.hook, unique_id='foo',
                                   unique_id_uses_count=True)
 
+    @async_test
     def test_register_with_uses_count_unregister(self):
         self.emitter.register('foo', self.hook, unique_id='foo',
                               unique_id_uses_count=True)
@@ -376,6 +403,7 @@ class TestWildcardHandlers(unittest.TestCase):
             self.emitter.unregister('foo', self.hook, unique_id='foo',
                                     unique_id_uses_count=True)
 
+    @async_test
     def test_handlers_called_in_order(self):
         def handler(call_number, **kwargs):
             kwargs['call_number'] = call_number
@@ -387,6 +415,7 @@ class TestWildcardHandlers(unittest.TestCase):
         self.assertEqual([k['call_number'] for k in self.hook_calls],
                          [1, 2])
 
+    @async_test
     def test_handler_call_order_with_hierarchy(self):
         def handler(call_number, **kwargs):
             kwargs['call_number'] = call_number
@@ -406,6 +435,7 @@ class TestWildcardHandlers(unittest.TestCase):
         self.assertEqual([k['call_number'] for k in self.hook_calls],
                          [1, 2, 3, 4, 5, 6])
 
+    @async_test
     def test_register_first_single_level(self):
         def handler(call_number, **kwargs):
             kwargs['call_number'] = call_number
@@ -423,6 +453,7 @@ class TestWildcardHandlers(unittest.TestCase):
         self.assertEqual([k['call_number'] for k in self.hook_calls],
                          [1, 2, 3, 4, 5])
 
+    @async_test
     def test_register_first_hierarchy(self):
         def handler(call_number, **kwargs):
             kwargs['call_number'] = call_number
@@ -441,6 +472,7 @@ class TestWildcardHandlers(unittest.TestCase):
         self.assertEqual([k['call_number'] for k in self.hook_calls],
                          [1, 2, 3, 4, 5, 6])
 
+    @async_test
     def test_register_last_hierarchy(self):
         def handler(call_number, **kwargs):
             kwargs['call_number'] = call_number
@@ -453,6 +485,7 @@ class TestWildcardHandlers(unittest.TestCase):
         self.assertEqual([k['call_number'] for k in self.hook_calls],
                          [1, 2, 3])
 
+    @async_test
     def test_register_unregister_first_last(self):
         self.emitter.register('foo', self.hook)
         self.emitter.register_last('foo.bar', self.hook)
@@ -465,6 +498,7 @@ class TestWildcardHandlers(unittest.TestCase):
         yield from self.emitter.emit('foo')
         self.assertEqual(self.hook_calls, [])
 
+    @async_test
     def test_copy_emitter(self):
         # Here we're not testing copy directly, we're testing
         # the observable behavior from copying an event emitter.
@@ -485,7 +519,7 @@ class TestWildcardHandlers(unittest.TestCase):
         copied_emitter = copy.copy(self.emitter)
         # If we emit from the copied emitter, we should still
         # only see the first handler called.
-        copied_emitter.emit('foo.bar.baz', id_name='second-time')
+        yield from copied_emitter.emit('foo.bar.baz', id_name='second-time')
         self.assertEqual(first, ['first-time', 'second-time'])
         self.assertEqual(second, [])
 
@@ -493,7 +527,7 @@ class TestWildcardHandlers(unittest.TestCase):
         # emitter, the first emitter will not see this.
         copied_emitter.register('foo.bar.baz', second_handler)
 
-        copied_emitter.emit('foo.bar.baz', id_name='third-time')
+        yield from copied_emitter.emit('foo.bar.baz', id_name='third-time')
         self.assertEqual(first, ['first-time', 'second-time', 'third-time'])
         # And now the second handler is called.
         self.assertEqual(second, ['third-time'])
@@ -507,6 +541,7 @@ class TestWildcardHandlers(unittest.TestCase):
         yield from self.emitter.emit('foo.bar.baz', id_name='last-time')
         self.assertEqual(second, ['third-time'])
 
+    @async_test
     def test_copy_events_with_partials(self):
         # There's a bug in python2.6 where you can't deepcopy
         # a partial object.  We want to ensure that doesn't
@@ -517,8 +552,8 @@ class TestWildcardHandlers(unittest.TestCase):
         f = functools.partial(handler, 1)
         self.emitter.register('a.b', f)
         copied = copy.copy(self.emitter)
-        self.assertEqual(copied.emit_until_response(
-            'a.b', b='return-val')[1], 'return-val')
+        self.assertEqual((yield from copied.emit_until_response(
+            'a.b', b='return-val'))[1], 'return-val')
 
 
 if __name__ == '__main__':

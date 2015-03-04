@@ -14,10 +14,14 @@
 # language governing permissions and limitations under the License.
 
 from tests import unittest
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
 
 import mock
-from botocore.vendored.requests import ConnectionError, Timeout
-from botocore.vendored.requests.packages.urllib3.exceptions import ClosedPoolError
+from yieldfrom.requests import ConnectionError, Timeout
+from yieldfrom.urllib3.exceptions import ClosedPoolError
 
 from botocore import retryhandler
 from botocore.exceptions import ChecksumError
@@ -34,94 +38,106 @@ HTTP_200_RESPONSE.status_code = 200
 
 
 class TestRetryCheckers(unittest.TestCase):
+
+    @asyncio.coroutine
     def assert_should_be_retried(self, response, attempt_number=1,
                                  caught_exception=None):
-        self.assertTrue(self.checker(
-            response=response, attempt_number=attempt_number,
-            caught_exception=caught_exception))
+        r = yield from self.checker(response=response, attempt_number=attempt_number,
+            caught_exception=caught_exception)
+        self.assertTrue(r)
 
+    @asyncio.coroutine
     def assert_should_not_be_retried(self, response, attempt_number=1,
                                      caught_exception=None):
-        self.assertFalse(self.checker(
+        r = yield from self.checker(
             response=response, attempt_number=attempt_number,
-            caught_exception=caught_exception))
+            caught_exception=caught_exception)
+        self.assertFalse(r)
 
+    @async_test
     def test_status_code_checker(self):
         self.checker = retryhandler.HTTPStatusCodeChecker(500)
-        self.assert_should_be_retried(response=(HTTP_500_RESPONSE, {}))
+        yield from self.assert_should_be_retried(response=(HTTP_500_RESPONSE, {}))
 
+    @async_test
     def test_max_attempts(self):
         self.checker = retryhandler.MaxAttemptsDecorator(
             retryhandler.HTTPStatusCodeChecker(500), max_attempts=3)
 
         # Retry up to three times.
-        self.assert_should_be_retried(
+        yield from self.assert_should_be_retried(
             (HTTP_500_RESPONSE, {}), attempt_number=1)
-        self.assert_should_be_retried(
+        yield from self.assert_should_be_retried(
             (HTTP_500_RESPONSE, {}), attempt_number=2)
         # On the third failed response, we've reached the
         # max attempts so we should return False.
-        self.assert_should_not_be_retried(
+        yield from self.assert_should_not_be_retried(
             (HTTP_500_RESPONSE, {}), attempt_number=3)
 
+    @async_test
     def test_max_attempts_successful(self):
         self.checker = retryhandler.MaxAttemptsDecorator(
             retryhandler.HTTPStatusCodeChecker(500), max_attempts=3)
 
-        self.assert_should_be_retried(
+        yield from self.assert_should_be_retried(
             (HTTP_500_RESPONSE, {}), attempt_number=1)
         # The second retry is successful.
-        self.assert_should_not_be_retried(
+        yield from self.assert_should_not_be_retried(
             (HTTP_200_RESPONSE, {}), attempt_number=2)
 
         # But now we can reuse this object.
-        self.assert_should_be_retried(
+        yield from self.assert_should_be_retried(
             (HTTP_500_RESPONSE, {}), attempt_number=1)
-        self.assert_should_be_retried(
+        yield from self.assert_should_be_retried(
             (HTTP_500_RESPONSE, {}), attempt_number=2)
-        self.assert_should_not_be_retried(
+        yield from self.assert_should_not_be_retried(
             (HTTP_500_RESPONSE, {}), attempt_number=3)
 
+    @async_test
     def test_error_code_checker(self):
         self.checker = retryhandler.ServiceErrorCodeChecker(
             status_code=400, error_code='Throttled')
-        response = (HTTP_400_RESPONSE,
-                    {'Error': {'Code': 'Throttled'}})
-        self.assert_should_be_retried(response)
+        response = (HTTP_400_RESPONSE, {'Error': {'Code': 'Throttled'}})
+        yield from self.assert_should_be_retried(response)
 
+    @async_test
     def test_error_code_checker_does_not_match(self):
         self.checker = retryhandler.ServiceErrorCodeChecker(
             status_code=400, error_code='Throttled')
         response = (HTTP_400_RESPONSE,
                     {'Error': {'Code': 'NotThrottled'}})
-        self.assert_should_not_be_retried(response)
+        yield from self.assert_should_not_be_retried(response)
 
+    @async_test
     def test_error_code_checker_ignore_caught_exception(self):
         self.checker = retryhandler.ServiceErrorCodeChecker(
             status_code=400, error_code='Throttled')
-        self.assert_should_not_be_retried(response=None,
+        yield from self.assert_should_not_be_retried(response=None,
                                           caught_exception=RuntimeError())
 
+    @async_test
     def test_multi_checker(self):
         checker = retryhandler.ServiceErrorCodeChecker(
             status_code=400, error_code='Throttled')
         checker2 = retryhandler.HTTPStatusCodeChecker(500)
         self.checker = retryhandler.MultiChecker([checker, checker2])
-        self.assert_should_be_retried((HTTP_500_RESPONSE, {}))
-        self.assert_should_be_retried(
+        yield from self.assert_should_be_retried((HTTP_500_RESPONSE, {}))
+        yield from self.assert_should_be_retried(
             response=(HTTP_400_RESPONSE, {'Error': {'Code': 'Throttled'}}))
-        self.assert_should_not_be_retried(
+        yield from self.assert_should_not_be_retried(
             response=(HTTP_200_RESPONSE, {}))
 
+    @async_test
     def test_exception_checker_ignores_response(self):
         self.checker = retryhandler.ExceptionRaiser()
-        self.assert_should_not_be_retried(
+        yield from self.assert_should_not_be_retried(
             response=(HTTP_200_RESPONSE, {}), caught_exception=None)
 
+    @async_test
     def test_value_error_raised_when_missing_response_and_exception(self):
         self.checker = retryhandler.ExceptionRaiser()
         with self.assertRaises(ValueError):
-            self.checker(1, response=None, caught_exception=None)
+            yield from self.checker(1, response=None, caught_exception=None)
 
 
 class TestCreateRetryConfiguration(unittest.TestCase):
@@ -197,46 +213,50 @@ class TestCreateRetryConfiguration(unittest.TestCase):
         self.assertIsInstance(all_checkers[1],
                               retryhandler.ExceptionRaiser)
 
+    @async_test
     def test_create_retry_handler_with_socket_errors(self):
         handler = retryhandler.create_retry_handler(
             self.retry_config, operation_name='OperationBar')
         with self.assertRaises(ConnectionError):
-            handler(response=None, attempts=10,
+            yield from handler(response=None, attempts=10,
                     caught_exception=ConnectionError())
         # No connection error raised because attempts < max_attempts.
-        sleep_time = handler(response=None, attempts=1,
+        sleep_time = yield from handler(response=None, attempts=1,
                              caught_exception=ConnectionError())
         self.assertEqual(sleep_time, 1)
         # But any other exception should be raised even if
         # attempts < max_attempts.
         with self.assertRaises(ValueError):
-            sleep_time = handler(response=None, attempts=1,
+            sleep_time = yield from handler(response=None, attempts=1,
                                 caught_exception=ValueError())
 
+    @async_test
     def test_connection_timeouts_are_retried(self):
         # If a connection times out, we get a Timout exception
         # from requests.  We should be retrying those.
         handler = retryhandler.create_retry_handler(
             self.retry_config, operation_name='OperationBar')
-        sleep_time = handler(response=None, attempts=1,
+        sleep_time = yield from handler(response=None, attempts=1,
                              caught_exception=Timeout())
         self.assertEqual(sleep_time, 1)
 
+    @async_test
     def test_retry_pool_closed_errors(self):
         # A ClosedPoolError is retried (this is a workaround for a urllib3
         # bug).  Can be removed once we upgrade to requests 2.0.0.
         handler = retryhandler.create_retry_handler(
             self.retry_config, operation_name='OperationBar')
         # 4th attempt is retried.
-        sleep_time = handler(
+        sleep_time = yield from handler(
             response=None, attempts=4,
             caught_exception=ClosedPoolError('FakePool', 'Message'))
         self.assertEqual(sleep_time, 8)
         # But the 5th time propogates the error.
         with self.assertRaises(ClosedPoolError):
-            handler(response=None, attempts=10,
+            yield from handler(response=None, attempts=10,
                     caught_exception=ClosedPoolError('FakePool', 'Message'))
 
+    @async_test
     def test_create_retry_handler_with_no_operation(self):
         handler = retryhandler.create_retry_handler(
             self.retry_config, operation_name=None)
@@ -246,6 +266,7 @@ class TestCreateRetryConfiguration(unittest.TestCase):
         self.assertEqual(handler._action(attempts=2), 2)
         self.assertEqual(handler._action(attempts=3), 4)
 
+    @async_test
     def test_crc32_check_propogates_error(self):
         handler = retryhandler.create_retry_handler(
             self.retry_config, operation_name='OperationFoo')
@@ -254,16 +275,17 @@ class TestCreateRetryConfiguration(unittest.TestCase):
         # This is not the crc32 of b'foo', so this should
         # fail the crc32 check.
         http_response.headers = {'x-amz-crc32': 2356372768}
-        http_response.content = b'foo'  # should be generator
+        http_response.content = future_wrapped(b'foo')  # should be generator
         # The first 10 attempts we get a retry.
-        self.assertEqual(handler(response=(http_response, {}), attempts=1,
-                                 caught_exception=None), 1)
+        self.assertEqual((yield from handler(response=(http_response, {}), attempts=1, caught_exception=None)), 1)
         with self.assertRaises(ChecksumError):
-            handler(response=(http_response, {}), attempts=10,
+            yield from handler(response=(http_response, {}), attempts=10,
                     caught_exception=None)
 
 
 class TestRetryHandler(unittest.TestCase):
+
+    @async_test
     def test_action_tied_to_policy(self):
         # When a retry rule matches we should return the
         # amount of time to sleep, otherwise we should return None.
@@ -273,61 +295,64 @@ class TestRetryHandler(unittest.TestCase):
         response = (HTTP_500_RESPONSE, {})
 
         self.assertEqual(
-            handler(response=response, attempts=1, caught_exception=None), 1)
+            (yield from handler(response=response, attempts=1, caught_exception=None)), 1)
         self.assertEqual(
-            handler(response=response, attempts=2, caught_exception=None), 2)
+            (yield from handler(response=response, attempts=2, caught_exception=None)), 2)
         self.assertEqual(
-            handler(response=response, attempts=3, caught_exception=None), 4)
+            (yield from handler(response=response, attempts=3, caught_exception=None)), 4)
         self.assertEqual(
-            handler(response=response, attempts=4, caught_exception=None), 8)
+            (yield from handler(response=response, attempts=4, caught_exception=None)), 8)
 
+    @async_test
     def test_none_response_when_no_matches(self):
         delay_function = retryhandler.create_exponential_delay_function( 1, 2)
         checker = retryhandler.HTTPStatusCodeChecker(500)
         handler = retryhandler.RetryHandler(checker, delay_function)
         response = (HTTP_200_RESPONSE, {})
 
-        self.assertIsNone(handler(response=response, attempts=1,
-                                  caught_exception=None))
+        self.assertIsNone((yield from handler(response=response, attempts=1, caught_exception=None)))
 
 
 class TestCRC32Checker(unittest.TestCase):
     def setUp(self):
         self.checker = retryhandler.CRC32Checker('x-amz-crc32')
 
+    @async_test
     def test_crc32_matches(self):
         http_response = mock.Mock()
         http_response.status_code = 200
         # This is the crc32 of b'foo', so this should
         # pass the crc32 check.
         http_response.headers = {'x-amz-crc32': 2356372769}
-        http_response.content = b'foo'  # should be generator
-        self.assertIsNone(self.checker(
-            response=(http_response, {}), attempt_number=1,
-            caught_exception=None))
+        http_response.content = future_wrapped(b'foo')  # should be generator
+        r = yield from self.checker(response=(http_response, {}), attempt_number=1,
+                                    caught_exception=None)
+        self.assertIsNone(r)
 
+    @async_test
     def test_crc32_missing(self):
         # It's not an error is the crc32 header is missing.
         http_response = mock.Mock()
         http_response.status_code = 200
         http_response.headers = {}
-        self.assertIsNone(self.checker(
-            response=(http_response, {}), attempt_number=1,
-            caught_exception=None))
+        r = yield from self.checker(response=(http_response, {}), attempt_number=1, caught_exception=None)
+        self.assertIsNone(r)
 
+    @async_test
     def test_crc32_check_fails(self):
         http_response = mock.Mock()
         http_response.status_code = 200
         # This is not the crc32 of b'foo', so this should
         # fail the crc32 check.
         http_response.headers = {'x-amz-crc32': 2356372768}
-        http_response.content = b'foo'  # should be generator
+        http_response.content = future_wrapped(b'foo')  # should be generator
         with self.assertRaises(ChecksumError):
-            self.checker(response=(http_response, {}), attempt_number=1,
+            yield from self.checker(response=(http_response, {}), attempt_number=1,
                          caught_exception=None)
 
 
 class TestDelayExponential(unittest.TestCase):
+
     def test_delay_with_numeric_base(self):
         self.assertEqual(retryhandler.delay_exponential(base=3,
                                                         growth_factor=2,

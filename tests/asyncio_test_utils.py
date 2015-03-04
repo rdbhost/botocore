@@ -27,3 +27,9 @@ def async_test(f):
 async_test.__test__ = False  # not a test
 
 
+
+def future_wrapped(data):
+    f = asyncio.Future()
+    f.set_result(data)
+    return f
+

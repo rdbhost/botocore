@@ -11,11 +11,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
 from tests import unittest, BaseSessionTest, create_session
 
 from mock import Mock, patch, sentinel
-from botocore.vendored.requests import ConnectionError
-from botocore.vendored.requests.models import Response
+from yieldfrom.requests import ConnectionError
+from yieldfrom.requests.models import Response
 
 from botocore.compat import six
 from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
@@ -108,7 +113,7 @@ class TestEndpointBase(unittest.TestCase):
         self.op.has_streaming_output = False
         self.op.metadata = {'protocol': 'json'}
         self.event_emitter = Mock()
-        self.event_emitter.emit.return_value = []
+        self.event_emitter.emit.return_value = future_wrapped([])
         self.factory_patch = patch(
             'botocore.parsers.ResponseParserFactory')
         self.factory = self.factory_patch.start()
@@ -117,9 +122,9 @@ class TestEndpointBase(unittest.TestCase):
             user_agent='botoore', endpoint_prefix='ec2',
             event_emitter=self.event_emitter)
         self.http_session = Mock()
-        self.http_session.send.return_value = Mock(
-            status_code=200, headers={}, content=b'{"Foo": "bar"}',
-        )
+        http_resp_content = future_wrapped(b'{"Foo": "bar"}')
+        http_sess_return = future_wrapped(Mock(status_code=200, headers={}, content=http_resp_content,))
+        self.http_session.send.return_value = http_sess_return
         self.endpoint.http_session = self.http_session
 
     def tearDown(self):
@@ -128,6 +133,7 @@ class TestEndpointBase(unittest.TestCase):
 
 class TestEndpointFeatures(TestEndpointBase):
 
+    @async_test
     def test_timeout_can_be_specified(self):
         timeout_override = 120
         self.endpoint.timeout = timeout_override
@@ -135,6 +141,7 @@ class TestEndpointFeatures(TestEndpointBase):
         kwargs = self.http_session.send.call_args[1]
         self.assertEqual(kwargs['timeout'], timeout_override)
 
+    @async_test
     def test_make_request_with_proxies(self):
         proxies = {'http': 'http://localhost:8888'}
         self.endpoint.proxies = proxies
@@ -145,6 +152,7 @@ class TestEndpointFeatures(TestEndpointBase):
             proxies=proxies, timeout=DEFAULT_TIMEOUT)
 
 
+    @async_test
     def test_make_request_with_no_auth(self):
         self.endpoint.auth = None
         yield from self.endpoint.make_request(self.op, request_dict())
@@ -154,6 +162,7 @@ class TestEndpointFeatures(TestEndpointBase):
         prepared_request = self.http_session.send.call_args[0][0]
         self.assertNotIn('Authorization', prepared_request.headers)
 
+    @async_test
     def test_make_request_no_signature_version(self):
         self.endpoint = Endpoint(
             'us-west-2', 'https://ec2.us-west-2.amazonaws.com/',
@@ -195,6 +204,7 @@ class TestRetryInterface(TestEndpointBase):
         else:
             return None
 
+    @async_test
     def test_retry_events_are_emitted(self):
         op = Mock()
         op.name = 'DescribeInstances'
@@ -205,16 +215,21 @@ class TestRetryInterface(TestEndpointBase):
         self.assertEqual(call_args[0][0],
                          'needs-retry.ec2.DescribeInstances')
 
+    @async_test
     def test_retry_events_can_alter_behavior(self):
         op = Mock()
         op.name = 'DescribeInstances'
         op.metadata = {'protocol': 'json'}
-        self.event_emitter.emit.side_effect = [
+
+        side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Retry needed.
-            [(None, None)], # Request created.
+            [(None, None)], # Request created
             [(None, None)]  # Check if retry needed. Retry not needed.
         ]
+        side_effects = [future_wrapped(se) for se in side_effect_src]
+        self.event_emitter.emit.side_effect = side_effects
+
         yield from self.endpoint.make_request(op, request_dict())
         call_args = self.event_emitter.emit.call_args_list
         self.assertEqual(self.event_emitter.emit.call_count, 4)
@@ -228,15 +243,22 @@ class TestRetryInterface(TestEndpointBase):
         self.assertEqual(call_args[3][0][0],
                          'needs-retry.ec2.DescribeInstances')
 
+    @async_test
     def test_retry_on_socket_errors(self):
         op = Mock()
         op.name = 'DescribeInstances'
-        self.event_emitter.emit.side_effect = [
+
+        side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Retry needed.
             [(None, None)], # Request created
             [(None, None)]  # Check if retry needed. Retry not needed.
         ]
+        side_effects = [future_wrapped(se) for se in side_effect_src]
+        self.event_emitter.emit.side_effect = side_effects
+
+        self.event_emitter.emit.side_effect = side_effects
+
         self.http_session.send.side_effect = ConnectionError()
         yield from self.endpoint.make_request(op, request_dict())
         call_args = self.event_emitter.emit.call_args_list
@@ -266,6 +288,7 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
             # but 0 here is so that time.sleep(0) happens.
             return 0
 
+    @async_test
     def test_reset_stream_on_retry(self):
         op = Mock()
         body = RecordStreamResets('foobar')
@@ -274,7 +297,7 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
         op.metadata = {'protocol': 'rest-xml'}
         request = request_dict()
         request['body'] = body
-        self.event_emitter.emit.side_effect = [
+        side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Needs Retry.
             [(None, None)], # Request created.
@@ -282,6 +305,9 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
             [(None, None)], # Request created.
             [(None, None)], # Finally emit no rety is needed.
         ]
+        side_effects = [future_wrapped(se) for se in side_effect_src]
+        self.event_emitter.emit.side_effect = side_effects
+
         yield from self.endpoint.make_request(op, request)
         self.assertEqual(body.total_resets, 2)
 

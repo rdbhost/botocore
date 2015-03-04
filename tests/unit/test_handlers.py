@@ -11,6 +11,11 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
 from tests import BaseSessionTest
 
 import base64
@@ -51,22 +56,24 @@ class TestHandlers(BaseSessionTest):
     def test_disable_signing(self):
         self.assertEqual(handlers.disable_signing(), botocore.UNSIGNED)
 
+    @async_test
     def test_quote_source_header(self):
         for op in ('UploadPartCopy', 'CopyObject'):
             event = self.session.create_event(
                 'before-call', 's3', op)
             params = {'headers': {'x-amz-copy-source': 'foo++bar.txt'}}
             m = mock.Mock()
-            self.session.emit(event, params=params, model=m)
+            yield from self.session.emit(event, params=params, model=m)
             self.assertEqual(
                 params['headers']['x-amz-copy-source'], 'foo%2B%2Bbar.txt')
 
+    @async_test
     def test_copy_snapshot_encrypted(self):
         operation = mock.Mock()
         source_endpoint = mock.Mock()
         signed_request = mock.Mock()
         signed_request.original.prepare().url = 'SIGNED_REQUEST'
-        source_endpoint.create_request.return_value = signed_request
+        source_endpoint.create_request.return_value = future_wrapped(signed_request)
         operation.service.get_endpoint.return_value = source_endpoint
         request_signer = mock.Mock()
         request_signer._region_name = 'us-east-1'
@@ -81,6 +88,7 @@ class TestHandlers(BaseSessionTest):
         # region_name of the endpoint object.
         self.assertEqual(params['DestinationRegion'], 'us-east-1')
 
+    @async_test
     def test_destination_region_left_untouched(self):
         # If the user provides a destination region, we will still
         # override the DesinationRegion with the region_name from
@@ -90,7 +98,7 @@ class TestHandlers(BaseSessionTest):
         signed_request = mock.Mock()
         signed_request.url = 'SIGNED_REQUEST'
         source_endpoint.auth.credentials = mock.sentinel.credentials
-        source_endpoint.create_request.return_value = signed_request
+        source_endpoint.create_request.return_value = future_wrapped(signed_request)
         operation.service.get_endpoint.return_value = source_endpoint
         request_signer = mock.Mock()
         request_signer._region_name = 'us-west-1'
@@ -104,36 +112,37 @@ class TestHandlers(BaseSessionTest):
         # whatever value the user provides.
         self.assertEqual(params['DestinationRegion'], 'us-west-1')
 
-    @asyncio.coroutine
+    @async_test
     def test_500_status_code_set_for_200_response(self):
         http_response = mock.Mock()
         http_response.status_code = 200
-        http_response.content = """
+        http_response.content = future_wrapped("""
             <Error>
               <Code>AccessDenied</Code>
               <Message>Access Denied</Message>
               <RequestId>id</RequestId>
               <HostId>hostid</HostId>
             </Error>
-        """ # should be generator
+        """)
         yield from handlers.check_for_200_error((http_response, {}))
         self.assertEqual(http_response.status_code, 500)
 
-    @asyncio.coroutine
+    @async_test
     def test_200_response_with_no_error_left_untouched(self):
         http_response = mock.Mock()
         http_response.status_code = 200
-        http_response.content = "<NotAnError></NotAnError>" # should be generator
+        http_response.content = future_wrapped("<NotAnError></NotAnError>")
         yield from handlers.check_for_200_error((http_response, {}))
         # We don't touch the status code since there are no errors present.
         self.assertEqual(http_response.status_code, 200)
 
-    @asyncio.coroutine
+    @async_test
     def test_500_response_can_be_none(self):
         # A 500 response can raise an exception, which means the response
         # object is None.  We need to handle this case.
         yield from handlers.check_for_200_error(None)
 
+    @async_test
     def test_sse_params(self):
         for op in ('HeadObject', 'GetObject', 'PutObject', 'CopyObject',
                    'CreateMultipartUpload', 'UploadPart', 'UploadPartCopy'):
@@ -141,21 +150,23 @@ class TestHandlers(BaseSessionTest):
                 'before-parameter-build', 's3', op)
             params = {'SSECustomerKey': b'bar',
                       'SSECustomerAlgorithm': 'AES256'}
-            self.session.emit(event, params=params, model=mock.Mock())
+            yield from self.session.emit(event, params=params, model=mock.Mock())
             self.assertEqual(params['SSECustomerKey'], 'YmFy')
             self.assertEqual(params['SSECustomerKeyMD5'],
                              'N7UdGUp1E+RbVvZSTy1R8g==')
 
+    @async_test
     def test_sse_params_as_str(self):
         event = self.session.create_event(
             'before-parameter-build', 's3', 'PutObject')
         params = {'SSECustomerKey': 'bar',
                   'SSECustomerAlgorithm': 'AES256'}
-        self.session.emit(event, params=params, model=mock.Mock())
+        yield from self.session.emit(event, params=params, model=mock.Mock())
         self.assertEqual(params['SSECustomerKey'], 'YmFy')
         self.assertEqual(params['SSECustomerKeyMD5'],
                             'N7UdGUp1E+RbVvZSTy1R8g==')
 
+    @async_test
     def test_route53_resource_id(self):
         event = self.session.create_event(
             'before-parameter-build', 'route53', 'GetHostedZone')
@@ -205,7 +216,7 @@ class TestHandlers(BaseSessionTest):
             }
         }
         model = OperationModel(operation_def, ServiceModel(service_def))
-        self.session.emit(event, params=params, model=model)
+        yield from self.session.emit(event, params=params, model=model)
 
         self.assertEqual(params['Id'], 'ABC123')
         self.assertEqual(params['HostedZoneId'], 'ABC123')
@@ -215,6 +226,7 @@ class TestHandlers(BaseSessionTest):
         # This one should have been left alone
         self.assertEqual(params['Other'], '/hostedzone/foo')
 
+    @async_test
     def test_route53_resource_id_missing_input_shape(self):
         event = self.session.create_event(
             'before-parameter-build', 'route53', 'GetHostedZone')
@@ -227,10 +239,11 @@ class TestHandlers(BaseSessionTest):
             'shapes': {}
         }
         model = OperationModel(operation_def, ServiceModel(service_def))
-        self.session.emit(event, params=params, model=model)
+        yield from self.session.emit(event, params=params, model=model)
 
         self.assertEqual(params['HostedZoneId'], '/hostedzone/ABC123')
 
+    @async_test
     def test_run_instances_userdata(self):
         user_data = 'This is a test'
         b64_user_data = base64.b64encode(six.b(user_data)).decode('utf-8')
@@ -238,13 +251,14 @@ class TestHandlers(BaseSessionTest):
             'before-parameter-build', 'ec2', 'RunInstances')
         params = dict(ImageId='img-12345678',
                       MinCount=1, MaxCount=5, UserData=user_data)
-        self.session.emit(event, params=params)
+        yield from self.session.emit(event, params=params)
         result = {'ImageId': 'img-12345678',
                   'MinCount': 1,
                   'MaxCount': 5,
                   'UserData': b64_user_data}
         self.assertEqual(params, result)
 
+    @async_test
     def test_run_instances_userdata_blob(self):
         # Ensure that binary can be passed in as user data.
         # This is valid because you can send gzip compressed files as
@@ -255,7 +269,7 @@ class TestHandlers(BaseSessionTest):
             'before-parameter-build', 'ec2', 'RunInstances')
         params = dict(ImageId='img-12345678',
                       MinCount=1, MaxCount=5, UserData=user_data)
-        self.session.emit(event, params=params)
+        yield from self.session.emit(event, params=params)
         result = {'ImageId': 'img-12345678',
                   'MinCount': 1,
                   'MaxCount': 5,
@@ -436,10 +450,11 @@ class TestRetryHandlerOrder(BaseSessionTest):
                 names.append(str(handler))
         return names
 
+    @async_test
     def test_s3_special_case_is_before_other_retry(self):
-        service = self.session.get_service('s3')
+        service = yield from self.session.get_service('s3')
         operation = service.get_operation('CopyObject')
-        responses = self.session.emit(
+        responses = yield from self.session.emit(
             'needs-retry.s3.CopyObject',
             response=(mock.Mock(), mock.Mock()), endpoint=mock.Mock(), operation=operation,
             attempts=1, caught_exception=None)

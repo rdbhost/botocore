@@ -23,7 +23,7 @@ import asyncio
 
 import sys
 sys.path.append('..')
-from asyncio_test_utils import async_test
+from asyncio_test_utils import async_test, future_wrapped
 
 from mock import Mock, patch
 
@@ -210,19 +210,14 @@ class TestAWSHTTPConnection(unittest.TestCase):
             # which should be an empty string.
             if i != len(response_components) - 1:
                 new_component += delimeter
-            side_effect.append(new_component)
+            side_effect.append(future_wrapped(new_component))
 
-        fpr = asyncio.Future()
-        fpr.set_result(side_effect)
-        self.mock_response.fp.readline.return_value = fpr
+        self.mock_response.fp.readline.side_effect = side_effect
 
         response_components = response.split(b' ')
-        rses = []
-        for rc in response_components:
-            rs = asyncio.Future()
-            rs.set_result(rc)
-            rses.append(rs)
-        self.mock_response._read_status.return_value = iter(rses)
+        response_components = response_components[0], int(response_components[1]), response_components[2]
+        #rses = [future_wrapped(rs) for rs in response_components]
+        self.mock_response._read_status.return_value = future_wrapped(response_components)
         conn.response_class = Mock()
         conn.response_class.return_value = self.mock_response
         return conn
@@ -330,19 +325,20 @@ class TestAWSHTTPConnection(unittest.TestCase):
         self.assertEqual(response.status, 200)
 
     @async_test
-    def tst_tunnel_readline_none_bugfix(self):
+    def test_tunnel_readline_none_bugfix(self):
         # Tests whether ``_tunnel`` function is able to work around the
         # py26 bug of avoiding infinite while loop if nothing is returned.
         conn = self.create_tunneled_connection(
             url='s3.amazonaws.com',
             port=443,
-            response=b'HTTP/1.1 200 OK\r\n\r\n',
+            response=b'HTTP/1.1 200 OK\r\n',
         )
         yield from conn._tunnel()
         # Ensure proper amount of readline calls were made.
-        self.assertEqual(self.mock_response.fp.readline.call_count, 2)
+        self.assertEqual(self.mock_response.fp.readline.call_count, 3)
 
-    def tst_tunnel_readline_normal(self):
+    @async_test
+    def test_tunnel_readline_normal(self):
         # Tests that ``_tunnel`` function behaves normally when it comes
         # across the usual http ending.
         conn = self.create_tunneled_connection(
@@ -350,11 +346,12 @@ class TestAWSHTTPConnection(unittest.TestCase):
             port=443,
             response=b'HTTP/1.1 200 OK\r\n\r\n',
         )
-        conn._tunnel()
+        yield from conn._tunnel()
         # Ensure proper amount of readline calls were made.
-        self.assertEqual(self.mock_response.fp.readline.call_count, 2)
+        self.assertEqual(self.mock_response.fp.readline.call_count, 3)
 
-    def tst_tunnel_raises_socket_error(self):
+    @async_test
+    def test_tunnel_raises_socket_error(self):
         # Tests that ``_tunnel`` function throws appropriate error when
         # not 200 status.
         conn = self.create_tunneled_connection(
@@ -362,8 +359,8 @@ class TestAWSHTTPConnection(unittest.TestCase):
             port=443,
             response=b'HTTP/1.1 404 Not Found\r\n\r\n',
         )
-        with self.assertRaises(socket.error):
-            conn._tunnel()
+        with self.assertRaises(OSError):
+            yield from conn._tunnel()
 
     @unittest.skipIf(sys.version_info[:2] == (2, 6),
                      ("``_tunnel()`` function defaults to standard "

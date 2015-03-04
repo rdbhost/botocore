@@ -13,6 +13,10 @@
 
 from tests import unittest
 import datetime
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
 
 from dateutil.tz import tzutc
 
@@ -20,7 +24,7 @@ import botocore
 from botocore import response
 from botocore.compat import six
 from botocore.exceptions import IncompleteReadError
-from botocore.vendored.requests.models import Response, Request
+from yieldfrom.requests.models import Response, Request
 
 XMLBODY1 = (b'<?xml version="1.0" encoding="UTF-8"?><Error>'
             b'<Code>AccessDenied</Code>'
@@ -40,30 +44,42 @@ XMLBODY2 = (b'<?xml version="1.0" encoding="UTF-8"?>'
             b'<StorageClass>STANDARD</StorageClass></Contents></ListBucketResult>')
 
 
-class TestStreamWrapper(unittest.TestCase):
-    def test_streaming_wrapper_validates_content_length(self):
-        body = six.BytesIO(b'1234567890')
-        stream = response.StreamingBody(body, content_length=10)
-        self.assertEqual(stream.read(), b'1234567890')
+def TestReader(data):
+    r = asyncio.StreamReader()
+    r.feed_data(data)
+    r.feed_eof()
+    return r
 
+class TestStreamWrapper(unittest.TestCase):
+
+    @async_test
+    def test_streaming_wrapper_validates_content_length(self):
+        #body = six.BytesIO(b'1234567890')
+        body = TestReader(b'1234567890')
+        stream = response.StreamingBody(body, content_length=10)
+        self.assertEqual((yield from stream.read()), b'1234567890')
+
+    @async_test
     def test_streaming_body_with_invalid_length(self):
-        body = six.BytesIO(b'123456789')
+        body = TestReader(b'123456789')
         stream = response.StreamingBody(body, content_length=10)
         with self.assertRaises(IncompleteReadError):
-            self.assertEqual(stream.read(9), b'123456789')
+            self.assertEqual((yield from stream.read(9)), b'123456789')
             # The next read will have nothing returned and raise
             # an IncompleteReadError because we were expectd 10 bytes, not 9.
-            stream.read()
+            yield from stream.read()
 
+    @async_test
     def test_streaming_body_with_single_read(self):
-        body = six.BytesIO(b'123456789')
+        body = TestReader(b'123456789')
         stream = response.StreamingBody(body, content_length=10)
         with self.assertRaises(IncompleteReadError):
-            stream.read()
+            yield from stream.read()
 
 class TestGetResponse(unittest.TestCase):
     maxDiff = None
 
+    @async_test
     def test_get_response_streaming_ok(self):
         http_response = Response()
         http_response.headers = {
@@ -79,7 +95,7 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'OK'
 
         session = botocore.session.get_session()
-        s3 = session.get_service('s3')
+        s3 = yield from session.get_service('s3')
         operation = s3.get_operation('GetObject')
 
         res = yield from response.get_response(operation.model, http_response)
@@ -87,6 +103,7 @@ class TestGetResponse(unittest.TestCase):
         self.assertEqual(res[1]['ETag'],
                          '"00000000000000000000000000000000"')
 
+    @async_test
     def test_get_response_streaming_ng(self):
         http_response = Response()
         http_response.headers = {
@@ -101,11 +118,11 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'Forbidden'
 
         session = botocore.session.get_session()
-        s3 = session.get_service('s3')
+        s3 = yield from session.get_service('s3')
         operation = s3.get_operation('GetObject') # streaming operation
 
         self.assertEqual(
-            (yield from response.get_response(operation.model, http_response)[1]),
+            (yield from response.get_response(operation.model, http_response))[1],
             {'Error': {'Message': 'Access Denied',
                        'Code': 'AccessDenied',},
              'ResponseMetadata': {'HostId': 'AAAAAAAAAAAAAAAAAAA',
@@ -114,6 +131,7 @@ class TestGetResponse(unittest.TestCase):
              }
             )
 
+    @async_test
     def test_get_response_nonstreaming_ok(self):
         http_response = Response()
         http_response.headers = {
@@ -129,11 +147,11 @@ class TestGetResponse(unittest.TestCase):
         http_response.request = Request()
 
         session = botocore.session.get_session()
-        s3 = session.get_service('s3')
+        s3 = yield from session.get_service('s3')
         operation = s3.get_operation('ListObjects') # non-streaming operation
 
         self.assertEqual(
-            (yield from response.get_response(operation.model, http_response)[1]),
+            (yield from response.get_response(operation.model, http_response))[1],
             { 'ResponseMetadata': {'RequestId': 'XXXXXXXXXXXXXXXX',
                                    'HostId': 'AAAAAAAAAAAAAAAAAAA',
                                    'HTTPStatusCode': 403},
@@ -141,6 +159,8 @@ class TestGetResponse(unittest.TestCase):
                         'Code': 'AccessDenied',}
               }
             )
+
+    @async_test
     def test_get_response_nonstreaming_ng(self):
         http_response = Response()
         http_response.headers = {
@@ -156,11 +176,11 @@ class TestGetResponse(unittest.TestCase):
         http_response.request = Request()
 
         session = botocore.session.get_session()
-        s3 = session.get_service('s3')
-        operation = s3.get_operation('ListObjects') # non-streaming operation
+        s3 = yield from session.get_service('s3')
+        operation = s3.get_operation('ListObjects')  # non-streaming operation
 
         self.assertEqual(
-            (yield from response.get_response(operation.model, http_response)[1]),
+            (yield from response.get_response(operation.model, http_response))[1],
             {u'Contents': [{u'ETag': '"00000000000000000000000000000000"',
                             u'Key': 'test.png',
                             u'LastModified': datetime.datetime(2014, 3, 1, 17, 6, 40, tzinfo=tzutc()),
