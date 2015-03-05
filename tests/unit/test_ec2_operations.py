@@ -20,7 +20,7 @@ from asyncio_test_utils import async_test
 
 from tests import TestParamSerialization
 import base64
-from botocore.compat import six
+#from botocore.compat import six
 import botocore.session
 
 

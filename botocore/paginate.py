@@ -221,8 +221,7 @@ class PageIterator(object):
             tmp.append(t)
             t = yield from self.next()
         teed_results = tee(tmp, len(self.result_keys))
-        return [ResultKeyIterator(i, result_key) for i, result_key
-                in zip(teed_results, self.result_keys)]
+        return [ResultKeyIterator(i, result_key) for i, result_key in zip(teed_results, self.result_keys)]
 
     @asyncio.coroutine
     def build_full_result(self):

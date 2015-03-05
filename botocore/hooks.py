@@ -15,7 +15,7 @@ import logging
 import asyncio
 
 from collections import defaultdict, deque, namedtuple
-from botocore.compat import accepts_kwargs, six
+from botocore.compat import accepts_kwargs
 import types
 
 logger = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ class BaseEventHooks(object):
         pass
 
     def _verify_is_callable(self, func):
-        if not six.callable(func):
+        if not callable(func):
             raise ValueError("Event handler %s must be callable." % func)
 
     def _verify_accept_kwargs(self, func):

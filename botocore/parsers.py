@@ -97,8 +97,7 @@ import xml.etree.cElementTree
 import logging
 from pprint import pformat
 
-from botocore.compat import six
-from six.moves import http_client
+from http import client as http_client
 
 from botocore.utils import parse_timestamp
 

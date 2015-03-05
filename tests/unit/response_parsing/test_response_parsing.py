@@ -20,10 +20,9 @@ import difflib
 from tests import unittest, create_session
 
 from mock import Mock
-from botocore.vendored.requests.structures import CaseInsensitiveDict
+from yieldfrom.requests.structures import CaseInsensitiveDict
 
 import botocore.session
-#from botocore.response import XmlResponse, JSONResponse, get_response
 from botocore import response
 from botocore import parsers
 from botocore.exceptions import IncompleteReadError

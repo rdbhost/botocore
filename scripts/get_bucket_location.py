@@ -7,7 +7,7 @@ import asyncio
 
 from yieldfrom.requests import adapters
 from yieldfrom.requests.exceptions import ConnectionError
-from botocore.compat import six
+#from botocore.compat import six
 import botocore.session
 import botocore.auth
 import botocore.credentials

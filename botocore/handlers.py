@@ -22,15 +22,15 @@ import functools
 import logging
 import re
 import xml.etree.cElementTree
+import asyncio
+import io
 
-from botocore.compat import urlsplit, urlunsplit, unquote, json, quote, six
+from botocore.compat import urlsplit, urlunsplit, unquote, json, quote
 from botocore import retryhandler
 from botocore import utils
 from botocore import translate
 import botocore
 import botocore.auth
-import asyncio
-
 
 logger = logging.getLogger(__name__)
 LABEL_RE = re.compile('[a-z0-9][a-z0-9\-]*[a-z0-9]')
@@ -87,7 +87,7 @@ def _looks_like_special_case_error(http_response):
 
 def decode_console_output(parsed, **kwargs):
     try:
-        value = base64.b64decode(six.b(parsed['Output'])).decode('utf-8')
+        value = base64.b64decode(parsed['Output'].encode('latin1')).decode('utf-8')
         parsed['Output'] = value
     except (ValueError, TypeError, AttributeError):
         logger.debug('Error decoding base64', exc_info=True)
@@ -114,7 +114,7 @@ def calculate_md5(params, **kwargs):
     request_dict = params
     if request_dict['body'] and not 'Content-MD5' in params['headers']:
         md5 = hashlib.md5()
-        md5.update(six.b(params['body']))
+        md5.update(params['body'].encode('latin-1'))
         value = base64.b64encode(md5.digest()).decode('utf-8')
         params['headers']['Content-MD5'] = value
 
@@ -129,7 +129,7 @@ def sse_md5(params, **kwargs):
     if not _needs_s3_sse_customization(params):
         return
     key_as_bytes = params['SSECustomerKey']
-    if isinstance(key_as_bytes, six.text_type):
+    if isinstance(key_as_bytes, str):
         key_as_bytes = key_as_bytes.encode('utf-8')
     key_md5_str = base64.b64encode(
         hashlib.md5(key_as_bytes).digest()).decode('utf-8')
@@ -374,7 +374,7 @@ def parse_get_bucket_location(parsed, http_response, **kwargs):
 
 def base64_encode_user_data(params, **kwargs):
     if 'UserData' in params:
-        if isinstance(params['UserData'], six.text_type):
+        if isinstance(params['UserData'], str):
             # Encode it to bytes if it is text.
             params['UserData'] = params['UserData'].encode('utf-8')
         params['UserData'] = base64.b64encode(
@@ -432,13 +432,13 @@ def add_glacier_checksums(params, **kwargs):
     request_dict = params
     headers = request_dict['headers']
     body = request_dict['body']
-    if isinstance(body, six.binary_type):
+    if isinstance(body, bytes):
         # If the user provided a bytes type instead of a file
         # like object, we're temporarily create a BytesIO object
         # so we can use the util functions to calculate the
         # checksums which assume file like objects.  Note that
         # we're not actually changing the body in the request_dict.
-        body = six.BytesIO(body)
+        body = io.BytesIO(body)
     starting_position = body.tell()
     if 'x-amz-content-sha256' not in headers:
         headers['x-amz-content-sha256'] = utils.calculate_sha256(

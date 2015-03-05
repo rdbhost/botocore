@@ -30,7 +30,6 @@ from botocore.compat import HTTPHeaders
 from botocore.compat import quote, unquote, urlsplit, parse_qs
 from botocore.compat import urlunsplit
 from botocore.compat import encodebytes
-from botocore.compat import six
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ class SigV2Auth(BaseSigner):
                          digestmod=sha256)
         pairs = []
         for key in sorted(params):
-            value = six.text_type(params[key])
+            value = str(params[key])
             pairs.append(quote(key.encode('utf-8'), safe='') + '=' +
                          quote(value.encode('utf-8'), safe='-_~'))
         qs = '&'.join(pairs)

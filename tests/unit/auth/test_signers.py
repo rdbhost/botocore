@@ -15,14 +15,15 @@
 from tests import unittest
 import datetime
 import time
+import io
 
 import mock
 
 import botocore.auth
 import botocore.credentials
-from botocore.compat import HTTPHeaders, urlsplit, parse_qs, six
+from botocore.compat import HTTPHeaders, urlsplit, parse_qs #, six
 from botocore.awsrequest import AWSRequest
-from botocore.vendored.requests.models import Request
+from yieldfrom.requests.models import Request
 
 
 class TestHMACV1(unittest.TestCase):
@@ -250,7 +251,7 @@ class TestS3SigV4Auth(unittest.TestCase):
             access_key='foo', secret_key='bar', token='baz')
         self.auth = botocore.auth.S3SigV4Auth(
             self.credentials, 'ec2', 'eu-central-1')
-        self.request = AWSRequest(data=six.BytesIO(b"foo bar baz"))
+        self.request = AWSRequest(data=io.BytesIO(b"foo bar baz"))
         self.request.method = 'PUT'
         self.request.url = 'https://s3.eu-central-1.amazonaws.com/'
 

@@ -26,9 +26,8 @@ import os
 import logging
 import io
 import datetime
-from botocore.compat import six
-from six import BytesIO
-from six.moves import BaseHTTPServer
+from io import BytesIO
+import http.server
 
 import nose.tools as t
 from nose import with_setup
@@ -38,12 +37,8 @@ import botocore.auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
 
-try:
-    from urllib.parse import urlsplit
-    from urllib.parse import parse_qsl
-except ImportError:
-    from urlparse import urlsplit
-    from urlparse import parse_qsl
+from urllib.parse import urlsplit
+from urllib.parse import parse_qsl
 
 
 CREDENTIAL_SCOPE = "KEYNAME/20110909/us-west-1/s3/aws4_request"
@@ -68,19 +63,13 @@ TESTS_TO_IGNORE = [
     # the SDKs.
     'get-vanilla-query-order-value',
 ]
-if not six.PY3:
-    TESTS_TO_IGNORE += [
-        # NO support
-        'get-header-key-duplicate',
-        'get-header-value-order',
-    ]
 
 log = logging.getLogger(__name__)
 
 
-class RawHTTPRequest(BaseHTTPServer.BaseHTTPRequestHandler):
+class RawHTTPRequest(http.server.BaseHTTPRequestHandler):
     def __init__(self, raw_request):
-        if isinstance(raw_request, six.text_type):
+        if isinstance(raw_request, str):
             raw_request = raw_request.encode('utf-8')
         self.rfile = BytesIO(raw_request)
         self.raw_requestline = self.rfile.readline()
@@ -129,7 +118,7 @@ def create_request_from_raw_request(raw_request):
     # For whatever reason, the BaseHTTPRequestHandler encodes
     # the first line of the response as 'iso-8859-1',
     # so we need decode this into utf-8.
-    if isinstance(raw.path, six.text_type):
+    if isinstance(raw.path, str):
         raw.path = raw.path.encode('iso-8859-1').decode('utf-8')
     url = 'https://%s%s' % (host, raw.path)
     if '?' in url:

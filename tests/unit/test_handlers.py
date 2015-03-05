@@ -15,6 +15,8 @@ import asyncio
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
+import asyncio
+import io
 
 from tests import BaseSessionTest
 
@@ -26,10 +28,9 @@ import botocore
 import botocore.session
 from botocore.hooks import first_non_none_response
 from botocore.awsrequest import AWSRequest
-from botocore.compat import quote, six
+from botocore.compat import quote #, six
 from botocore.model import OperationModel, ServiceModel
 from botocore import handlers
-import asyncio
 
 class TestHandlers(BaseSessionTest):
 
@@ -245,8 +246,8 @@ class TestHandlers(BaseSessionTest):
 
     @async_test
     def test_run_instances_userdata(self):
-        user_data = 'This is a test'
-        b64_user_data = base64.b64encode(six.b(user_data)).decode('utf-8')
+        user_data = b'This is a test'
+        b64_user_data = base64.b64encode(user_data).decode('utf-8')
         event = self.session.create_event(
             'before-parameter-build', 'ec2', 'RunInstances')
         params = dict(ImageId='img-12345678',
@@ -387,7 +388,7 @@ class TestHandlers(BaseSessionTest):
     def test_glacier_checksums_added(self):
         request_dict = {
             'headers': {},
-            'body': six.BytesIO(b'hello world'),
+            'body': io.BytesIO(b'hello world'),
         }
         handlers.add_glacier_checksums(request_dict)
         self.assertIn('x-amz-content-sha256', request_dict['headers'])
@@ -406,7 +407,7 @@ class TestHandlers(BaseSessionTest):
             'headers': {
                 'x-amz-sha256-tree-hash': 'pre-exists',
             },
-            'body': six.BytesIO(b'hello world'),
+            'body': io.BytesIO(b'hello world'),
         }
         handlers.add_glacier_checksums(request_dict)
         self.assertEqual(request_dict['headers']['x-amz-sha256-tree-hash'],
@@ -417,7 +418,7 @@ class TestHandlers(BaseSessionTest):
             'headers': {
                 'x-amz-content-sha256': 'pre-exists',
             },
-            'body': six.BytesIO(b'hello world'),
+            'body': io.BytesIO(b'hello world'),
         }
         handlers.add_glacier_checksums(request_dict)
         self.assertEqual(request_dict['headers']['x-amz-content-sha256'],

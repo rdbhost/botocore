@@ -16,8 +16,6 @@ import datetime
 import sys
 import inspect
 
-from botocore.vendored import six
-
 
 from yieldfrom.http import client
 class HTTPHeaders(client.HTTPMessage):

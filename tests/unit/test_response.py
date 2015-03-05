@@ -19,10 +19,11 @@ sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
 from dateutil.tz import tzutc
+import io
 
 import botocore
 from botocore import response
-from botocore.compat import six
+#from botocore.compat import six
 from botocore.exceptions import IncompleteReadError
 from yieldfrom.requests.models import Response, Request
 
@@ -54,7 +55,7 @@ class TestStreamWrapper(unittest.TestCase):
 
     @async_test
     def test_streaming_wrapper_validates_content_length(self):
-        #body = six.BytesIO(b'1234567890')
+        #body = io.BytesIO(b'1234567890')
         body = TestReader(b'1234567890')
         stream = response.StreamingBody(body, content_length=10)
         self.assertEqual((yield from stream.read()), b'1234567890')
@@ -89,7 +90,7 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'ETag': '"00000000000000000000000000000000"',
         }
-        http_response.raw = six.BytesIO(b'\x89PNG\r\n\x1a\n\x00\x00')
+        http_response.raw = io.BytesIO(b'\x89PNG\r\n\x1a\n\x00\x00')
 
         http_response.status_code = 200
         http_response.reason = 'OK'
@@ -113,7 +114,7 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'x-amz-id-2': 'AAAAAAAAAAAAAAAAAAA',
             'x-amz-request-id': 'XXXXXXXXXXXXXXXX'}
-        http_response.raw = six.BytesIO(XMLBODY1)
+        http_response.raw = io.BytesIO(XMLBODY1)
         http_response.status_code = 403
         http_response.reason = 'Forbidden'
 
@@ -141,7 +142,7 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'x-amz-id-2': 'AAAAAAAAAAAAAAAAAAA',
             'x-amz-request-id': 'XXXXXXXXXXXXXXXX'}
-        http_response.raw = six.BytesIO(XMLBODY1)
+        http_response.raw = io.BytesIO(XMLBODY1)
         http_response.status_code = 403
         http_response.reason = 'Forbidden'
         http_response.request = Request()
@@ -170,7 +171,7 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'x-amz-id-2': 'AAAAAAAAAAAAAAAAAAA',
             'x-amz-request-id': 'XXXXXXXXXXXXXXXX'}
-        http_response.raw = six.BytesIO(XMLBODY2)
+        http_response.raw = io.BytesIO(XMLBODY2)
         http_response.status_code = 200
         http_response.reason = 'ok'
         http_response.request = Request()

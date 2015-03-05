@@ -18,8 +18,7 @@ import logging
 import os
 import asyncio
 
-from botocore.compat import six
-from six.moves import configparser
+import configparser
 from dateutil.parser import parse
 from dateutil.tz import tzlocal
 

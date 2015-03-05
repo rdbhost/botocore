@@ -17,7 +17,6 @@ import math
 import binascii
 import asyncio
 
-from six import string_types, text_type
 import dateutil.parser
 from dateutil.tz import tzlocal, tzutc
 
@@ -276,9 +275,9 @@ def percent_encode(input_str, safe=SAFE_CHARS):
     taking a string (not a dict/sequence) and percent encoding it.
 
     """
-    if not isinstance(input_str, string_types):
-        input_str = text_type(input_str)
-    return quote(text_type(input_str).encode('utf-8'), safe=safe)
+    if not isinstance(input_str, str):
+        input_str = str(input_str)
+    return quote(str(input_str).encode('utf-8'), safe=safe)
 
 
 def parse_timestamp(value):

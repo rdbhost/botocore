@@ -29,7 +29,7 @@ except ImportError:
 
 from yieldfrom.requests import adapters
 from yieldfrom.requests.exceptions import ConnectionError
-from botocore.compat import six
+#from botocore.compat import six
 import botocore.session
 import botocore.auth
 import botocore.credentials
@@ -713,7 +713,7 @@ class TestS3SigV4Client(BaseS3ClientTest):
 
     @async_test
     def test_request_retried_for_sigv4(self):
-        body = six.BytesIO(b"Hello world!")
+        body = io.BytesIO(b"Hello world!")
 
         original_send = adapters.HTTPAdapter.send
         state = mock.Mock()
@@ -856,13 +856,13 @@ class TestSSEKeyParamValidation(unittest.TestCase):
         # objects.
         yield from self.client.put_object(
             Bucket=self.bucket_name, Key='foo.txt',
-            Body=six.BytesIO(b'mycontents'), SSECustomerAlgorithm='AES256',
+            Body=io.BytesIO(b'mycontents'), SSECustomerAlgorithm='AES256',
             SSECustomerKey=key_bytes)
         self.addCleanup(self.client.delete_object,
                         Bucket=self.bucket_name, Key='foo.txt')
         yield from self.client.put_object(
             Bucket=self.bucket_name, Key='foo2.txt',
-            Body=six.BytesIO(b'mycontents2'), SSECustomerAlgorithm='AES256',
+            Body=io.BytesIO(b'mycontents2'), SSECustomerAlgorithm='AES256',
             SSECustomerKey=key_str)
         self.addCleanup(self.client.delete_object,
                         Bucket=self.bucket_name, Key='foo2.txt')

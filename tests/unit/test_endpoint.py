@@ -13,6 +13,7 @@
 
 import asyncio
 import sys
+import io
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
@@ -22,7 +23,7 @@ from mock import Mock, patch, sentinel
 from yieldfrom.requests import ConnectionError
 from yieldfrom.requests.models import Response
 
-from botocore.compat import six
+#from botocore.compat import six
 from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
 from botocore.endpoint import EndpointCreator
 from botocore.auth import SigV4Auth
@@ -41,14 +42,14 @@ def request_dict():
     }
 
 
-class RecordStreamResets(six.StringIO):
+class RecordStreamResets(io.StringIO):
     def __init__(self, value):
-        six.StringIO.__init__(self, value)
+        io.StringIO.__init__(self, value)
         self.total_resets = 0
 
     def seek(self, where):
         self.total_resets += 1
-        six.StringIO.seek(self, where)
+        io.StringIO.seek(self, where)
 
 
 class TestGetEndpoint(unittest.TestCase):

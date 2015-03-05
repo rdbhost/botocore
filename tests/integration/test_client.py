@@ -19,8 +19,8 @@ from tests import unittest
 
 import botocore.session
 from botocore.client import ClientError
-from botocore.compat import six
-from six import StringIO
+#from botocore.compat import six
+from io import StringIO
 
 
 class TestBucketWithVersions(unittest.TestCase):

@@ -43,8 +43,6 @@ import base64
 from xml.etree import ElementTree
 import calendar
 
-from botocore.compat import six
-
 from botocore.compat import json, formatdate
 from botocore.utils import parse_timestamp, parse_to_aware_datetime
 from botocore.utils import percent_encode
@@ -155,7 +153,7 @@ class Serializer(object):
         # Returns the base64-encoded version of value, handling
         # both strings and bytes. The returned value is a string
         # via the default encoding.
-        if isinstance(value, six.text_type):
+        if isinstance(value, str):
             value = value.encode(self.DEFAULT_ENCODING)
         return base64.b64encode(value).strip().decode(
             self.DEFAULT_ENCODING)
