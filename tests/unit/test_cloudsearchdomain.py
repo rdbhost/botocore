@@ -15,7 +15,6 @@
 from tests import BaseSessionTest
 
 from botocore.exceptions import NoRegionError
-# from botocore.compat import six
 import io
 
 import sys

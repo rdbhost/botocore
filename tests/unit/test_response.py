@@ -23,7 +23,6 @@ import io
 
 import botocore
 from botocore import response
-#from botocore.compat import six
 from botocore.exceptions import IncompleteReadError
 from yieldfrom.requests.models import Response, Request
 

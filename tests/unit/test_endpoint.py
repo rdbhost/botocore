@@ -23,7 +23,6 @@ from mock import Mock, patch, sentinel
 from yieldfrom.requests import ConnectionError
 from yieldfrom.requests.models import Response
 
-#from botocore.compat import six
 from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
 from botocore.endpoint import EndpointCreator
 from botocore.auth import SigV4Auth

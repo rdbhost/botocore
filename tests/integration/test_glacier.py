@@ -14,7 +14,6 @@ from tests import unittest
 import random
 
 from botocore.exceptions import ClientError
-#from botocore.vendored import six
 import botocore.session
 
 

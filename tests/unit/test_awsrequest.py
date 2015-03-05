@@ -30,7 +30,7 @@ from mock import Mock, patch
 from botocore.exceptions import UnseekableStreamError
 from botocore.awsrequest import AWSRequest
 from botocore.awsrequest import AWSHTTPConnection
-from botocore.compat import file_type  # , six
+from botocore.compat import file_type
 
 
 class IgnoreCloseBytesIO(io.BytesIO):

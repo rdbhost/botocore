@@ -28,7 +28,7 @@ import botocore
 import botocore.session
 from botocore.hooks import first_non_none_response
 from botocore.awsrequest import AWSRequest
-from botocore.compat import quote #, six
+from botocore.compat import quote
 from botocore.model import OperationModel, ServiceModel
 from botocore import handlers
 
