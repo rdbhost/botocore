@@ -8,7 +8,7 @@ of the ``EC2`` service in an interactive Python session::
 
     >>> import botocore.session
     >>> session = botocore.session.get_session()
-    >>> ec2 = session.get_service('ec2')
+    >>> ec2 = yield from session.get_service('ec2')
     >>> operation = ec2.get_operation('DescribeInstances')
     >>> ec2.region_names
     [u'us-east-1',

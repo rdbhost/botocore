@@ -47,7 +47,6 @@ class BaseS3Test(unittest.TestCase):
     @asyncio.coroutine
     def set_up(self):
         self.session = botocore.session.get_session()
-        #self.session.set_debug_logger()
         self.service = yield from self.session.get_service('s3')
         self.region = 'us-east-1'
         self.endpoint = self.service.get_endpoint(self.region)
@@ -55,7 +54,6 @@ class BaseS3Test(unittest.TestCase):
 
     @asyncio.coroutine
     def create_object(self, key_name, body='foo'):
-        #yield from self.set_up()
         self.keys.append(key_name)
         operation = self.service.get_operation('PutObject')
         response = (yield from operation.call(
@@ -66,7 +64,6 @@ class BaseS3Test(unittest.TestCase):
     @asyncio.coroutine
     def create_multipart_upload(self, key_name):
 
-        #yield from self.set_up()
         operation = self.service.get_operation('CreateMultipartUpload')
         http_response, parsed = yield from operation.call(self.endpoint,
                                                bucket=self.bucket_name,
@@ -79,7 +76,6 @@ class BaseS3Test(unittest.TestCase):
 
     @asyncio.coroutine
     def create_object_catch_exceptions(self, key_name):
-        #yield from self.set_up()
         try:
             yield from self.create_object(key_name=key_name)
         except Exception as e:
@@ -129,7 +125,6 @@ class TestS3BaseWithBucket(BaseS3Test):
     def set_up(self):
 
         yield from BaseS3Test.set_up(self)
-        #super(TestS3BaseWithBucket, self).setUp()
         self.bucket_name = 'botocoretest%s-%s' % (
             int(time.time()), random.randint(1, 1000))
         self.bucket_location = 'us-west-2'

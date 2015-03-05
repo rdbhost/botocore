@@ -13,10 +13,10 @@ Here's a simple example that retrieves an object from S3::
     import botocore.session
 
     session = botocore.session.get_session()
-    s3 = session.get_service('s3')
+    s3 = yield from session.get_service('s3')
     operation = s3.get_operation('GetObject')
     endpoint = s3.get_endpoint('us-east-1')
-    http_response, response_data = operation.call(endpoint,
+    http_response, response_data = yield from operation.call(endpoint,
                                                   bucket='test-1357854246',
                                                   key='testcli.txt')
 
