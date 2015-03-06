@@ -181,7 +181,7 @@ class ParamValidator(object):
             self._validate(params[param], shape.members[param],
                            errors, '%s.%s' % (name, param))
 
-    @type_check(valid_types=str)
+    @type_check(valid_types=(str,))
     def _validate_string(self, param, shape, errors, name):
         # Validate range.  For a string, the min/max contraints
         # are of the string length.
@@ -209,7 +209,7 @@ class ParamValidator(object):
                            % (name, key))
             self._validate(value, value_shape, errors, '%s.%s' % (name, key))
 
-    @type_check(valid_types=int)
+    @type_check(valid_types=(int,))
     def _validate_integer(self, param, shape, errors, name):
         range_check(name, param, shape, 'invalid range', errors)
 
@@ -234,7 +234,7 @@ class ParamValidator(object):
 
     _validate_float = _validate_double
 
-    @type_check(valid_types=int)
+    @type_check(valid_types=(int,))
     def _validate_long(self, param, shape, errors, name):
         range_check(name, param, shape, 'invalid range', errors)
 
