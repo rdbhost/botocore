@@ -162,7 +162,7 @@ class Service(object):
         event_emitter = self.session.get_component('event_emitter')
         response_parser_factory = self.session.get_component(
             'response_parser_factory')
-        user_agent= self.session.user_agent()
+        user_agent = self.session.user_agent()
         endpoint_creator = EndpointCreator(resolver, region, event_emitter,
                                            user_agent)
         kwargs = {'service_model': self._model, 'region_name': region_name,

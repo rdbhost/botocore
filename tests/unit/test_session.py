@@ -19,6 +19,9 @@ import logging
 import tempfile
 import shutil
 import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
 
 import mock
 
@@ -156,11 +159,12 @@ class SessionTest(BaseSessionTest):
                              {'aws_access_key_id': 'FROM_CREDS_FILE_1',
                               'aws_secret_access_key': 'FROM_CREDS_FILE_2'})
 
+    @async_test
     def test_register_unregister(self):
         calls = []
         handler = lambda **kwargs: calls.append(kwargs)
         self.session.register('service-created', handler)
-        service = self.session.get_service('ec2')
+        service = yield from self.session.get_service('ec2')
         self.assertEqual(len(calls), 1)
         self.assertEqual(calls[0]['service'], service)
 
@@ -169,14 +173,16 @@ class SessionTest(BaseSessionTest):
         service = self.session.get_service('ec2')
         self.assertEqual(len(calls), 0)
 
+    @async_test
     def test_emit_delegates_to_emitter(self):
         calls = []
         handler = lambda **kwargs: calls.append(kwargs)
         self.session.register('foo', handler)
-        self.session.emit('foo')
+        yield from self.session.emit('foo')
         self.assertEqual(len(calls), 1)
         self.assertEqual(calls[0]['event_name'], 'foo')
 
+    @async_test
     def test_emitter_can_be_passed_in(self):
         events = HierarchicalEmitter()
         session = create_session(session_vars=self.env_vars,
@@ -185,9 +191,10 @@ class SessionTest(BaseSessionTest):
         handler = lambda **kwargs: calls.append(kwargs)
         events.register('foo', handler)
 
-        session.emit('foo')
+        yield from session.emit('foo')
         self.assertEqual(len(calls), 1)
 
+    @async_test
     def test_emit_first_non_none(self):
         session = create_session(session_vars=self.env_vars)
         session.register('foo', lambda **kwargs: None)
@@ -196,6 +203,7 @@ class SessionTest(BaseSessionTest):
         response = yield from session.emit_first_non_none_response('foo')
         self.assertEqual(response, 'first')
 
+    @async_test
     def test_create_events(self):
         event = self.session.create_event('before-call', 'foo', 'bar')
         self.assertEqual(event, 'before-call.foo.bar')
@@ -211,6 +219,7 @@ class SessionTest(BaseSessionTest):
 
     @mock.patch('logging.getLogger')
     @mock.patch('logging.FileHandler')
+    @async_test
     def test_logger_name_can_be_passed_in(self, file_handler, get_logger):
         self.session.set_debug_logger('botocore.hooks')
         get_logger.assert_called_with('botocore.hooks')
@@ -228,15 +237,16 @@ class SessionTest(BaseSessionTest):
         get_logger.return_value.setLevel.assert_called_with(logging.DEBUG)
         formatter.assert_called_with('foo')
 
+    @async_test
     def test_register_with_unique_id(self):
         calls = []
         handler = lambda **kwargs: calls.append(kwargs)
         self.session.register('foo', handler, unique_id='bar')
-        self.session.emit('foo')
+        yield from self.session.emit('foo')
         self.assertEqual(calls[0]['event_name'], 'foo')
         calls = []
         self.session.unregister('foo', unique_id='bar')
-        self.session.emit('foo')
+        yield from self.session.emit('foo')
         self.assertEqual(calls, [])
 
 
@@ -261,7 +271,7 @@ class TestBuiltinEventHandlers(BaseSessionTest):
     def test_registered_builtin_handlers(self):
         session = botocore.session.Session(self.env_vars, None,
                                            include_builtin_handlers=True)
-        session.emit('foo')
+        yield from session.emit('foo')
         self.assertTrue(self.foo_called)
 
 
@@ -382,13 +392,15 @@ class TestCreateClient(BaseSessionTest):
             scoped_config=mock.ANY, client_config=config)
 
 class TestPerformOperation(BaseSessionTest):
-    def test_s3(self):
-        service = self.session.get_service('s3')
+
+    @async_test
+    def tst_s3(self):
+        service = yield from self.session.get_service('s3')  # uses aws/s3 DATA_OVERRID...
         operation = service.get_operation('ListBuckets')
         endpoint = service.get_endpoint('us-west-2')
         endpoint._send_request = mock.Mock()
         endpoint._send_request.return_value = [{}, {}]
-        response = operation.call(endpoint)
+        response = yield from operation.call(endpoint)
         self.assertEqual(response, endpoint._send_request.return_value)
 
 
