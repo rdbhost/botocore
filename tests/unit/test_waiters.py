@@ -11,6 +11,10 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
 from tests import unittest, BaseEnvVar
 
 import mock
@@ -468,10 +472,15 @@ class TestCreateWaiter(unittest.TestCase):
             waiter_name, self.waiter_model, client)
         self.assertIsInstance(waiter, Waiter)
 
+    @async_test
     def test_can_create_waiter_legacy_interface(self):
         service_object = mock.Mock()
+        operation_object = mock.Mock()
+        operation_object.call.return_value = future_wrapped((None, None))
+        service_object.get_operation.return_value = operation_object
+        # not complete mocking
         endpoint = mock.Mock()
-        waiter = create_waiter_from_legacy(
+        waiter = yield from create_waiter_from_legacy(
             'WaiterName', self.waiter_config, service_object, endpoint)
         self.assertIsInstance(waiter, Waiter)
 

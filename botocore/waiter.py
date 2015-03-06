@@ -68,12 +68,9 @@ def create_waiter_from_legacy(waiter_name, waiter_config,
     """
     model = WaiterModel(waiter_config)
     single_waiter_config = model.get_waiter(waiter_name)
-    operation_object = service_object.get_operation(
-        single_waiter_config.operation)
-    operation_method = yield from LegacyOperationMethod(operation_object,
-                                             endpoint)
-    return Waiter(waiter_name, single_waiter_config,
-                  operation_method)
+    operation_object = service_object.get_operation(single_waiter_config.operation)
+    operation_method = yield from LegacyOperationMethod(operation_object, endpoint)()
+    return Waiter(waiter_name, single_waiter_config, operation_method)
 
 
 # The NormalizedOperationMethod and the LegacyOperationMethod
@@ -92,6 +89,7 @@ class NormalizedOperationMethod(object):
 
 
 class LegacyOperationMethod(object):
+
     def __init__(self, operation_object, endpoint):
         self._operation_object = operation_object
         self._endpoint = endpoint
@@ -99,8 +97,7 @@ class LegacyOperationMethod(object):
     @asyncio.coroutine
     def __call__(self, **kwargs):
         try:
-            http, parsed = yield from self._operation_object.call(
-                self._endpoint, **kwargs)
+            http, parsed = yield from self._operation_object.call(self._endpoint, **kwargs)
         except Exception as e:
             # In theory, a handler can raise an type of exception.
             # We're going to make a best effort attempt to handle
