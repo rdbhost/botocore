@@ -11,13 +11,31 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-from itertools import tee
+#from itertools import tee
+import collections
 import asyncio
 
 import jmespath
 from botocore.exceptions import PaginationError
 from botocore.compat import zip
 from botocore.utils import set_value_from_jmespath, merge_dicts
+
+
+def nextTee(iterable, n=2):
+
+    it = iter(iterable)
+    class iter1():
+        def __init__(self):
+            self._q = collections.deque()
+        @asyncio.coroutine
+        def next(self):
+            if not self._q:
+                newval = next(it)
+                for d in deques:
+                    d._q.append(newval)
+            return self._q.popleft()
+    deques = [iter1() for i in range(n)]
+    return deques
 
 
 class PageIterator(object):
@@ -105,23 +123,23 @@ class PageIterator(object):
                 return response
             else:
                 self._total_items += num_current_response
-                next_token = self._get_next_token(parsed)
-                if all(t is None for t in next_token):
+                self._next_token = self._get_next_token(parsed)
+                if all(t is None for t in self._next_token):
                     self._is_complete = True
                     return response
                 if self._max_items is not None and \
                         self._total_items == self._max_items:
                     # We're on a page boundary so we can set the current
                     # next token to be the resume token.
-                    self.resume_token = next_token
+                    self.resume_token = self._next_token
                     self._is_complete = True
                     return response
                 if self._previous_next_token is not None and \
-                        self._previous_next_token == next_token:
-                    message = ("The same next token was received twice: %s" % next_token)
+                        self._previous_next_token == self._next_token:
+                    message = ("The same next token was received twice: %s" % self._next_token)
                     raise PaginationError(message=message)
-                self._inject_token_into_kwargs(self._current_kwargs, next_token)
-                self._previous_next_token = next_token
+                self._inject_token_into_kwargs(self._current_kwargs, self._next_token)
+                self._previous_next_token = self._next_token
                 return response
 
     def _make_request(self, current_kwargs):
@@ -220,7 +238,7 @@ class PageIterator(object):
         while t:
             tmp.append(t)
             t = yield from self.next()
-        teed_results = tee(tmp, len(self.result_keys))
+        teed_results = nextTee(tmp, len(self.result_keys))
         return [ResultKeyIterator(i, result_key) for i, result_key in zip(teed_results, self.result_keys)]
 
     @asyncio.coroutine

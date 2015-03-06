@@ -696,8 +696,8 @@ class TestExpressionKeyIterators(unittest.TestCase):
         pages = self.paginator.paginate(None)
         iterators = yield from pages.result_key_iters()
         self.assertEqual(len(iterators), 1)
-        self.assertEqual(list(iterators[0]),
-                         ['One', 'Two', 'Three', 'Four', 'Five'])
+        itms = yield from pump_paginator(iterators[0])
+        self.assertEqual(itms, ['One', 'Two', 'Three', 'Four', 'Five'])
 
     @async_test
     def test_build_full_result_with_single_key(self):
@@ -790,6 +790,7 @@ class TestIncludeNonResultKeys(unittest.TestCase):
              'Outer': 'v4', 'NextToken': 't2'},
             {'Result': {'Key': ['qux'], 'Inner': 'v5'},
              'Outer': 'v6', 'NextToken': 't3'},
+            {'NextToken': None},
         ])
         pages = self.paginator.paginate(None)
         actual = yield from pages.build_full_result()
