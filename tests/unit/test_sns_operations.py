@@ -13,6 +13,10 @@
 # language governing permissions and limitations under the License.
 
 from tests import BaseSessionTest
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
 
 from mock import Mock
 
@@ -23,13 +27,14 @@ class TestSNSOperations(BaseSessionTest):
 
     maxDiff = None
 
-    def setUp(self):
+    def set_up(self):
         super(TestSNSOperations, self).setUp()
-        self.sns = self.session.get_service('sns')
+        self.sns = yield from self.session.get_service('sns')
         self.http_response = Mock()
         self.http_response.status_code = 200
         self.parsed_response = {}
 
+    @async_test
     def test_subscribe_with_endpoint(self):
         # XXX: Deal with this.  Can we move the "notification_endpoint"
         # customization up to the CLI?
@@ -41,6 +46,7 @@ class TestSNSOperations(BaseSessionTest):
         # self.assertEqual(params['Endpoint'], 'http://example.org')
         pass
 
+    @async_test
     def test_create_platform_application(self):
         op = self.sns.get_operation('CreatePlatformApplication')
         attributes = OrderedDict()
