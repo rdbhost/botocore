@@ -15,6 +15,10 @@
 from tests import BaseSessionTest
 
 from mock import Mock, sentinel
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
 
 import botocore.session
 from botocore.exceptions import ParamValidationError
@@ -25,17 +29,20 @@ from botocore.exceptions import ParamValidationError
 
 class TestSESOperations(BaseSessionTest):
 
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         super(TestSESOperations, self).setUp()
-        self.ses = self.session.get_service('ses')
+        self.ses = yield from self.session.get_service('ses')
         self.op = self.ses.get_operation('SendEmail')
 
+    @async_test
     def test_send_email_missing_required_parameters(self):
         with self.assertRaisesRegexp(
                 ParamValidationError,
                 'Parameter validation failed.*'):
             self.op.build_parameters()
 
+    @async_test
     def test_send_email_validates_structure(self):
         with self.assertRaises(ParamValidationError):
             self.op.build_parameters(
@@ -43,6 +50,7 @@ class TestSESOperations(BaseSessionTest):
                 destination={'ToAddresses': ['bar@examplecom']},
                 message='bar')
 
+    @async_test
     def test_send_email_with_required_inner_member(self):
         with self.assertRaises(ParamValidationError):
             self.op.build_parameters(
@@ -50,6 +58,7 @@ class TestSESOperations(BaseSessionTest):
                 destination={'ToAddresses': ['bar@examplecom']},
                 message={})
 
+    @async_test
     def test_send_email_with_unknown_params(self):
         with self.assertRaises(ParamValidationError):
             self.op.build_parameters(
@@ -58,6 +67,7 @@ class TestSESOperations(BaseSessionTest):
                 message={})
 
 
+    @async_test
     def test_send_email_with_missing_inner_member(self):
         with self.assertRaises(ParamValidationError):
             self.op.build_parameters(source='foo@example.com',
@@ -67,6 +77,7 @@ class TestSESOperations(BaseSessionTest):
                                               # param.
                                               'Body': {'Text': {}}})
 
+    @async_test
     def test_send_email_with_unknown_inner_member(self):
         with self.assertRaises(ParamValidationError):
             self.op.build_parameters(
