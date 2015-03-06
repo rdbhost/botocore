@@ -89,7 +89,8 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'ETag': '"00000000000000000000000000000000"',
         }
-        http_response.raw = io.BytesIO(b'\x89PNG\r\n\x1a\n\x00\x00')
+        http_response._content_consumed = True
+        http_response._content = b'\x89PNG\r\n\x1a\n\x00\x00'
 
         http_response.status_code = 200
         http_response.reason = 'OK'
@@ -113,7 +114,8 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'x-amz-id-2': 'AAAAAAAAAAAAAAAAAAA',
             'x-amz-request-id': 'XXXXXXXXXXXXXXXX'}
-        http_response.raw = io.BytesIO(XMLBODY1)
+        http_response._content = XMLBODY1
+        http_response._content_consumed = True
         http_response.status_code = 403
         http_response.reason = 'Forbidden'
 
@@ -141,7 +143,8 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'x-amz-id-2': 'AAAAAAAAAAAAAAAAAAA',
             'x-amz-request-id': 'XXXXXXXXXXXXXXXX'}
-        http_response.raw = io.BytesIO(XMLBODY1)
+        http_response._content = XMLBODY1
+        http_response._content_consumed = True
         http_response.status_code = 403
         http_response.reason = 'Forbidden'
         http_response.request = Request()
@@ -170,7 +173,8 @@ class TestGetResponse(unittest.TestCase):
             'transfer-encoding': 'chunked',
             'x-amz-id-2': 'AAAAAAAAAAAAAAAAAAA',
             'x-amz-request-id': 'XXXXXXXXXXXXXXXX'}
-        http_response.raw = io.BytesIO(XMLBODY2)
+        http_response._content = XMLBODY2
+        http_response._content_consumed = True
         http_response.status_code = 200
         http_response.reason = 'ok'
         http_response.request = Request()
@@ -179,8 +183,9 @@ class TestGetResponse(unittest.TestCase):
         s3 = yield from session.get_service('s3')
         operation = s3.get_operation('ListObjects')  # non-streaming operation
 
-        self.assertEqual(
-            (yield from response.get_response(operation.model, http_response))[1],
+        body = yield from response.get_response(operation.model, http_response)
+
+        self.assertEqual(body[1],
             {u'Contents': [{u'ETag': '"00000000000000000000000000000000"',
                             u'Key': 'test.png',
                             u'LastModified': datetime.datetime(2014, 3, 1, 17, 6, 40, tzinfo=tzutc()),
