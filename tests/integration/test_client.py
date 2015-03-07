@@ -11,6 +11,11 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
 import time
 import random
 import logging
@@ -24,7 +29,8 @@ from io import StringIO
 
 class TestBucketWithVersions(unittest.TestCase):
 
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
         self.client = yield from self.session.create_client('s3', region_name='us-west-2')
         self.bucket_name = 'botocoretest%s-%s' % (
@@ -38,29 +44,30 @@ class TestBucketWithVersions(unittest.TestCase):
             version_ids.append(version['VersionId'])
         return version_ids
 
+    @async_test
     def test_create_versioned_bucket(self):
         # Verifies we can:
         # 1. Create a bucket
         # 2. Enable versioning
         # 3. Put an Object
-        self.client.create_bucket(Bucket=self.bucket_name)
+        yield from self.client.create_bucket(Bucket=self.bucket_name)
         self.addCleanup(self.client.delete_bucket, Bucket=self.bucket_name)
 
-        self.client.put_bucket_versioning(
+        yield from self.client.put_bucket_versioning(
             Bucket=self.bucket_name,
             VersioningConfiguration={"Status": "Enabled"})
-        response = self.client.put_object(
+        response = yield from self.client.put_object(
             Bucket=self.bucket_name, Key='testkey', Body='bytes body')
         self.addCleanup(self.client.delete_object,
                         Bucket=self.bucket_name,
                         Key='testkey',
                         VersionId=response['VersionId'])
 
-        response = self.client.get_object(
+        response = yield from self.client.get_object(
             Bucket=self.bucket_name, Key='testkey')
-        self.assertEqual(response['Body'].read(), b'bytes body')
+        self.assertEqual((yield from response['Body'].read()), b'bytes body')
 
-        response = self.client.delete_object(Bucket=self.bucket_name,
+        response = yield from self.client.delete_object(Bucket=self.bucket_name,
                                              Key='testkey')
         # This cleanup step removes the DeleteMarker that's created
         # from the delete_object call above.
@@ -70,8 +77,8 @@ class TestBucketWithVersions(unittest.TestCase):
                         VersionId=response['VersionId'])
         # Object does not exist anymore.
         with self.assertRaises(ClientError):
-            self.client.get_object(Bucket=self.bucket_name, Key='testkey')
-        versions = self.client.list_object_versions(Bucket=self.bucket_name)
+            yield from self.client.get_object(Bucket=self.bucket_name, Key='testkey')
+        versions = yield from self.client.list_object_versions(Bucket=self.bucket_name)
         version_ids = self.extract_version_ids(versions)
         self.assertEqual(len(version_ids), 2)
 
@@ -83,6 +90,7 @@ class TestBucketWithVersions(unittest.TestCase):
 # the client module.
 class TestResponseLog(unittest.TestCase):
 
+    @async_test
     def test_debug_log_contains_headers_and_body(self):
         # This test just verifies that the response headers/body
         # are in the debug log.  It's an integration test so that
@@ -92,7 +100,7 @@ class TestResponseLog(unittest.TestCase):
         client = yield from session.create_client('s3', region_name='us-west-2')
         debug_log = StringIO()
         session.set_stream_logger('', logging.DEBUG, debug_log)
-        client.list_buckets()
+        yield from client.list_buckets()
         debug_log_contents = debug_log.getvalue()
         self.assertIn('Response headers', debug_log_contents)
         self.assertIn('Response body', debug_log_contents)
@@ -100,44 +108,51 @@ class TestResponseLog(unittest.TestCase):
 
 class TestAcceptedDateTimeFormats(unittest.TestCase):
 
-    def setUp(self):
+    def set_up(self):
         self.session = botocore.session.get_session()
         self.client = yield from self.session.create_client('emr', 'us-west-2')
 
+    @async_test
     def test_accepts_datetime_object(self):
-        response = self.client.list_clusters(
+        response = yield from self.client.list_clusters(
             CreatedAfter=datetime.datetime.now())
         self.assertIn('Clusters', response)
 
+    @async_test
     def test_accepts_epoch_format(self):
-        response = self.client.list_clusters(CreatedAfter=0)
+        response = yield from self.client.list_clusters(CreatedAfter=0)
         self.assertIn('Clusters', response)
 
+    @async_test
     def test_accepts_iso_8601_unaware(self):
-        response = self.client.list_clusters(
+        response = yield from self.client.list_clusters(
             CreatedAfter='2014-01-01T00:00:00')
         self.assertIn('Clusters', response)
 
+    @async_test
     def test_accepts_iso_8601_utc(self):
-        response = self.client.list_clusters(
+        response = yield from self.client.list_clusters(
             CreatedAfter='2014-01-01T00:00:00Z')
         self.assertIn('Clusters', response)
 
+    @async_test
     def test_accepts_iso_8701_local(self):
-        response = self.client.list_clusters(
+        response = yield from self.client.list_clusters(
             CreatedAfter='2014-01-01T00:00:00-08:00')
         self.assertIn('Clusters', response)
 
 
 class TestClientCanBeCloned(unittest.TestCase):
+
     def setUp(self):
         self.session = botocore.session.get_session()
 
+    @async_test
     def test_client_can_clone_with_service_events(self):
         # While the Service/Operation objects exist, we need
         # to ensure they can interop.  Specifically, if we create
         # a service object:
-        service = self.session.get_service('s3')
+        service = yield from self.session.get_service('s3')
         # We should also be able to create a client object.
         client = yield from self.session.create_client('s3', region_name='us-west-2')
         # We really just want to ensure create_client doesn't raise
