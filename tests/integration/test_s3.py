@@ -35,8 +35,8 @@ import botocore.auth
 import botocore.credentials
 import yieldfrom.requests as requests
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 sys.path.append('..')
 from asyncio_test_utils import async_test
