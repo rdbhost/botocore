@@ -345,4 +345,4 @@ class Waiter(object):
             if num_attempts >= max_attempts:
                 raise WaiterError(name=self.name,
                                   reason='Max attempts exceeded')
-            time.sleep(sleep_amount)
+            time.sleep(sleep_amount)  # todo - replace with asyncio.sleep

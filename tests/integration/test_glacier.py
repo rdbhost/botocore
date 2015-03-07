@@ -12,6 +12,12 @@
 # language governing permissions and limitations under the License.
 from tests import unittest
 import random
+import io
+
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
 
 from botocore.exceptions import ClientError
 import botocore.session
@@ -29,39 +35,44 @@ class TestGlacier(unittest.TestCase):
 
     VAULT_NAME = 'botocore-integ-test-vault'
 
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
         self.client = yield from self.session.create_client('glacier', 'us-west-2')
         # There's no error if the vault already exists so we don't
         # need to catch any exceptions here.
-        self.client.create_vault(vaultName=self.VAULT_NAME)
+        yield from self.client.create_vault(vaultName=self.VAULT_NAME)
 
+    @async_test
     def test_can_list_vaults_without_account_id(self):
-        response = self.client.list_vaults()
+        response = yield from self.client.list_vaults()
         self.assertIn('VaultList', response)
 
+    @async_test
     def test_can_handle_error_responses(self):
         with self.assertRaises(ClientError):
-            self.client.list_vaults(accountId='asdf')
+            yield from self.client.list_vaults(accountId='asdf')
 
+    @async_test
     def test_can_upload_archive(self):
         body = io.BytesIO(b"bytes content")
-        response = self.client.upload_archive(vaultName=self.VAULT_NAME,
+        response = yield from self.client.upload_archive(vaultName=self.VAULT_NAME,
                                               archiveDescription='test upload',
                                               body=body)
         self.assertEqual(response['ResponseMetadata']['HTTPStatusCode'], 201)
         archive_id = response['archiveId']
-        response = self.client.delete_archive(vaultName=self.VAULT_NAME,
+        response = yield from self.client.delete_archive(vaultName=self.VAULT_NAME,
                                               archiveId=archive_id)
         self.assertEqual(response['ResponseMetadata']['HTTPStatusCode'], 204)
 
+    @async_test
     def test_can_upload_archive_from_bytes(self):
-        response = self.client.upload_archive(vaultName=self.VAULT_NAME,
+        response = yield from self.client.upload_archive(vaultName=self.VAULT_NAME,
                                               archiveDescription='test upload',
                                               body=b'bytes body')
         self.assertEqual(response['ResponseMetadata']['HTTPStatusCode'], 201)
         archive_id = response['archiveId']
-        response = self.client.delete_archive(vaultName=self.VAULT_NAME,
+        response = yield from self.client.delete_archive(vaultName=self.VAULT_NAME,
                                               archiveId=archive_id)
         self.assertEqual(response['ResponseMetadata']['HTTPStatusCode'], 204)
 

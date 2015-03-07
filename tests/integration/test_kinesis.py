@@ -14,6 +14,11 @@ import time
 import random
 from tests import unittest
 
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
 import botocore.session
 
 
@@ -21,48 +26,55 @@ class TestKinesisListStreams(unittest.TestCase):
 
     REGION = 'us-east-1'
 
-    def setUp(self):
-        self.client = yield from self.session.create_client('kinesis', self.REGION)
+    @asyncio.coroutine
+    def set_up(self):
 
-    @classmethod
-    def setUpClass(cls):
+    #@classmethod
+    #def setUpClass(cls):
+        cls = self
         cls.session = botocore.session.get_session()
         cls.stream_name = 'botocore-test-%s-%s' % (int(time.time()),
                                                    random.randint(1, 100))
         client = yield from cls.session.create_client('kinesis', cls.REGION)
-        client.create_stream(StreamName=cls.stream_name,
-                             ShardCount=1)
+        _t = yield from client.create_stream(StreamName=cls.stream_name, ShardCount=1)
         waiter = client.get_waiter('stream_exists')
-        waiter.wait(StreamName=cls.stream_name)
+        yield from waiter.wait(StreamName=cls.stream_name)
+        self.client = yield from self.session.create_client('kinesis', self.REGION)
 
-    @classmethod
-    def tearDownClass(cls):
+    #@classmethod
+    #def tearDownClass(cls):
+
+    @asyncio.coroutine
+    def tear_down(cls):
         client = yield from cls.session.create_client('kinesis', cls.REGION)
         client.delete_stream(StreamName=cls.stream_name)
 
+    @async_test
     def test_list_streams(self):
-        parsed = self.client.list_streams()
+        parsed = yield from self.client.list_streams()
         self.assertIn('StreamNames', parsed)
 
+    @async_test
     def test_can_put_stream_blob(self):
-        self.client.put_record(
-            StreamName=self.stream_name, PartitionKey='foo', Data='foobar')
+
+        yield from self.client.put_record(StreamName=self.stream_name, PartitionKey='foo', Data='foobar')
         # Give it a few seconds for the record to get into the stream.
         time.sleep(10)
 
-        stream = self.client.describe_stream(StreamName=self.stream_name)
+        stream = yield from self.client.describe_stream(StreamName=self.stream_name)
         shard = stream['StreamDescription']['Shards'][0]
-        shard_iterator = self.client.get_shard_iterator(
+        shard_iterator = yield from self.client.get_shard_iterator(
             StreamName=self.stream_name, ShardId=shard['ShardId'],
             ShardIteratorType='TRIM_HORIZON')
 
-        records = self.client.get_records(
+        records = yield from self.client.get_records(
             ShardIterator=shard_iterator['ShardIterator'])
         self.assertTrue(len(records['Records']) > 0)
         self.assertEqual(records['Records'][0]['Data'], b'foobar')
 
+    @async_test
     def test_can_put_records_single_blob(self):
-        self.client.put_records(
+        yield from self.client.put_records(
             StreamName=self.stream_name,
             Records=[{
                 'Data': 'foobar',
@@ -72,19 +84,20 @@ class TestKinesisListStreams(unittest.TestCase):
         # Give it a few seconds for the record to get into the stream.
         time.sleep(10)
 
-        stream = self.client.describe_stream(StreamName=self.stream_name)
+        stream = yield from self.client.describe_stream(StreamName=self.stream_name)
         shard = stream['StreamDescription']['Shards'][0]
-        shard_iterator = self.client.get_shard_iterator(
+        shard_iterator = yield from self.client.get_shard_iterator(
             StreamName=self.stream_name, ShardId=shard['ShardId'],
             ShardIteratorType='TRIM_HORIZON')
 
-        records = self.client.get_records(
+        records = yield from self.client.get_records(
             ShardIterator=shard_iterator['ShardIterator'])
         self.assertTrue(len(records['Records']) > 0)
         self.assertEqual(records['Records'][0]['Data'], b'foobar')
 
+    @async_test
     def test_can_put_records_multiple_blob(self):
-        self.client.put_records(
+        _t = yield from self.client.put_records(
             StreamName=self.stream_name,
             Records=[{
                 'Data': 'foobar',
@@ -97,13 +110,13 @@ class TestKinesisListStreams(unittest.TestCase):
         # Give it a few seconds for the record to get into the stream.
         time.sleep(10)
 
-        stream = self.client.describe_stream(StreamName=self.stream_name)
+        stream = yield from self.client.describe_stream(StreamName=self.stream_name)
         shard = stream['StreamDescription']['Shards'][0]
-        shard_iterator = self.client.get_shard_iterator(
+        shard_iterator = yield from self.client.get_shard_iterator(
             StreamName=self.stream_name, ShardId=shard['ShardId'],
             ShardIteratorType='TRIM_HORIZON')
 
-        records = self.client.get_records(
+        records = yield from self.client.get_records(
             ShardIterator=shard_iterator['ShardIterator'])
         self.assertTrue(len(records['Records']) == 2)
         # Verify that both made it through.

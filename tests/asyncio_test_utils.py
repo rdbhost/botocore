@@ -27,6 +27,15 @@ def async_test(f):
 async_test.__test__ = False  # not a test
 
 
+@asyncio.coroutine
+def pump_iter(i):
+    r = []
+    d = yield from i.next()
+    while d:
+        r.append(d)
+        d = yield from i.next()
+    return r
+
 
 def future_wrapped(data):
     f = asyncio.Future()
