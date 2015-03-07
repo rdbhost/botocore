@@ -12,18 +12,25 @@
 # language governing permissions and limitations under the License.
 from tests import unittest
 import random
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
 
 import botocore.session
 
 
 class TestCognitoIdentity(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
         self.client = yield from self.session.create_client('cognito-identity', 'us-east-1')
 
+    @async_test
     def test_can_create_and_delete_identity_pool(self):
         pool_name = 'botocoretest%s' % random.randint(1, 100000)
-        response = self.client.create_identity_pool(
+        response = yield from self.client.create_identity_pool(
             IdentityPoolName=pool_name, AllowUnauthenticatedIdentities=True)
         self.client.delete_identity_pool(IdentityPoolId=response['IdentityPoolId'])
 
