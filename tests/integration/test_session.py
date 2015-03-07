@@ -11,14 +11,20 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 from tests import unittest
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
 
 import botocore.session
 
 
 class TestCanChangeParsing(unittest.TestCase):
+
     def setUp(self):
         self.session = botocore.session.get_session()
 
+    @async_test
     def test_can_change_timestamp_parsing_with_service_obj(self):
         # This is an example of what a library such as the AWS CLI
         # could do to alter the parsing behavior of botocore.
@@ -29,12 +35,13 @@ class TestCanChangeParsing(unittest.TestCase):
         # Now if we get a response with timestamps in the model, they
         # will be returned as strings. We're testing service/operation
         # objects, but we should also add a test for clients.
-        s3 = self.session.get_service('s3')
+        s3 = yield from self.session.get_service('s3')
         endpoint = s3.get_endpoint('us-west-2')
         http, parsed = yield from s3.get_operation('ListBuckets').call(endpoint)
         dates = [bucket['CreationDate'] for bucket in parsed['Buckets']]
         self.assertTrue(all(isinstance(date, str) for date in dates))
 
+    @async_test
     def test_can_change_timestamp_with_clients(self):
         factory = self.session.get_component('response_parser_factory')
         factory.set_parser_defaults(timestamp_parser=lambda x: str(x))
@@ -43,7 +50,7 @@ class TestCanChangeParsing(unittest.TestCase):
         # will be returned as strings. We're testing service/operation
         # objects, but we should also add a test for clients.
         s3 = yield from self.session.create_client('s3', 'us-west-2')
-        parsed = s3.list_buckets()
+        parsed = yield from s3.list_buckets()
         dates = [bucket['CreationDate'] for bucket in parsed['Buckets']]
         self.assertTrue(all(isinstance(date, str) for date in dates),
                         "Expected all str types but instead got: %s" % dates)
