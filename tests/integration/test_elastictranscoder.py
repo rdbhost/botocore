@@ -12,6 +12,11 @@
 # language governing permissions and limitations under the License.
 
 from tests import unittest
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
 import functools
 import random
 
@@ -31,31 +36,35 @@ DEFAULT_ROLE_POLICY = """\
 """
 
 class TestElasticTranscoder(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
-        self.service = self.session.get_service('elastictranscoder')
+        self.service = yield from self.session.get_service('elastictranscoder')
         self.endpoint = self.service.get_endpoint('us-east-1')
 
+    @asyncio.coroutine
     def create_bucket(self):
-        s3 = self.session.get_service('s3')
+        s3 = yield from self.session.get_service('s3')
         bucket_name = 'ets-bucket-1-%s' % random.randint(1, 1000000)
         create_bucket = s3.get_operation('CreateBucket')
         delete_bucket = s3.get_operation('DeleteBucket')
         endpoint = s3.get_endpoint('us-east-1')
-        response = create_bucket.call(endpoint, bucket=bucket_name)[0]
+        response = (yield from create_bucket.call(endpoint, bucket=bucket_name))[0]
         self.assertEqual(response.status_code, 200)
         self.addCleanup(
             functools.partial(delete_bucket.call, endpoint,
                               bucket=bucket_name))
         return bucket_name
 
+    @asyncio.coroutine
     def create_iam_role(self):
-        iam = self.session.get_service('iam')
+        iam = yield from self.session.get_service('iam')
         endpoint = iam.get_endpoint('us-east-1')
         create_role = iam.get_operation('CreateRole')
         delete_role = iam.get_operation('DeleteRole')
         role_name = 'ets-role-name-1-%s' % random.randint(1, 1000000)
-        response, parsed = create_role.call(endpoint, role_name=role_name,
+        response, parsed = yield from create_role.call(endpoint, role_name=role_name,
             assume_role_policy_document=DEFAULT_ROLE_POLICY)
         self.assertEqual(response.status_code, 200)
         arn = parsed['Role']['Arn']
@@ -63,24 +72,27 @@ class TestElasticTranscoder(unittest.TestCase):
             functools.partial(delete_role.call, endpoint, role_name=role_name))
         return arn
 
+    @async_test
     def test_list_streams(self):
         operation = self.service.get_operation('ListPipelines')
         http, parsed = yield from operation.call(self.endpoint)
         self.assertEqual(http.status_code, 200)
         self.assertIn('Pipelines', parsed)
 
+    @async_test
     def test_list_presets(self):
         operation = self.service.get_operation('ListPresets')
         http, parsed = yield from operation.call(self.endpoint, ascending='true')
         self.assertEqual(http.status_code, 200)
         self.assertIn('Presets', parsed)
 
+    @async_test
     def test_create_pipeline(self):
         # In order to create a pipeline, we need to create 2 s3 buckets
         # and 1 iam role.
-        input_bucket = self.create_bucket()
-        output_bucket = self.create_bucket()
-        role = self.create_iam_role()
+        input_bucket = yield from self.create_bucket()
+        output_bucket = yield from self.create_bucket()
+        role = yield from self.create_iam_role()
         pipeline_name = 'botocore-test-create-%s' % (random.randint(1, 1000000))
 
         operation = self.service.get_operation('CreatePipeline')
