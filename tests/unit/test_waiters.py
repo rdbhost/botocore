@@ -313,7 +313,7 @@ class TestWaitersObjects(unittest.TestCase):
             {'Foo': 'SUCCESS'},
             for_operation=operation_method
         )
-        waiter.wait()
+        yield from waiter.wait()
         self.assertEqual(operation_method.call_count, 3)
 
     def test_waiter_never_matches(self):
@@ -329,7 +329,7 @@ class TestWaitersObjects(unittest.TestCase):
         )
         waiter = Waiter('MyWaiter', config, operation_method)
         with self.assertRaises(WaiterError):
-            waiter.wait()
+            yield from waiter.wait()
 
     def test_unspecified_errors_stops_waiter(self):
         # If a waiter receives an error response, then the
@@ -346,7 +346,7 @@ class TestWaitersObjects(unittest.TestCase):
         )
         waiter = Waiter('MyWaiter', config, operation_method)
         with self.assertRaises(WaiterError):
-            waiter.wait()
+            yield from waiter.wait()
 
     def test_waiter_transitions_to_failure_state(self):
         acceptors = [
@@ -366,7 +366,7 @@ class TestWaitersObjects(unittest.TestCase):
         )
         waiter = Waiter('MyWaiter', config, operation_method)
         with self.assertRaises(WaiterError):
-            waiter.wait()
+            yield from waiter.wait()
         # Not only should we raise an exception, but we should have
         # only called the operation_method twice because the second
         # response triggered a fast fail.
@@ -389,7 +389,7 @@ class TestWaitersObjects(unittest.TestCase):
             for_operation=operation_method
         )
         waiter = Waiter('MyWaiter', config, operation_method)
-        waiter.wait()
+        yield from waiter.wait()
         self.assertEqual(operation_method.call_count, 3)
 
     def test_waiter_transitions_to_retry_but_max_attempts_exceeded(self):
@@ -408,7 +408,7 @@ class TestWaitersObjects(unittest.TestCase):
         )
         waiter = Waiter('MyWaiter', config, operation_method)
         with self.assertRaises(WaiterError):
-            waiter.wait()
+            yield from waiter.wait()
 
     def test_kwargs_are_passed_through(self):
         acceptors = [
@@ -420,7 +420,7 @@ class TestWaitersObjects(unittest.TestCase):
             {'Error': {'Code': 'MyError'}},
             for_operation=operation_method)
         waiter = Waiter('MyWaiter', config, operation_method)
-        waiter.wait(Foo='foo', Bar='bar', Baz='baz')
+        yield from waiter.wait(Foo='foo', Bar='bar', Baz='baz')
 
         operation_method.assert_called_with(Foo='foo', Bar='bar',
                                             Baz='baz')
@@ -442,7 +442,7 @@ class TestWaitersObjects(unittest.TestCase):
         )
         waiter = Waiter('MyWaiter', config, operation_method)
         with self.assertRaises(WaiterError):
-            waiter.wait()
+            yield from waiter.wait()
 
         # We attempt three times, which means we need to sleep
         # twice, once before each subsequent request.
@@ -573,66 +573,72 @@ class CloudFrontWaitersTest(ServiceWaiterFunctionalTest):
         self.service = 'cloudfront'
         self.old_api_versions = ['2014-05-31']
 
+    @asyncio.coroutine
     def assert_distribution_deployed_call_count(self, api_version=None):
         waiter_name = 'DistributionDeployed'
         waiter_model = self.get_waiter_model(self.service, api_version)
         self.client.get_distribution.side_effect = [
-            {'Distribution': {'Status': 'Deployed'}}
+            future_wrapped({'Distribution': {'Status': 'Deployed'}})
         ]
         waiter = create_waiter_with_client(waiter_name, waiter_model,
                                            self.client)
-        waiter.wait()
+        yield from waiter.wait()
         self.assertEqual(self.client.get_distribution.call_count, 1)
 
+    @asyncio.coroutine
     def assert_invalidation_completed_call_count(self, api_version=None):
         waiter_name = 'InvalidationCompleted'
         waiter_model = self.get_waiter_model(self.service, api_version)
         self.client.get_invalidation.side_effect = [
-            {'Invalidation': {'Status': 'Completed'}}
+            future_wrapped({'Invalidation': {'Status': 'Completed'}})
         ]
         waiter = create_waiter_with_client(waiter_name, waiter_model,
                                            self.client)
-        waiter.wait()
+        yield from waiter.wait()
         self.assertEqual(self.client.get_invalidation.call_count, 1)
 
+    @asyncio.coroutine
     def assert_streaming_distribution_deployed_call_count(
             self, api_version=None):
         waiter_name = 'StreamingDistributionDeployed'
         waiter_model = self.get_waiter_model(self.service, api_version)
         self.client.get_streaming_distribution.side_effect = [
-            {'StreamingDistribution': {'Status': 'Deployed'}}
+            future_wrapped({'StreamingDistribution': {'Status': 'Deployed'}})
         ]
         waiter = create_waiter_with_client(waiter_name, waiter_model,
                                            self.client)
-        waiter.wait()
+        yield from waiter.wait()
         self.assertEqual(self.client.get_streaming_distribution.call_count, 1)
 
+    @async_test
     def test_distribution_deployed(self):
         # Test the latest version.
-        self.assert_distribution_deployed_call_count()
+        yield from self.assert_distribution_deployed_call_count()
         self.client.reset_mock()
 
         # Test previous api versions.
         for api_version in self.old_api_versions:
-            self.assert_distribution_deployed_call_count(api_version)
+            yield from self.assert_distribution_deployed_call_count(api_version)
             self.client.reset_mock()
 
+    @async_test
     def test_invalidation_completed(self):
         # Test the latest version.
-        self.assert_invalidation_completed_call_count()
+        yield from self.assert_invalidation_completed_call_count()
         self.client.reset_mock()
 
         # Test previous api versions.
         for api_version in self.old_api_versions:
-            self.assert_invalidation_completed_call_count(api_version)
+            yield from self.assert_invalidation_completed_call_count(api_version)
             self.client.reset_mock()
 
+    @async_test
     def test_streaming_distribution_deployed(self):
         # Test the latest version.
-        self.assert_streaming_distribution_deployed_call_count()
+        yield from self.assert_streaming_distribution_deployed_call_count()
         self.client.reset_mock()
 
         # Test previous api versions.
         for api_version in self.old_api_versions:
-            self.assert_streaming_distribution_deployed_call_count(api_version)
+            yield from self.assert_streaming_distribution_deployed_call_count(api_version)
             self.client.reset_mock()

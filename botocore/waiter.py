@@ -69,7 +69,7 @@ def create_waiter_from_legacy(waiter_name, waiter_config,
     model = WaiterModel(waiter_config)
     single_waiter_config = model.get_waiter(waiter_name)
     operation_object = service_object.get_operation(single_waiter_config.operation)
-    operation_method = yield from LegacyOperationMethod(operation_object, endpoint)()
+    operation_method = LegacyOperationMethod(operation_object, endpoint)
     return Waiter(waiter_name, single_waiter_config, operation_method)
 
 
@@ -310,6 +310,7 @@ class Waiter(object):
         self.name = name
         self.config = config
 
+    @asyncio.coroutine
     def wait(self, **kwargs):
         acceptors = list(self.config.acceptors)
         current_state = 'waiting'
@@ -318,7 +319,7 @@ class Waiter(object):
         max_attempts = self.config.max_attempts
 
         while True:
-            response = self._operation_method(**kwargs)
+            response = yield from self._operation_method(**kwargs)
             num_attempts += 1
             for acceptor in acceptors:
                 if acceptor.matcher_func(response):

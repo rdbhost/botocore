@@ -11,6 +11,10 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 from tests import unittest
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
 
 from nose.tools import assert_true
 
@@ -40,29 +44,35 @@ def _test_can_list_clusters_in_region(session, region):
 # testing more than a single unit, we're ensuring everything
 # accessible from the session works as expected.
 class TestEMRGetExtraResources(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
-        self.service = self.session.get_service('emr')
+        self.service = yield from self.session.get_service('emr')
         self.endpoint = self.service.get_endpoint('us-west-2')
 
+    @async_test
     def test_can_access_pagination_configs(self):
         # Using an operation that we know will paginate.
         operation = self.service.get_operation('ListClusters')
         paginator = operation.paginate(self.endpoint)
         self.assertIsInstance(paginator, DeprecatedPageIterator)
 
+    @async_test
     def test_operation_cant_be_paginated(self):
         operation = self.service.get_operation('AddInstanceGroups')
         with self.assertRaises(TypeError):
             operation.paginate(self.endpoint)
 
+    @async_test
     def test_can_get_waiters(self):
-        waiter = self.service.get_waiter('ClusterRunning', self.endpoint)
+        waiter = yield from self.service.get_waiter('ClusterRunning', self.endpoint)
         self.assertTrue(hasattr(waiter, 'wait'))
 
+    @async_test
     def test_waiter_does_not_exist(self):
         with self.assertRaises(ValueError):
-            self.service.get_waiter('DoesNotExist', self.endpoint)
+            yield from self.service.get_waiter('DoesNotExist', self.endpoint)
 
 
 if __name__ == '__main__':
