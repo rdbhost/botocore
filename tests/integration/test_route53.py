@@ -12,22 +12,29 @@
 # language governing permissions and limitations under the License.
 
 import unittest
-import itertools
+#import itertools
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped, pump_iter
 
 import botocore.session
 
 
-class TestRDSPagination(unittest.TestCase):
-    def setUp(self):
+class TestRoute53Pagination(unittest.TestCase):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
-        self.service = self.session.get_service('route53')
+        self.service = yield from self.session.get_service('route53')
         self.endpoint = self.service.get_endpoint('us-west-2')
 
+    @async_test
     def test_paginate_with_max_items(self):
         # Route53 has a string type for MaxItems.  We need to ensure that this
         # still works without any issues.
         operation = self.service.get_operation('ListHostedZones')
-        results = list(operation.paginate(self.endpoint, max_items='1'))
+        results = yield from pump_iter(operation.paginate(self.endpoint, max_items='1'))
         self.assertTrue(len(results) >= 0)
 
 
