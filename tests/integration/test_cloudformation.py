@@ -13,20 +13,28 @@
 from tests import unittest
 import random
 
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
 import botocore.session
 from botocore.exceptions import ClientError
 
 
 class TestCloudformation(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
         self.client = yield from self.session.create_client('cloudformation', 'us-east-1')
 
+    @async_test
     def test_handles_errors_with_template_body(self):
         # GetTemplate has a customization in handlers.py, so we're ensuring
         # it handles the case when a stack does not exist.
         with self.assertRaises(ClientError):
-            self.client.get_template(
+            yield from self.client.get_template(
                 StackName='does-not-exist-%s' % random.randint(1, 10000))
 
 
