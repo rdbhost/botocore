@@ -16,14 +16,21 @@ from tests import unittest
 
 import botocore.session
 from botocore.client import ClientError
+import asyncio
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
 
 
 class TestWaiterLegacy(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
-        self.service = self.session.get_service('dynamodb')
+        self.service = yield from self.session.get_service('dynamodb')
         self.endpoint = self.service.get_endpoint('us-west-2')
 
+    @async_test
     def test_create_table_and_wait(self):
         table_name = 'botocoretestddb-%s' % random.randint(1, 10000)
         operation = self.service.get_operation('CreateTable')
@@ -38,8 +45,8 @@ class TestWaiterLegacy(unittest.TestCase):
             self.fail("Could not create table.")
         self.addCleanup(self.service.get_operation("DeleteTable").call,
                         self.endpoint, TableName=table_name)
-        waiter = self.service.get_waiter('TableExists', self.endpoint)
-        waiter.wait(TableName=table_name)
+        waiter = yield from self.service.get_waiter('TableExists', self.endpoint)
+        yield from waiter.wait(TableName=table_name)
         parsed = yield from self.service.get_operation('DescribeTable').call(
             self.endpoint, TableName=table_name)
         parsed = parsed[1]
@@ -48,13 +55,16 @@ class TestWaiterLegacy(unittest.TestCase):
 
 # This is the same test as above, except using the client interface.
 class TestWaiterForDynamoDB(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
         self.client = yield from self.session.create_client('dynamodb', 'us-west-2')
 
+    @async_test
     def test_create_table_and_wait(self):
         table_name = 'botocoretestddb-%s' % random.randint(1, 10000)
-        self.client.create_table(
+        yield from self.client.create_table(
             TableName=table_name,
             ProvisionedThroughput={"ReadCapacityUnits": 5,
                                    "WriteCapacityUnits": 5},
@@ -63,12 +73,14 @@ class TestWaiterForDynamoDB(unittest.TestCase):
                                    "AttributeType": "S"}])
         self.addCleanup(self.client.delete_table, TableName=table_name)
         waiter = self.client.get_waiter('table_exists')
-        waiter.wait(TableName=table_name)
-        parsed = self.client.describe_table(TableName=table_name)
+        yield from waiter.wait(TableName=table_name)
+        parsed = yield from self.client.describe_table(TableName=table_name)
         self.assertEqual(parsed['Table']['TableStatus'], 'ACTIVE')
 
 
 class TestCanGetWaitersThroughClientInterface(unittest.TestCase):
+
+    @async_test
     def test_get_ses_waiter(self):
         # We're checking this because ses is not the endpoint prefix
         # for the service, it's email.  We want to make sure this does
