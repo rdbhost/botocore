@@ -25,7 +25,7 @@ import xml.etree.cElementTree
 import asyncio
 import io
 
-from botocore.compat import urlsplit, urlunsplit, unquote, json, quote
+from .compat import urlsplit, urlunsplit, unquote, json, quote
 from botocore import retryhandler
 from botocore import utils
 from botocore import translate

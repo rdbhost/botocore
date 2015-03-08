@@ -16,7 +16,7 @@ import asyncio
 import botocore
 import botocore.auth
 
-from botocore.exceptions import UnknownSignatureVersionError
+from .exceptions import UnknownSignatureVersionError
 
 class RequestSigner(object):
     """

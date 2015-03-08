@@ -24,7 +24,7 @@ from yieldfrom.requests import ConnectionError, Timeout
 from yieldfrom.urllib3.exceptions import ClosedPoolError
 
 from botocore import retryhandler
-from botocore.exceptions import ChecksumError
+from .exceptions import ChecksumError
 
 
 HTTP_500_RESPONSE = mock.Mock()

@@ -99,7 +99,7 @@ from pprint import pformat
 
 from http import client as http_client
 
-from botocore.utils import parse_timestamp
+from .utils import parse_timestamp
 
 LOG = logging.getLogger(__name__)
 

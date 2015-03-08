@@ -15,7 +15,7 @@ import logging
 import asyncio
 
 from collections import defaultdict, deque, namedtuple
-from botocore.compat import accepts_kwargs
+from .compat import accepts_kwargs
 import types
 
 logger = logging.getLogger(__name__)

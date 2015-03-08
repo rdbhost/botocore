@@ -27,10 +27,10 @@ from asyncio_test_utils import async_test, future_wrapped
 
 from mock import Mock, patch
 
-from botocore.exceptions import UnseekableStreamError
-from botocore.awsrequest import AWSRequest
-from botocore.awsrequest import AWSHTTPConnection
-from botocore.compat import file_type
+from .exceptions import UnseekableStreamError
+from .awsrequest import AWSRequest
+from .awsrequest import AWSHTTPConnection
+from .compat import file_type
 
 
 class IgnoreCloseBytesIO(io.BytesIO):

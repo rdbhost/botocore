@@ -14,19 +14,19 @@ import copy
 import functools
 import logging
 
-from botocore.model import ServiceModel
-from botocore.exceptions import DataNotFoundError
-from botocore.exceptions import OperationNotPageableError
-from botocore.exceptions import ClientError
+from .model import ServiceModel
+from .exceptions import DataNotFoundError
+from .exceptions import OperationNotPageableError
+from .exceptions import ClientError
 from botocore import waiter
 from botocore import xform_name
-from botocore.paginate import Paginator
-from botocore.utils import CachedProperty
+from .paginate import Paginator
+from .utils import CachedProperty
 import botocore.validate
 import botocore.serialize
 from botocore import credentials
-from botocore.signers import RequestSigner
-from botocore.endpoint import EndpointCreator
+from .signers import RequestSigner
+from .endpoint import EndpointCreator
 import asyncio
 
 logger = logging.getLogger(__name__)

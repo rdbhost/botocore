@@ -23,11 +23,11 @@ from dateutil.parser import parse
 from dateutil.tz import tzlocal
 
 import botocore.config
-from botocore.compat import total_seconds
-from botocore.exceptions import UnknownCredentialError
-from botocore.exceptions import PartialCredentialsError
-from botocore.exceptions import ConfigNotFound
-from botocore.utils import InstanceMetadataFetcher, parse_key_val_file
+from .compat import total_seconds
+from .exceptions import UnknownCredentialError
+from .exceptions import PartialCredentialsError
+from .exceptions import ConfigNotFound
+from .utils import InstanceMetadataFetcher, parse_key_val_file
 
 
 logger = logging.getLogger(__name__)

@@ -24,12 +24,14 @@ import functools
 import time
 import calendar
 
-from botocore.exceptions import NoCredentialsError
-from botocore.utils import normalize_url_path, percent_encode_sequence
-from botocore.compat import HTTPHeaders
-from botocore.compat import quote, unquote, urlsplit, parse_qs
-from botocore.compat import urlunsplit
-from botocore.compat import encodebytes
+from .exceptions import NoCredentialsError
+from .utils import normalize_url_path, percent_encode_sequence
+from .compat import HTTPHeaders
+#from .compat import quote, unquote, urlsplit, parse_qs
+from urllib.parse import quote, unquote, urlsplit, parse_qs, urlunsplit
+from base64 import encodebytes
+#from .compat import urlunsplit
+#from .compat import encodebytes
 
 logger = logging.getLogger(__name__)
 

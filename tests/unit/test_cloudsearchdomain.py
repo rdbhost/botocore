@@ -14,7 +14,7 @@
 
 from tests import BaseSessionTest
 
-from botocore.exceptions import NoRegionError
+from .exceptions import NoRegionError
 import io
 
 import sys

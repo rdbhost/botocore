@@ -1,13 +1,17 @@
 """Smoke tests to verify basic communication to all AWS services."""
 import mock
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
 from pprint import pformat
 from nose.tools import assert_equals, assert_true
 
 from botocore import xform_name
 import botocore.session
 from botocore.client import ClientError
-from botocore.vendored.requests import adapters
-from botocore.vendored.requests.exceptions import ConnectionError
+from yieldfrom.requests import adapters
+from yieldfrom.requests.exceptions import ConnectionError
 
 
 REGION = 'us-east-1'
@@ -78,6 +82,7 @@ ERROR_TESTS = {
 }
 
 
+@async_test
 def test_can_make_request():
     session = botocore.session.get_session()
     for service_name in SMOKE_TESTS:

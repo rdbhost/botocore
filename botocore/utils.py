@@ -20,10 +20,10 @@ import asyncio
 import dateutil.parser
 from dateutil.tz import tzlocal, tzutc
 
-from botocore.exceptions import InvalidExpressionError, ConfigNotFound
-from botocore.compat import json, quote, zip_longest
+from .exceptions import InvalidExpressionError, ConfigNotFound
+from .compat import json, quote, zip_longest
 from yieldfrom import requests
-from botocore.compat import OrderedDict
+from .compat import OrderedDict
 
 
 logger = logging.getLogger(__name__)

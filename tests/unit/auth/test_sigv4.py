@@ -34,8 +34,8 @@ from nose import with_setup
 import mock
 
 import botocore.auth
-from botocore.awsrequest import AWSRequest
-from botocore.credentials import Credentials
+from .awsrequest import AWSRequest
+from .credentials import Credentials
 
 from urllib.parse import urlsplit
 from urllib.parse import parse_qsl

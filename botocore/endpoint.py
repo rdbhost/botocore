@@ -23,12 +23,12 @@ from yieldfrom.requests.utils import get_environ_proxies
 
 import botocore.response
 import botocore.exceptions
-from botocore.exceptions import UnknownEndpointError
-from botocore.awsrequest import AWSRequest
-from botocore.compat import urljoin
-from botocore.utils import percent_encode_sequence
-from botocore.hooks import first_non_none_response
-from botocore.response import StreamingBody
+from .exceptions import UnknownEndpointError
+from .awsrequest import AWSRequest
+from .compat import urljoin
+from .utils import percent_encode_sequence
+from .hooks import first_non_none_response
+from .response import StreamingBody
 from botocore import parsers
 
 import botocore.request_sessions_fixer

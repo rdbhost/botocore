@@ -55,16 +55,16 @@ import copy
 
 from dateutil.tz import tzutc
 
-from botocore.compat import json, OrderedDict
-from botocore.awsrequest import AWSRequest
-from botocore.model import ServiceModel, OperationModel
-from botocore.serialize import EC2Serializer, QuerySerializer, \
+from .compat import json, OrderedDict
+from .awsrequest import AWSRequest
+from .model import ServiceModel, OperationModel
+from .serialize import EC2Serializer, QuerySerializer, \
         JSONSerializer, RestJSONSerializer, RestXMLSerializer
-from botocore.parsers import QueryParser, JSONParser, \
+from .parsers import QueryParser, JSONParser, \
         RestJSONParser, RestXMLParser
-from botocore.utils import parse_timestamp
+from .utils import parse_timestamp
 from calendar import timegm
-from botocore.compat import urlencode
+from .compat import urlencode
 
 from nose.tools import assert_equal as _assert_equal
 

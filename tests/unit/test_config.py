@@ -15,7 +15,7 @@
 from tests import unittest, BaseEnvVar
 import os
 import botocore.exceptions
-from botocore.config import raw_config_parse, load_config
+from .config import raw_config_parse, load_config
 
 
 def path(filename):

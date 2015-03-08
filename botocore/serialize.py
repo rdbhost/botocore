@@ -43,9 +43,9 @@ import base64
 from xml.etree import ElementTree
 import calendar
 
-from botocore.compat import json, formatdate
-from botocore.utils import parse_timestamp, parse_to_aware_datetime
-from botocore.utils import percent_encode
+from .compat import json, formatdate
+from .utils import parse_timestamp, parse_to_aware_datetime
+from .utils import percent_encode
 from botocore import validate
 
 

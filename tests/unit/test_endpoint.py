@@ -23,12 +23,12 @@ from mock import Mock, patch, sentinel
 from yieldfrom.requests import ConnectionError
 from yieldfrom.requests.models import Response
 
-from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
-from botocore.endpoint import EndpointCreator
-from botocore.auth import SigV4Auth
-from botocore.session import Session
-from botocore.exceptions import UnknownServiceStyle
-from botocore.exceptions import UnknownSignatureVersionError
+from .endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
+from .endpoint import EndpointCreator
+from .auth import SigV4Auth
+from .session import Session
+from .exceptions import UnknownServiceStyle
+from .exceptions import UnknownSignatureVersionError
 
 
 def request_dict():

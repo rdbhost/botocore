@@ -21,8 +21,8 @@ import mock
 
 import botocore.auth
 import botocore.credentials
-from botocore.compat import HTTPHeaders, urlsplit, parse_qs
-from botocore.awsrequest import AWSRequest
+from .compat import HTTPHeaders, urlsplit, parse_qs
+from .awsrequest import AWSRequest
 from yieldfrom.requests.models import Request
 
 

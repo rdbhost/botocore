@@ -26,15 +26,15 @@ from botocore import __version__
 import botocore.config
 import botocore.credentials
 import botocore.client
-from botocore.endpoint import EndpointCreator
-from botocore.exceptions import EventNotFound, ConfigNotFound, ProfileNotFound
+from .endpoint import EndpointCreator
+from .exceptions import EventNotFound, ConfigNotFound, ProfileNotFound
 from botocore import handlers
-from botocore.hooks import HierarchicalEmitter, first_non_none_response
-from botocore.loaders import Loader
-from botocore.provider import get_provider
-from botocore.parsers import ResponseParserFactory
+from .hooks import HierarchicalEmitter, first_non_none_response
+from .loaders import Loader
+from .provider import get_provider
+from .parsers import ResponseParserFactory
 from botocore import regions
-from botocore.model import ServiceModel
+from .model import ServiceModel
 import botocore.service
 from botocore import waiter
 import asyncio

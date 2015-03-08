@@ -19,8 +19,8 @@ import asyncio
 
 from yieldfrom.requests import models
 from yieldfrom.requests.sessions import REDIRECT_STATI
-from botocore.compat import HTTPHeaders, HTTPResponse
-from botocore.exceptions import UnseekableStreamError
+from .compat import HTTPHeaders, HTTPResponse
+from .exceptions import UnseekableStreamError
 from yieldfrom.urllib3.connection import VerifiedHTTPSConnection
 from yieldfrom.urllib3.connection import HTTPConnection
 from yieldfrom.urllib3.connectionpool import HTTPConnectionPool

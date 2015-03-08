@@ -15,16 +15,16 @@
 import functools
 import logging
 #import threading
-from botocore.exceptions import MissingParametersError
-from botocore.exceptions import UnknownParameterError
-from botocore.exceptions import NoRegionError
-from botocore.paginate import DeprecatedPaginator
-from botocore.signers import RequestSigner
+from .exceptions import MissingParametersError
+from .exceptions import UnknownParameterError
+from .exceptions import NoRegionError
+from .paginate import DeprecatedPaginator
+from .signers import RequestSigner
 from botocore import serialize
 from botocore import BotoCoreObject, xform_name
 
-from botocore.validate import ParamValidator
-from botocore.exceptions import ParamValidationError
+from .validate import ParamValidator
+from .exceptions import ParamValidationError
 import asyncio
 
 logger = logging.getLogger(__name__)

@@ -23,11 +23,11 @@ import os
 
 import mock
 
-from botocore.exceptions import ApiVersionNotFoundError
-from botocore.exceptions import DataNotFoundError
-from botocore.loaders import cachable
-from botocore.loaders import JSONFileLoader
-from botocore.loaders import Loader
+from .exceptions import ApiVersionNotFoundError
+from .exceptions import DataNotFoundError
+from .loaders import cachable
+from .loaders import JSONFileLoader
+from .loaders import Loader
 import botocore.session
 
 from tests import unittest, BaseEnvVar

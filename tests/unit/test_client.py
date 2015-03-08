@@ -18,8 +18,8 @@ import asyncio
 import botocore
 from botocore import client
 from botocore import hooks
-from botocore.credentials import Credentials
-from botocore.exceptions import ParamValidationError
+from .credentials import Credentials
+from .exceptions import ParamValidationError
 from botocore import exceptions
 import sys
 sys.path.append('..')
