@@ -71,8 +71,10 @@ class StreamingBody(object):
     @asyncio.coroutine
     def read(self, amt=None):
         if amt is None and isinstance(self._raw_stream, asyncio.StreamReader):
-            amt = -1
-        chunk = yield from self._raw_stream.read(amt)
+            _amt = -1
+        else:
+            _amt = amt
+        chunk = yield from self._raw_stream.read(_amt)
         self._amount_read += len(chunk)
         if not chunk or amt is None:
             # If the server sends empty contents or

@@ -14,8 +14,8 @@ from tests import unittest
 import itertools
 import asyncio
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 import sys
 sys.path.append('..')
@@ -63,7 +63,7 @@ class TestEC2Pagination(unittest.TestCase):
         # Using an operation that we know will paginate.
         operation = self.service.get_operation('DescribeReservedInstancesOfferings')
         generator = operation.paginate(self.endpoint, page_size=1)
-        genList = yield from pump_iter(generator, 10)
+        genList = yield from pump_iter(generator)
         results = list(itertools.islice(genList, 0, 3))
         self.assertEqual(len(results), 3)
         for result in results:

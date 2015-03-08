@@ -16,7 +16,7 @@ import mock
 from nose.tools import assert_equals
 
 from botocore import regions
-from .exceptions import UnknownEndpointError
+from botocore.exceptions import UnknownEndpointError
 
 
 # NOTE: sqs endpoint updated to be the CN in the SSL cert because

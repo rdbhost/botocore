@@ -25,7 +25,7 @@ from yieldfrom.requests.structures import CaseInsensitiveDict
 import botocore.session
 from botocore import response
 from botocore import parsers
-from .exceptions import IncompleteReadError
+from botocore.exceptions import IncompleteReadError
 
 log = logging.getLogger(__name__)
 

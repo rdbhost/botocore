@@ -17,7 +17,7 @@ import asyncio
 from tests import unittest
 from functools import partial
 
-from .hooks import HierarchicalEmitter, first_non_none_response
+from botocore.hooks import HierarchicalEmitter, first_non_none_response
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped

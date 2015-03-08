@@ -23,7 +23,7 @@ import io
 
 import botocore
 from botocore import response
-from .exceptions import IncompleteReadError
+from botocore.exceptions import IncompleteReadError
 from yieldfrom.requests.models import Response, Request
 
 XMLBODY1 = (b'<?xml version="1.0" encoding="UTF-8"?><Error>'

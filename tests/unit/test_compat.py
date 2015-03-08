@@ -13,7 +13,7 @@
 
 import datetime
 
-from .compat import total_seconds, unquote_str
+from botocore.compat import total_seconds, unquote_str
 
 from tests import BaseEnvVar, unittest
 
