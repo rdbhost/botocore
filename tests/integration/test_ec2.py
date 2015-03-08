@@ -12,17 +12,27 @@
 # language governing permissions and limitations under the License.
 from tests import unittest
 import itertools
+import asyncio
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+import sys
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped, pump_iter
 
 import botocore.session
 
 
 class TestEC2(unittest.TestCase):
+
     def setUp(self):
         self.session = botocore.session.get_session()
 
+    @async_test
     def test_can_make_request(self):
         # Basic smoke test to ensure we can talk to ec2.
-        service = self.session.get_service('ec2')
+        service = yield from self.session.get_service('ec2')
         endpoint = service.get_endpoint('us-west-2')
         operation = service.get_operation('DescribeAvailabilityZones')
         http, result = yield from operation.call(endpoint)
@@ -31,24 +41,30 @@ class TestEC2(unittest.TestCase):
 
 
 class TestEC2Pagination(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
-        self.service = self.session.get_service('ec2')
+        self.service = yield from self.session.get_service('ec2')
         self.endpoint = self.service.get_endpoint('us-west-2')
 
+    @async_test
     def test_can_paginate(self):
         # Using an operation that we know will paginate.
         operation = self.service.get_operation('DescribeReservedInstancesOfferings')
         generator = operation.paginate(self.endpoint)
-        results = list(itertools.islice(generator, 0, 3))
+        genList = yield from pump_iter(generator)
+        results = list(itertools.islice(genList, 0, 3))
         self.assertEqual(len(results), 3)
         self.assertTrue(results[0][1]['NextToken'] != results[1][1]['NextToken'])
 
+    @async_test
     def test_can_paginate_with_page_size(self):
         # Using an operation that we know will paginate.
         operation = self.service.get_operation('DescribeReservedInstancesOfferings')
         generator = operation.paginate(self.endpoint, page_size=1)
-        results = list(itertools.islice(generator, 0, 3))
+        genList = yield from pump_iter(generator, 10)
+        results = list(itertools.islice(genList, 0, 3))
         self.assertEqual(len(results), 3)
         for result in results:
             parsed = result[1]
@@ -59,13 +75,15 @@ class TestEC2Pagination(unittest.TestCase):
 
 
 class TestCopySnapshotCustomization(unittest.TestCase):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         self.session = botocore.session.get_session()
         # Note, the EBS copy snapshot customization is not ported
         # over to the client interface so we have to use the
         # Service/Operation objects for the actual CopySnapshot
         # operation being tested.
-        self.service = self.session.get_service('ec2')
+        self.service = yield from self.session.get_service('ec2')
         self.copy_snapshot = self.service.get_operation('CopySnapshot')
         # However, all the test fixture setup/cleanup can use
         # the client interface.
@@ -74,19 +92,20 @@ class TestCopySnapshotCustomization(unittest.TestCase):
         self.us_west_2 = self.service.get_endpoint('us-west-2')
 
     def create_volume(self, encrypted=False):
-        available_zones = self.client.describe_availability_zones()
+        available_zones = yield from self.client.describe_availability_zones()
         first_zone = available_zones['AvailabilityZones'][0]['ZoneName']
-        response = self.client.create_volume(
+        response = yield from self.client.create_volume(
             Size=1, AvailabilityZone=first_zone, Encrypted=encrypted)
         volume_id = response['VolumeId']
         self.addCleanup(self.client.delete_volume, VolumeId=volume_id)
         self.client.get_waiter('volume_available').wait(VolumeIds=[volume_id])
         return volume_id
 
+    @asyncio.coroutine
     def create_snapshot(self, volume_id):
-        response = self.client.create_snapshot(VolumeId=volume_id)
+        response = yield from self.client.create_snapshot(VolumeId=volume_id)
         snapshot_id = response['SnapshotId']
-        self.client.get_waiter('snapshot_completed').wait(
+        yield from self.client.get_waiter('snapshot_completed').wait(
             SnapshotIds=[snapshot_id])
         self.addCleanup(self.client.delete_snapshot, SnapshotId=snapshot_id)
         return snapshot_id
@@ -98,11 +117,13 @@ class TestCopySnapshotCustomization(unittest.TestCase):
         dest_client.get_waiter('snapshot_completed').wait(
             SnapshotIds=[snapshot_id])
 
+    @async_test
     def test_can_copy_snapshot(self):
-        volume_id = self.create_volume()
-        snapshot_id = self.create_snapshot(volume_id)
+        volume_id = yield from self.create_volume()
+        yield from asyncio.sleep(10)
+        snapshot_id = yield from self.create_snapshot(volume_id)
 
-        http, parsed = self.copy_snapshot.call(
+        http, parsed = yield from self.copy_snapshot.call(
             self.us_east_1, SourceRegion='us-west-2',
             SourceSnapshotId=snapshot_id)
         self.assertEqual(http.status_code, 200)
@@ -111,12 +132,14 @@ class TestCopySnapshotCustomization(unittest.TestCase):
         # and then we can delete the snapshot.
         self.cleanup_copied_snapshot(parsed['SnapshotId'])
 
+    @async_test
     def test_can_copy_encrypted_snapshot(self):
         # Note that we're creating an encrypted volume here.
-        volume_id = self.create_volume(encrypted=True)
-        snapshot_id = self.create_snapshot(volume_id)
+        volume_id = yield from self.create_volume(encrypted=True)
+        yield from asyncio.sleep(10)
+        snapshot_id = yield from self.create_snapshot(volume_id)
 
-        http, parsed = self.copy_snapshot.call(
+        http, parsed = yield from self.copy_snapshot.call(
             self.us_east_1, SourceRegion='us-west-2',
             SourceSnapshotId=snapshot_id)
         self.assertEqual(http.status_code, 200)
