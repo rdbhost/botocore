@@ -10,12 +10,21 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import time
 import random
 from tests import unittest
 
-import botocore.session
-from botocore.utils import ArgumentGenerator
+import yieldfrom.botocore.session
+from yieldfrom.botocore.utils import ArgumentGenerator
 
 
 class ArgumentGeneratorError(AssertionError):
@@ -28,7 +37,7 @@ class ArgumentGeneratorError(AssertionError):
 
 
 def test_can_generate_all_inputs():
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     generator = ArgumentGenerator()
     for service_name in session.get_available_services():
         service_model = yield from session.get_service_model(service_name)

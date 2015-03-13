@@ -11,6 +11,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 import datetime
 import asyncio
@@ -21,9 +31,9 @@ from asyncio_test_utils import async_test, future_wrapped
 from dateutil.tz import tzutc
 import io
 
-import botocore
-from botocore import response
-from botocore.exceptions import IncompleteReadError
+import yieldfrom.botocore
+from yieldfrom.botocore import response
+from yieldfrom.botocore.exceptions import IncompleteReadError
 from yieldfrom.requests.models import Response, Request
 
 XMLBODY1 = (b'<?xml version="1.0" encoding="UTF-8"?><Error>'
@@ -95,7 +105,7 @@ class TestGetResponse(unittest.TestCase):
         http_response.status_code = 200
         http_response.reason = 'OK'
 
-        session = botocore.session.get_session()
+        session = yieldfrom.botocore.session.get_session()
         s3 = yield from session.get_service('s3')
         operation = s3.get_operation('GetObject')
 
@@ -119,7 +129,7 @@ class TestGetResponse(unittest.TestCase):
         http_response.status_code = 403
         http_response.reason = 'Forbidden'
 
-        session = botocore.session.get_session()
+        session = yieldfrom.botocore.session.get_session()
         s3 = yield from session.get_service('s3')
         operation = s3.get_operation('GetObject') # streaming operation
 
@@ -149,7 +159,7 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'Forbidden'
         http_response.request = Request()
 
-        session = botocore.session.get_session()
+        session = yieldfrom.botocore.session.get_session()
         s3 = yield from session.get_service('s3')
         operation = s3.get_operation('ListObjects') # non-streaming operation
 
@@ -179,7 +189,7 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'ok'
         http_response.request = Request()
 
-        session = botocore.session.get_session()
+        session = yieldfrom.botocore.session.get_session()
         s3 = yield from session.get_service('s3')
         operation = s3.get_operation('ListObjects')  # non-streaming operation
 

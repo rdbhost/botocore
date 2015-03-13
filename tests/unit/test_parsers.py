@@ -10,13 +10,23 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 import datetime
 
 from dateutil.tz import tzutc
 
-from botocore import parsers
-from botocore import model
+from yieldfrom.botocore import parsers
+from yieldfrom.botocore import model
 
 
 # These tests contain botocore specific tests that either

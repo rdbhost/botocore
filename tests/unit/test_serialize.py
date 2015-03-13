@@ -11,14 +11,24 @@ spec.  This can happen for a number of reasons:
   may result in a a coverage gap that would otherwise be untested.
 
 """
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import base64
 import json
 import datetime
 import dateutil.tz
 from tests import unittest
 
-from botocore.model import ServiceModel
-from botocore import serialize
+from yieldfrom.botocore.model import ServiceModel
+from yieldfrom.botocore import serialize
 
 
 class TestBinaryTypes(unittest.TestCase):

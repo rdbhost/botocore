@@ -10,6 +10,16 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import copy
 import functools
 import asyncio
@@ -17,7 +27,7 @@ import asyncio
 from tests import unittest
 from functools import partial
 
-from botocore.hooks import HierarchicalEmitter, first_non_none_response
+from yieldfrom.botocore.hooks import HierarchicalEmitter, first_non_none_response
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped

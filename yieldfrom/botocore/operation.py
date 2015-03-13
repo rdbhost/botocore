@@ -20,8 +20,8 @@ from .exceptions import UnknownParameterError
 from .exceptions import NoRegionError
 from .paginate import DeprecatedPaginator
 from .signers import RequestSigner
-from botocore import serialize
-from botocore import BotoCoreObject, xform_name
+from . import serialize
+from . import BotoCoreObject, xform_name
 
 from .validate import ParamValidator
 from .exceptions import ParamValidationError

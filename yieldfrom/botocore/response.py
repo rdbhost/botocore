@@ -16,11 +16,11 @@ import sys
 import xml.etree.cElementTree
 import logging
 
-from botocore import ScalarTypes
+from . import ScalarTypes
 from .hooks import first_non_none_response
 from .compat import json, set_socket_timeout, XMLParseError
 from .exceptions import IncompleteReadError
-from botocore import parsers
+from . import parsers
 import asyncio
 
 logger = logging.getLogger(__name__)

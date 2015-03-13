@@ -11,6 +11,14 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import os
 import sys
 import time
@@ -30,9 +38,9 @@ except ImportError:
 
 from yieldfrom.requests import adapters
 from yieldfrom.requests.exceptions import ConnectionError
-import botocore.session
-import botocore.auth
-import botocore.credentials
+import yieldfrom.botocore.session
+import yieldfrom.botocore.auth
+import yieldfrom.botocore.credentials
 import yieldfrom.requests as requests
 
 #import logging
@@ -46,7 +54,7 @@ class BaseS3Test(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.service = yield from self.session.get_service('s3')
         self.region = 'us-east-1'
         self.endpoint = self.service.get_endpoint(self.region)
@@ -538,7 +546,7 @@ class TestS3Presign(BaseS3Test):
     def test_can_retrieve_presigned_object(self):
         key_name = 'mykey'
         yield from self.create_object(key_name=key_name, body='foobar')
-        signer = botocore.auth.S3SigV4QueryAuth(
+        signer = yieldfrom.botocore.auth.S3SigV4QueryAuth(
             credentials=(yield from self.service.session.get_credentials()),
             region_name='us-east-1', service_name='s3', expires=60)
         op = self.service.get_operation('GetObject')
@@ -558,7 +566,7 @@ class TestS3PresignFixHost(BaseS3Test):
         endpoint = self.service.get_endpoint('us-west-2')
         key_name = 'mykey'
         bucket_name = 'mybucket'
-        signer = botocore.auth.S3SigV4QueryAuth(
+        signer = yieldfrom.botocore.auth.S3SigV4QueryAuth(
             credentials=(yield from self.service.session.get_credentials()),
             region_name='us-west-2', service_name='s3', expires=60)
         op = self.service.get_operation('GetObject')
@@ -811,7 +819,7 @@ class TestCanSwitchToSigV4(unittest.TestCase):
         self.environ = {}
         self.environ_patch = mock.patch('os.environ', self.environ)
         self.environ_patch.start()
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.tempdir = tempfile.mkdtemp()
         self.config_filename = os.path.join(self.tempdir, 'config_file')
         self.environ['AWS_CONFIG_FILE'] = self.config_filename
@@ -826,7 +834,7 @@ class TestSSEKeyParamValidation(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('s3', 'us-west-2')
         self.bucket_name = 'botocoretest%s-%s' % (
             int(time.time()), random.randint(1, 1000))

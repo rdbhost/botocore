@@ -22,21 +22,21 @@ import os
 import platform
 import shlex
 
-from botocore import __version__
-import botocore.config
-import botocore.credentials
-import botocore.client
+from . import __version__
+from . import config as botoconfig
+from . import credentials as botocredentials
+from . import client as botoclient
 from .endpoint import EndpointCreator
 from .exceptions import EventNotFound, ConfigNotFound, ProfileNotFound
-from botocore import handlers
+from . import handlers
 from .hooks import HierarchicalEmitter, first_non_none_response
 from .loaders import Loader
 from .provider import get_provider
 from .parsers import ResponseParserFactory
-from botocore import regions
+from . import regions
 from .model import ServiceModel
-import botocore.service
-from botocore import waiter
+from . import service as botoservice
+from . import waiter
 import asyncio
 
 
@@ -185,7 +185,7 @@ class Session(object):
     def _register_credential_provider(self):
         self._components.lazy_register_component(
             'credential_provider',
-            lambda:  botocore.credentials.create_credential_resolver(self))
+            lambda:  botocredentials.create_credential_resolver(self))
 
     def _register_data_loader(self):
         self._components.lazy_register_component(
@@ -389,7 +389,7 @@ class Session(object):
         if self._config is None:
             try:
                 config_file = self.get_config_variable('config_file')
-                self._config = botocore.config.load_config(config_file)
+                self._config = botoconfig.load_config(config_file)
             except ConfigNotFound:
                 self._config = {'profiles': {}}
             try:
@@ -399,7 +399,7 @@ class Session(object):
                 # can validate the user is not referring to a nonexistent
                 # profile.
                 cred_file = self.get_config_variable('credentials_file')
-                cred_profiles = botocore.config.raw_config_parse(cred_file)
+                cred_profiles = botoconfig.raw_config_parse(cred_file)
                 for profile in cred_profiles:
                     cred_vars = cred_profiles[profile]
                     if profile not in self._config['profiles']:
@@ -427,7 +427,7 @@ class Session(object):
         :param token: An option session token used by STS session
             credentials.
         """
-        self._credentials = botocore.credentials.Credentials(access_key,
+        self._credentials = botocredentials.Credentials(access_key,
                                                              secret_key,
                                                              token)
     @asyncio.coroutine
@@ -543,7 +543,7 @@ class Session(object):
 
         :returns: :class:`botocore.service.Service`
         """
-        service = yield from botocore.service.get_service(self, service_name,
+        service = yield from botoservice.get_service(self, service_name,
                                                self.provider,
                                                api_version=api_version)
         event = self.create_event('service-created')
@@ -825,14 +825,14 @@ class Session(object):
         response_parser_factory = self.get_component(
             'response_parser_factory')
         if aws_secret_access_key is not None:
-            credentials = botocore.credentials.Credentials(
+            credentials = botocredentials.Credentials(
                 access_key=aws_access_key_id,
                 secret_key=aws_secret_access_key,
                 token=aws_session_token)
         else:
             credentials = yield from self.get_credentials()
         endpoint_resolver = self.get_component('endpoint_resolver')
-        client_creator = botocore.client.ClientCreator(
+        client_creator = botoclient.ClientCreator(
             loader, endpoint_resolver, self.user_agent(), event_emitter,
             response_parser_factory)
         client = client_creator.create_client(

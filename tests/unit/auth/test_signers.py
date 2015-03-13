@@ -19,10 +19,10 @@ import io
 
 import mock
 
-import botocore.auth
-import botocore.credentials
-from botocore.compat import HTTPHeaders, urlsplit, parse_qs
-from botocore.awsrequest import AWSRequest
+import yieldfrom.botocore.auth
+import yieldfrom.botocore.credentials
+from yieldfrom.botocore.compat import HTTPHeaders, urlsplit, parse_qs
+from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.requests.models import Request
 
 
@@ -33,10 +33,10 @@ class TestHMACV1(unittest.TestCase):
     def setUp(self):
         access_key = '44CF9590006BF252F707'
         secret_key = 'OtxrzxIsfpFjA7SwPzILwy8Bw21TLhquhboDYROV'
-        self.credentials = botocore.credentials.Credentials(access_key,
+        self.credentials = yieldfrom.botocore.credentials.Credentials(access_key,
                                                             secret_key)
-        self.hmacv1 = botocore.auth.HmacV1Auth(self.credentials, None, None)
-        self.date_mock = mock.patch('botocore.auth.formatdate')
+        self.hmacv1 = yieldfrom.botocore.auth.HmacV1Auth(self.credentials, None, None)
+        self.date_mock = mock.patch('yieldfrom.botocore.auth.formatdate')
         self.formatdate = self.date_mock.start()
         self.formatdate.return_value = 'Thu, 17 Nov 2005 18:49:58 GMT'
 
@@ -93,9 +93,9 @@ class TestHMACV1(unittest.TestCase):
             self.assertEqual(cr, '/quotes?%s' % operation)
 
     def test_sign_with_token(self):
-        credentials = botocore.credentials.Credentials(
+        credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
-        auth = botocore.auth.HmacV1Auth(credentials)
+        auth = yieldfrom.botocore.auth.HmacV1Auth(credentials)
         request = AWSRequest()
         request.headers['Date'] = 'Thu, 17 Nov 2005 18:49:58 GMT'
         request.headers['Content-Type'] = 'text/html'
@@ -108,9 +108,9 @@ class TestHMACV1(unittest.TestCase):
         self.assertTrue(request.headers['Authorization'].startswith('AWS '))
 
     def test_resign_with_token(self):
-        credentials = botocore.credentials.Credentials(
+        credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
-        auth = botocore.auth.HmacV1Auth(credentials)
+        auth = yieldfrom.botocore.auth.HmacV1Auth(credentials)
         request = AWSRequest()
         request.headers['Date'] = 'Thu, 17 Nov 2005 18:49:58 GMT'
         request.headers['Content-Type'] = 'text/html'
@@ -159,11 +159,11 @@ class TestSigV2(unittest.TestCase):
     def setUp(self):
         access_key = 'foo'
         secret_key = 'bar'
-        self.credentials = botocore.credentials.Credentials(access_key,
+        self.credentials = yieldfrom.botocore.credentials.Credentials(access_key,
                                                             secret_key)
-        self.signer = botocore.auth.SigV2Auth(self.credentials)
+        self.signer = yieldfrom.botocore.auth.SigV2Auth(self.credentials)
         self.time_patcher = mock.patch.object(
-            botocore.auth.time, 'gmtime',
+            yieldfrom.botocore.auth.time, 'gmtime',
             mock.Mock(wraps=time.gmtime)
         )
         mocked_time = self.time_patcher.start()
@@ -205,10 +205,10 @@ class TestSigV3(unittest.TestCase):
     def setUp(self):
         self.access_key = 'access_key'
         self.secret_key = 'secret_key'
-        self.credentials = botocore.credentials.Credentials(self.access_key,
+        self.credentials = yieldfrom.botocore.credentials.Credentials(self.access_key,
                                                             self.secret_key)
-        self.auth = botocore.auth.SigV3Auth(self.credentials)
-        self.date_mock = mock.patch('botocore.auth.formatdate')
+        self.auth = yieldfrom.botocore.auth.SigV3Auth(self.credentials)
+        self.date_mock = mock.patch('yieldfrom.botocore.auth.formatdate')
         self.formatdate = self.date_mock.start()
         self.formatdate.return_value = 'Thu, 17 Nov 2005 18:49:58 GMT'
 
@@ -226,9 +226,9 @@ class TestSigV3(unittest.TestCase):
              'Signature=M245fo86nVKI8rLpH4HgWs841sBTUKuwciiTpjMDgPs='))
 
     def test_resign_with_token(self):
-        credentials = botocore.credentials.Credentials(
+        credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
-        auth = botocore.auth.SigV3Auth(credentials)
+        auth = yieldfrom.botocore.auth.SigV3Auth(credentials)
         request = AWSRequest()
         request.headers['Date'] = 'Thu, 17 Nov 2005 18:49:58 GMT'
         request.method = 'PUT'
@@ -247,9 +247,9 @@ class TestS3SigV4Auth(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.credentials = botocore.credentials.Credentials(
+        self.credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
-        self.auth = botocore.auth.S3SigV4Auth(
+        self.auth = yieldfrom.botocore.auth.S3SigV4Auth(
             self.credentials, 'ec2', 'eu-central-1')
         self.request = AWSRequest(data=io.BytesIO(b"foo bar baz"))
         self.request.method = 'PUT'
@@ -267,9 +267,9 @@ class TestS3SigV4Auth(unittest.TestCase):
         request = AWSRequest()
         request.url = 'https://s3.amazonaws.com/bucket/foo/./bar/../bar'
         request.method = 'GET'
-        credentials = botocore.credentials.Credentials('access_key',
+        credentials = yieldfrom.botocore.credentials.Credentials('access_key',
                                                        'secret_key')
-        auth = botocore.auth.S3SigV4Auth(credentials, 's3', 'us-east-1')
+        auth = yieldfrom.botocore.auth.S3SigV4Auth(credentials, 's3', 'us-east-1')
         auth.add_auth(request)
         self.assertTrue(
             request.headers['Authorization'].startswith('AWS4-HMAC-SHA256'))
@@ -292,7 +292,7 @@ class TestS3SigV4Auth(unittest.TestCase):
 
 class TestSigV4(unittest.TestCase):
     def setUp(self):
-        self.credentials = botocore.credentials.Credentials(
+        self.credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar')
 
     def test_canonical_query_string(self):
@@ -305,7 +305,7 @@ class TestSigV4(unittest.TestCase):
             'fields%22%3A%5B%22directors%5E10%22%5D%7D&q=George%20Lucas'
         )
         request.method = 'GET'
-        auth = botocore.auth.SigV4Auth(
+        auth = yieldfrom.botocore.auth.SigV4Auth(
             self.credentials, 'cloudsearchdomain', 'us-west-2')
         actual = auth.canonical_query_string(request)
         # Here 'q' should come before 'q.options'.
@@ -320,13 +320,13 @@ class TestSigV4Resign(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.credentials = botocore.credentials.Credentials(
+        self.credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
-        self.auth = botocore.auth.SigV4Auth(self.credentials, 'ec2', 'us-west-2')
+        self.auth = yieldfrom.botocore.auth.SigV4Auth(self.credentials, 'ec2', 'us-west-2')
         self.request = AWSRequest()
         self.request.method = 'PUT'
         self.request.url = 'https://ec2.amazonaws.com/'
-        self.datetime_patch = mock.patch('botocore.auth.datetime')
+        self.datetime_patch = mock.patch('yieldfrom.botocore.auth.datetime')
         self.datetime_mock = self.datetime_patch.start()
         self.now = datetime.datetime.utcnow()
         self.datetime_mock.datetime.utcnow.return_value = self.now
@@ -359,14 +359,14 @@ class TestSigV4Presign(unittest.TestCase):
     def setUp(self):
         self.access_key = 'access_key'
         self.secret_key = 'secret_key'
-        self.credentials = botocore.credentials.Credentials(self.access_key,
+        self.credentials = yieldfrom.botocore.credentials.Credentials(self.access_key,
                                                             self.secret_key)
         self.service_name = 'myservice'
         self.region_name = 'myregion'
-        self.auth = botocore.auth.SigV4QueryAuth(
+        self.auth = yieldfrom.botocore.auth.SigV4QueryAuth(
             self.credentials, self.service_name, self.region_name, expires=60)
         self.datetime_patcher = mock.patch.object(
-            botocore.auth.datetime, 'datetime',
+            yieldfrom.botocore.auth.datetime, 'datetime',
             mock.Mock(wraps=datetime.datetime)
         )
         mocked_datetime = self.datetime_patcher.start()
@@ -429,7 +429,7 @@ class TestSigV4Presign(unittest.TestCase):
         self.assertIn('Description=With%20Spaces', request.url)
 
     def test_s3_sigv4_presign(self):
-        auth = botocore.auth.S3SigV4QueryAuth(
+        auth = yieldfrom.botocore.auth.S3SigV4QueryAuth(
             self.credentials, self.service_name, self.region_name, expires=60)
         request = AWSRequest()
         request.url = (
@@ -452,7 +452,7 @@ class TestSigV4Presign(unittest.TestCase):
 
     def test_presign_with_security_token(self):
         self.credentials.token = 'security-token'
-        auth = botocore.auth.S3SigV4QueryAuth(
+        auth = yieldfrom.botocore.auth.S3SigV4QueryAuth(
             self.credentials, self.service_name, self.region_name, expires=60)
         request = AWSRequest()
         request.url = 'https://ec2.us-east-1.amazonaws.com/'

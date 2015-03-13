@@ -13,13 +13,21 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest, BaseSessionTest
 import os
 
 import mock
 
-import botocore.session
-import botocore.exceptions
+import yieldfrom.botocore.session
+import yieldfrom.botocore.exceptions
 
 
 class TestConfig(BaseSessionTest):
@@ -29,11 +37,11 @@ class TestConfig(BaseSessionTest):
         super(TestConfig, self).setUp(BOTO_DATA_PATH=data_path)
 
     def test_data_not_found(self):
-        self.assertRaises(botocore.exceptions.DataNotFoundError,
+        self.assertRaises(yieldfrom.botocore.exceptions.DataNotFoundError,
                           self.session.get_data, 'bar')
 
     def test_data_bad(self):
-        self.assertRaises(botocore.exceptions.DataNotFoundError,
+        self.assertRaises(yieldfrom.botocore.exceptions.DataNotFoundError,
                           self.session.get_data, 'baz')
 
     def test_all_data(self):

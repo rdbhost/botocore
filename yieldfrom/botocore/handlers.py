@@ -26,11 +26,11 @@ import asyncio
 import io
 
 from .compat import urlsplit, urlunsplit, unquote, json, quote
-from botocore import retryhandler
-from botocore import utils
-from botocore import translate
-import botocore
-import botocore.auth
+from . import retryhandler
+from . import utils
+from . import translate
+from . import UNSIGNED
+#from . import auth as botoauth
 
 logger = logging.getLogger(__name__)
 LABEL_RE = re.compile('[a-z0-9][a-z0-9\-]*[a-z0-9]')
@@ -217,8 +217,6 @@ def fix_s3_host(request, signature_version, region_name, **kwargs):
         else:
             logger.debug('Not changing URI, bucket is not DNS compatible: %s',
                          bucket_name)
-        #### todo - take this out
-        #request.url = 'https://botocoretest1-1.s3-us-west-2.amazonaws.com'
 
 
 def _is_get_bucket_location_request(request):
@@ -277,7 +275,7 @@ def disable_signing(**kwargs):
     This handler disables request signing by setting the signer
     name to a special sentinel value.
     """
-    return botocore.UNSIGNED
+    return UNSIGNED
 
 
 def add_expect_header(model, params, **kwargs):

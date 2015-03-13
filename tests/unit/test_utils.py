@@ -11,6 +11,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 from dateutil.tz import tzutc, tzoffset
 import datetime
@@ -18,22 +28,22 @@ import io
 
 import mock
 
-from botocore import xform_name
-from botocore.exceptions import InvalidExpressionError, ConfigNotFound
-from botocore.utils import remove_dot_segments
-from botocore.utils import normalize_url_path
-from botocore.utils import validate_jmespath_for_set
-from botocore.utils import set_value_from_jmespath
-from botocore.utils import parse_key_val_file_contents
-from botocore.utils import parse_key_val_file
-from botocore.utils import parse_timestamp
-from botocore.utils import parse_to_aware_datetime
-from botocore.utils import CachedProperty
-from botocore.utils import ArgumentGenerator
-from botocore.utils import calculate_tree_hash
-from botocore.utils import calculate_sha256
-from botocore.model import DenormalizedStructureBuilder
-from botocore.model import ShapeResolver
+from yieldfrom.botocore import xform_name
+from yieldfrom.botocore.exceptions import InvalidExpressionError, ConfigNotFound
+from yieldfrom.botocore.utils import remove_dot_segments
+from yieldfrom.botocore.utils import normalize_url_path
+from yieldfrom.botocore.utils import validate_jmespath_for_set
+from yieldfrom.botocore.utils import set_value_from_jmespath
+from yieldfrom.botocore.utils import parse_key_val_file_contents
+from yieldfrom.botocore.utils import parse_key_val_file
+from yieldfrom.botocore.utils import parse_timestamp
+from yieldfrom.botocore.utils import parse_to_aware_datetime
+from yieldfrom.botocore.utils import CachedProperty
+from yieldfrom.botocore.utils import ArgumentGenerator
+from yieldfrom.botocore.utils import calculate_tree_hash
+from yieldfrom.botocore.utils import calculate_sha256
+from yieldfrom.botocore.model import DenormalizedStructureBuilder
+from yieldfrom.botocore.model import ShapeResolver
 
 
 class TestURINormalization(unittest.TestCase):

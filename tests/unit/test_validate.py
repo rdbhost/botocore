@@ -1,11 +1,21 @@
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 from datetime import datetime
 import decimal
 import io
 
-from botocore.model import ShapeResolver
-from botocore.model import StructureShape
-from botocore.validate import ParamValidator
+from yieldfrom.botocore.model import ShapeResolver
+from yieldfrom.botocore.model import StructureShape
+from yieldfrom.botocore.validate import ParamValidator
 
 BOILER_PLATE_SHAPES = {
     'StringType': {

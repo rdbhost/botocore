@@ -12,15 +12,25 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import datetime
 import mock
 import os
 
 from dateutil.tz import tzlocal
 
-from botocore import credentials
-import botocore.exceptions
-import botocore.session
+from yieldfrom.botocore import credentials
+import yieldfrom.botocore.exceptions
+import yieldfrom.botocore.session
 from tests import unittest, BaseEnvVar
 import asyncio
 import functools
@@ -222,7 +232,7 @@ class TestEnvVar(BaseEnvVar):
             # Missing the AWS_SECRET_ACCESS_KEY
         }
         provider = credentials.EnvProvider(environ)
-        with self.assertRaises(botocore.exceptions.PartialCredentialsError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.PartialCredentialsError):
             yield from provider.load()
 
 
@@ -260,7 +270,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
         provider = credentials.SharedCredentialProvider(
             creds_filename='~/.aws/creds', profile_name='default',
             ini_parser=self.ini_parser)
-        with self.assertRaises(botocore.exceptions.PartialCredentialsError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.PartialCredentialsError):
             yield from provider.load()
 
     @async_test
@@ -312,7 +322,7 @@ class TestSharedCredentialsProvider(BaseEnvVar):
     def test_credentials_file_does_not_exist_returns_none(self):
         # It's ok if the credentials file does not exist, we should
         # just catch the appropriate errors and return None.
-        self.ini_parser.side_effect = botocore.exceptions.ConfigNotFound(
+        self.ini_parser.side_effect = yieldfrom.botocore.exceptions.ConfigNotFound(
             path='foo')
         provider = credentials.SharedCredentialProvider(
             creds_filename='~/.aws/creds', profile_name='dev',
@@ -363,7 +373,7 @@ class TestConfigFileProvider(BaseEnvVar):
     def test_config_file_errors_ignored(self):
         # We should move on to the next provider if the config file
         # can't be found.
-        self.parser.side_effect = botocore.exceptions.ConfigNotFound(
+        self.parser.side_effect = yieldfrom.botocore.exceptions.ConfigNotFound(
             path='cli.cfg')
         provider = credentials.ConfigProvider('cli.cfg', 'default',
                                               self.parser)
@@ -380,7 +390,7 @@ class TestConfigFileProvider(BaseEnvVar):
         parser = mock.Mock()
         parser.return_value = parsed
         provider = credentials.ConfigProvider('cli.cfg', 'default', parser)
-        with self.assertRaises(botocore.exceptions.PartialCredentialsError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.PartialCredentialsError):
             yield from provider.load()
 
 
@@ -437,7 +447,7 @@ class TestBotoProvider(BaseEnvVar):
 
     @async_test
     def test_no_boto_config_file_exists(self):
-        self.ini_parser.side_effect = botocore.exceptions.ConfigNotFound(
+        self.ini_parser.side_effect = yieldfrom.botocore.exceptions.ConfigNotFound(
             path='foo')
         provider = credentials.BotoProvider(environ={},
                                             ini_parser=self.ini_parser)
@@ -455,7 +465,7 @@ class TestBotoProvider(BaseEnvVar):
         }
         provider = credentials.BotoProvider(environ={},
                                             ini_parser=ini_parser)
-        with self.assertRaises(botocore.exceptions.PartialCredentialsError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.PartialCredentialsError):
             yield from provider.load()
 
 
@@ -649,7 +659,7 @@ class CredentialResolverTest(BaseEnvVar):
         resolver.remove('providerFOO')
         # But an error IS raised if you try to insert after an unknown
         # provider.
-        with self.assertRaises(botocore.exceptions.UnknownCredentialError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.UnknownCredentialError):
             resolver.insert_after('providerFoo', None)
 
 

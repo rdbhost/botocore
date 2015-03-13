@@ -10,13 +10,23 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest, BaseSessionTest, create_session
 
 import mock
 from nose.tools import assert_equals
 
-from botocore import regions
-from botocore.exceptions import UnknownEndpointError
+from yieldfrom.botocore import regions
+from yieldfrom.botocore.exceptions import UnknownEndpointError
 
 
 # NOTE: sqs endpoint updated to be the CN in the SSL cert because

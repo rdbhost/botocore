@@ -19,16 +19,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
 import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 import mock
 
-from botocore.exceptions import ApiVersionNotFoundError
-from botocore.exceptions import DataNotFoundError
-from botocore.loaders import cachable
-from botocore.loaders import JSONFileLoader
-from botocore.loaders import Loader
-import botocore.session
+from yieldfrom.botocore.exceptions import ApiVersionNotFoundError
+from yieldfrom.botocore.exceptions import DataNotFoundError
+from yieldfrom.botocore.loaders import cachable
+from yieldfrom.botocore.loaders import JSONFileLoader
+from yieldfrom.botocore.loaders import Loader
+import yieldfrom.botocore.session
 
 from tests import unittest, BaseEnvVar
 

@@ -13,8 +13,9 @@
 
 import asyncio
 
-import botocore
-import botocore.auth
+from . import exceptions as botoexceptions
+from . import auth as botoauth
+from . import UNSIGNED
 
 from .exceptions import UnknownSignatureVersionError
 
@@ -90,7 +91,7 @@ class RequestSigner(object):
             signature_version=signature_version, request_signer=self)
 
         # Sign the request if the signature version isn't None or blank
-        if signature_version != botocore.UNSIGNED:
+        if signature_version != UNSIGNED:
             signer = self.get_auth(self._signing_name, self._region_name,
                                     signature_version)
             signer.add_auth(request=request)
@@ -119,7 +120,7 @@ class RequestSigner(object):
         if key in self._cache:
             return self._cache[key]
 
-        cls = botocore.auth.AUTH_TYPE_MAPS.get(signature_version)
+        cls = botoauth.AUTH_TYPE_MAPS.get(signature_version)
         if cls is None:
             raise UnknownSignatureVersionError(
                 signature_version=signature_version)
@@ -127,7 +128,7 @@ class RequestSigner(object):
             kwargs = {'credentials': self._credentials}
             if cls.REQUIRES_REGION:
                 if self._region_name is None:
-                    raise botocore.exceptions.NoRegionError(
+                    raise botoexceptions.NoRegionError(
                         env_var='AWS_DEFAULT_REGION')
                 kwargs['region_name'] = region_name
                 kwargs['service_name'] = signing_name

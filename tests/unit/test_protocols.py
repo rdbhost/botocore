@@ -50,21 +50,31 @@ can set the BOTOCORE_TEST_ID env var with the ``suite_id:test_id`` syntax.
     BOTOCORE_TEST_ID=5:1 nosetests test/unit/test_protocols.py
 
 """
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import os
 import copy
 
 from dateutil.tz import tzutc
 
-from botocore.compat import json, OrderedDict
-from botocore.awsrequest import AWSRequest
-from botocore.model import ServiceModel, OperationModel
-from botocore.serialize import EC2Serializer, QuerySerializer, \
+from yieldfrom.botocore.compat import json, OrderedDict
+from yieldfrom.botocore.awsrequest import AWSRequest
+from yieldfrom.botocore.model import ServiceModel, OperationModel
+from yieldfrom.botocore.serialize import EC2Serializer, QuerySerializer, \
         JSONSerializer, RestJSONSerializer, RestXMLSerializer
-from botocore.parsers import QueryParser, JSONParser, \
+from yieldfrom.botocore.parsers import QueryParser, JSONParser, \
         RestJSONParser, RestXMLParser
-from botocore.utils import parse_timestamp
+from yieldfrom.botocore.utils import parse_timestamp
 from calendar import timegm
-from botocore.compat import urlencode
+from yieldfrom.botocore.compat import urlencode
 
 from nose.tools import assert_equal as _assert_equal
 

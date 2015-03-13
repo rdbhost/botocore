@@ -22,10 +22,10 @@ from tests import unittest, create_session
 from mock import Mock
 from yieldfrom.requests.structures import CaseInsensitiveDict
 
-import botocore.session
-from botocore import response
-from botocore import parsers
-from botocore.exceptions import IncompleteReadError
+import yieldfrom.botocore.session
+from yieldfrom.botocore import response
+from yieldfrom.botocore import parsers
+from yieldfrom.botocore.exceptions import IncompleteReadError
 
 log = logging.getLogger(__name__)
 
@@ -158,7 +158,7 @@ def test_json_errors_parsing():
     base_dir = os.path.join(os.path.dirname(__file__), 'json')
     json_responses_dir = os.path.join(base_dir, 'errors')
     expected_parsed_dir = os.path.join(base_dir, 'expected')
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     for json_response_file in os.listdir(json_responses_dir):
         # Files look like: 'datapipeline-create-pipeline.json'
         service_name, operation_name = os.path.splitext(
@@ -181,7 +181,7 @@ def _uhg_test_json_parsing():
     input_path = os.path.join(input_path, 'inputs')
     output_path = os.path.join(os.path.dirname(__file__), 'json')
     output_path = os.path.join(output_path, 'outputs')
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     jsonfiles = glob.glob('%s/*.json' % input_path)
     service_names = set()
     for fn in jsonfiles:

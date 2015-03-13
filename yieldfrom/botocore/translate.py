@@ -21,7 +21,7 @@ import jmespath
 
 from .compat import OrderedDict, json
 from .utils import merge_dicts
-from botocore import xform_name
+from . import xform_name
 
 
 class ModelFiles(object):

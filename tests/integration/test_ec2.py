@@ -10,24 +10,30 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 import itertools
 import asyncio
-
-#import logging
-#logging.basicConfig(level=logging.DEBUG)
 
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped, pump_iter
 
-import botocore.session
+import yieldfrom.botocore.session
 
 
 class TestEC2(unittest.TestCase):
 
     def setUp(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
 
     @async_test
     def test_can_make_request(self):
@@ -44,7 +50,7 @@ class TestEC2Pagination(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.service = yield from self.session.get_service('ec2')
         self.endpoint = self.service.get_endpoint('us-west-2')
 
@@ -78,7 +84,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         # Note, the EBS copy snapshot customization is not ported
         # over to the client interface so we have to use the
         # Service/Operation objects for the actual CopySnapshot
@@ -91,6 +97,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
         self.us_east_1 = self.service.get_endpoint('us-east-1')
         self.us_west_2 = self.service.get_endpoint('us-west-2')
 
+    @asyncio.coroutine
     def create_volume(self, encrypted=False):
         available_zones = yield from self.client.describe_availability_zones()
         first_zone = available_zones['AvailabilityZones'][0]['ZoneName']
@@ -98,7 +105,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
             Size=1, AvailabilityZone=first_zone, Encrypted=encrypted)
         volume_id = response['VolumeId']
         self.addCleanup(self.client.delete_volume, VolumeId=volume_id)
-        self.client.get_waiter('volume_available').wait(VolumeIds=[volume_id])
+        yield from self.client.get_waiter('volume_available').wait(VolumeIds=[volume_id])
         return volume_id
 
     @asyncio.coroutine
@@ -110,11 +117,12 @@ class TestCopySnapshotCustomization(unittest.TestCase):
         self.addCleanup(self.client.delete_snapshot, SnapshotId=snapshot_id)
         return snapshot_id
 
+    @asyncio.coroutine
     def cleanup_copied_snapshot(self, snapshot_id):
         dest_client = yield from self.session.create_client('ec2', 'us-east-1')
         self.addCleanup(dest_client.delete_snapshot,
                         SnapshotId=snapshot_id)
-        dest_client.get_waiter('snapshot_completed').wait(
+        yield from dest_client.get_waiter('snapshot_completed').wait(
             SnapshotIds=[snapshot_id])
 
     @async_test
@@ -130,7 +138,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
 
         # Cleanup code.  We can wait for the snapshot to be complete
         # and then we can delete the snapshot.
-        self.cleanup_copied_snapshot(parsed['SnapshotId'])
+        yield from self.cleanup_copied_snapshot(parsed['SnapshotId'])
 
     @async_test
     def test_can_copy_encrypted_snapshot(self):
@@ -143,7 +151,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
             self.us_east_1, SourceRegion='us-west-2',
             SourceSnapshotId=snapshot_id)
         self.assertEqual(http.status_code, 200)
-        self.cleanup_copied_snapshot(parsed['SnapshotId'])
+        yield from self.cleanup_copied_snapshot(parsed['SnapshotId'])
 
 
 if __name__ == '__main__':

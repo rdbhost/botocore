@@ -21,25 +21,19 @@ import contextlib
 import tempfile
 import asyncio
 
-# The unittest module got a significant overhaul
-# in 2.7, so if we're in 2.6 we can use the backported
-# version unittest2.
-if sys.version_info[:2] == (2, 6):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
-
-import botocore.loaders
-import botocore.session
-_LOADER = botocore.loaders.Loader()
+from yieldfrom import botocore
+import yieldfrom.botocore.loaders
+import yieldfrom.botocore.session
+_LOADER = yieldfrom.botocore.loaders.Loader()
 
 
 def create_session(**kwargs):
     # Create a Session object.  By default,
     # the _LOADER object is used as the loader
     # so that we reused the same models across tests.
-    session = botocore.session.Session(**kwargs)
+    session = yieldfrom.botocore.session.Session(**kwargs)
     data_path = session.get_config_variable('data_path')
     _LOADER.data_path = data_path or ''
     session.register_component('data_loader', _LOADER)

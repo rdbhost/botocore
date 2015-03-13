@@ -13,6 +13,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 import asyncio
 import sys
@@ -23,8 +33,8 @@ import mock
 from yieldfrom.requests import ConnectionError, Timeout
 from yieldfrom.urllib3.exceptions import ClosedPoolError
 
-from botocore import retryhandler
-from botocore.exceptions import ChecksumError
+from yieldfrom.botocore import retryhandler
+from yieldfrom.botocore.exceptions import ChecksumError
 
 
 HTTP_500_RESPONSE = mock.Mock()

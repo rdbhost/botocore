@@ -1,6 +1,16 @@
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 
-from botocore import model
+from yieldfrom.botocore import model
 
 
 def test_missing_model_attribute_raises_exception():

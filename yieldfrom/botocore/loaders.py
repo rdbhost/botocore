@@ -1,7 +1,7 @@
 import glob
 import os
 
-from botocore import BOTOCORE_ROOT
+from . import BOTOCORE_ROOT
 from .compat import json
 from .compat import OrderedDict
 from .exceptions import ApiVersionNotFoundError

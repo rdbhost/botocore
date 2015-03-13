@@ -13,6 +13,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest, create_session, temporary_file
 import os
 import logging
@@ -25,12 +35,12 @@ from asyncio_test_utils import async_test, future_wrapped
 
 import mock
 
-import botocore.session
-import botocore.exceptions
-from botocore.model import ServiceModel
-from botocore import client
-from botocore.hooks import HierarchicalEmitter
-from botocore.waiter import WaiterModel
+import yieldfrom.botocore.session
+import yieldfrom.botocore.exceptions
+from yieldfrom.botocore.model import ServiceModel
+from yieldfrom.botocore import client
+from yieldfrom.botocore.hooks import HierarchicalEmitter
+from yieldfrom.botocore.waiter import WaiterModel
 
 
 class BaseSessionTest(unittest.TestCase):
@@ -95,7 +105,7 @@ class SessionTest(BaseSessionTest):
         # Given we have no profile:
         self.environ['FOO_PROFILE'] = 'profile_that_does_not_exist'
         session = create_session(session_vars=self.env_vars)
-        with self.assertRaises(botocore.exceptions.ProfileNotFound):
+        with self.assertRaises(yieldfrom.botocore.exceptions.ProfileNotFound):
             session.get_scoped_config()
 
     def test_variable_does_not_exist(self):
@@ -126,7 +136,7 @@ class SessionTest(BaseSessionTest):
         # In this case, even though we specified default, because
         # the boto_config_empty config file does not have a default
         # profile, we should be raising an exception.
-        with self.assertRaises(botocore.exceptions.ProfileNotFound):
+        with self.assertRaises(yieldfrom.botocore.exceptions.ProfileNotFound):
             session.get_scoped_config()
 
     def test_file_logger(self):
@@ -214,18 +224,18 @@ class SessionTest(BaseSessionTest):
         self.assertEqual(event, 'after-parsed.foo.bar.fie.baz')
         event = self.session.create_event('service-created')
         self.assertEqual(event, 'service-created')
-        self.assertRaises(botocore.exceptions.EventNotFound,
+        self.assertRaises(yieldfrom.botocore.exceptions.EventNotFound,
                           self.session.create_event, 'foo-bar')
 
     @mock.patch('logging.getLogger')
     @mock.patch('logging.FileHandler')
     @async_test
     def test_logger_name_can_be_passed_in(self, file_handler, get_logger):
-        self.session.set_debug_logger('botocore.hooks')
-        get_logger.assert_called_with('botocore.hooks')
+        self.session.set_debug_logger('yieldfrom.botocore.hooks')
+        get_logger.assert_called_with('yieldfrom.botocore.hooks')
 
-        self.session.set_file_logger('DEBUG', 'debuglog', 'botocore.service')
-        get_logger.assert_called_with('botocore.service')
+        self.session.set_file_logger('DEBUG', 'debuglog', 'yieldfrom.botocore.service')
+        get_logger.assert_called_with('yieldfrom.botocore.service')
         file_handler.assert_called_with('debuglog')
 
     @mock.patch('logging.getLogger')
@@ -257,7 +267,7 @@ class TestBuiltinEventHandlers(BaseSessionTest):
             ('foo', self.on_foo),
         ]
         self.foo_called = False
-        self.handler_patch = mock.patch('botocore.handlers.BUILTIN_HANDLERS',
+        self.handler_patch = mock.patch('yieldfrom.botocore.handlers.BUILTIN_HANDLERS',
                                         self.builtin_handlers)
         self.handler_patch.start()
 
@@ -269,7 +279,7 @@ class TestBuiltinEventHandlers(BaseSessionTest):
         self.handler_patch.stop()
 
     def test_registered_builtin_handlers(self):
-        session = botocore.session.Session(self.env_vars, None,
+        session = yieldfrom.botocore.session.Session(self.env_vars, None,
                                            include_builtin_handlers=True)
         yield from session.emit('foo')
         self.assertTrue(self.foo_called)
@@ -381,7 +391,7 @@ class TestCreateClient(BaseSessionTest):
                          "explicit credentials were provided to the "
                          "create_client call.")
 
-    @mock.patch('botocore.client.ClientCreator')
+    @mock.patch('yieldfrom.botocore.client.ClientCreator')
     @asyncio.coroutine
     def test_config_passed_to_client_creator(self, client_creator):
         config = client.Config()

@@ -11,6 +11,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import mock
 import asyncio
 import sys
@@ -18,12 +28,12 @@ sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 import functools
 
-import botocore
-import botocore.auth
+import yieldfrom.botocore
+import yieldfrom.botocore.auth
 
-from botocore.credentials import Credentials
-from botocore.exceptions import NoRegionError, UnknownSignatureVersionError
-from botocore.signers import RequestSigner
+from yieldfrom.botocore.credentials import Credentials
+from yieldfrom.botocore.exceptions import NoRegionError, UnknownSignatureVersionError
+from yieldfrom.botocore.signers import RequestSigner
 
 from tests import unittest
 
@@ -50,7 +60,7 @@ class TestSigner(unittest.TestCase):
 
     def test_get_auth(self):
         auth_cls = mock.Mock()
-        with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
+        with mock.patch.dict(yieldfrom.botocore.auth.AUTH_TYPE_MAPS,
                              {'v4': auth_cls}):
             auth = self.signer.get_auth('service_name', 'region_name')
 
@@ -61,7 +71,7 @@ class TestSigner(unittest.TestCase):
 
     def test_get_auth_cached(self):
         auth_cls = mock.Mock()
-        with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
+        with mock.patch.dict(yieldfrom.botocore.auth.AUTH_TYPE_MAPS,
                              {'v4': auth_cls}):
             auth1 = self.signer.get_auth('service_name', 'region_name')
             auth2 = self.signer.get_auth('service_name', 'region_name')
@@ -70,7 +80,7 @@ class TestSigner(unittest.TestCase):
 
     def test_get_auth_signature_override(self):
         auth_cls = mock.Mock()
-        with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
+        with mock.patch.dict(yieldfrom.botocore.auth.AUTH_TYPE_MAPS,
                              {'v4-custom': auth_cls}):
             auth = self.signer.get_auth(
                 'service_name', 'region_name', signature_version='v4-custom')
@@ -92,7 +102,7 @@ class TestSigner(unittest.TestCase):
         #self.emitter.emit_until_response.return_value = future_wrapped((None, 'custom'))
         self.emitter.emit.return_value = future_wrapped((None, ))
 
-        with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
+        with mock.patch.dict(yieldfrom.botocore.auth.AUTH_TYPE_MAPS,
                              {'v4': mock.Mock()}):
             yield from self.signer.sign('operation_name', request)
 
@@ -109,7 +119,7 @@ class TestSigner(unittest.TestCase):
         self.emitter.emit_until_response.return_value = future_wrapped((None, 'custom'))
         self.emitter.emit.return_value = future_wrapped((None, ))
 
-        with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS, {'custom': auth}):
+        with mock.patch.dict(yieldfrom.botocore.auth.AUTH_TYPE_MAPS, {'custom': auth}):
             yield from self.signer.sign('operation_name', request)
 
         auth.assert_called_with(credentials=self.credentials)
@@ -122,7 +132,7 @@ class TestSigner(unittest.TestCase):
         #self.emitter.emit_until_response.return_value = future_wrapped((None, 'custom'))
         self.emitter.emit.return_value = future_wrapped((None, ))
 
-        with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS,
+        with mock.patch.dict(yieldfrom.botocore.auth.AUTH_TYPE_MAPS,
                              {'v4': mock.Mock()}):
             yield from self.signer.sign('operation_name', request)
 
@@ -138,9 +148,9 @@ class TestSigner(unittest.TestCase):
         request = mock.Mock()
         auth = mock.Mock()
         self.emitter.emit.return_value = future_wrapped((None, ))
-        self.emitter.emit_until_response.return_value = future_wrapped((None, botocore.UNSIGNED))
+        self.emitter.emit_until_response.return_value = future_wrapped((None, yieldfrom.botocore.UNSIGNED))
 
-        with mock.patch.dict(botocore.auth.AUTH_TYPE_MAPS, {'v4': auth}):
+        with mock.patch.dict(yieldfrom.botocore.auth.AUTH_TYPE_MAPS, {'v4': auth}):
             yield from self.signer.sign('operation_name', request)
 
         auth.assert_not_called()

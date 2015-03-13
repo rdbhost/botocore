@@ -13,6 +13,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import asyncio
 import sys
 sys.path.append('..')
@@ -23,11 +33,11 @@ import os
 from tests import BaseSessionTest
 from mock import patch, Mock
 
-import botocore.session
-from botocore import auth
-from botocore import credentials
-from botocore.exceptions import ServiceNotInRegionError
-from botocore.handlers import fix_s3_host
+import yieldfrom.botocore.session
+from yieldfrom.botocore import auth
+from yieldfrom.botocore import credentials
+from yieldfrom.botocore.exceptions import ServiceNotInRegionError
+from yieldfrom.botocore.handlers import fix_s3_host
 
 
 class TestS3Addressing(BaseSessionTest):
@@ -38,7 +48,7 @@ class TestS3Addressing(BaseSessionTest):
         self.s3 = yield from self.session.get_service('s3')
         self.signature_version = 's3'
 
-    @patch('botocore.response.get_response', Mock())
+    @patch('yieldfrom.botocore.response.get_response', Mock())
     def get_prepared_request(self, op, param, force_hmacv1=False):
         request = []
         if force_hmacv1:

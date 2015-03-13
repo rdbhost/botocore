@@ -10,12 +10,20 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-import time
+
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import random
 from tests import unittest
 
-import botocore.session
-from botocore.client import ClientError
+import yieldfrom.botocore.session
+from yieldfrom.botocore.client import ClientError
 import asyncio
 import sys
 sys.path.append('..')
@@ -26,7 +34,7 @@ class TestWaiterLegacy(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.service = yield from self.session.get_service('dynamodb')
         self.endpoint = self.service.get_endpoint('us-west-2')
 
@@ -58,7 +66,7 @@ class TestWaiterForDynamoDB(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('dynamodb', 'us-west-2')
 
     @async_test
@@ -85,7 +93,7 @@ class TestCanGetWaitersThroughClientInterface(unittest.TestCase):
         # We're checking this because ses is not the endpoint prefix
         # for the service, it's email.  We want to make sure this does
         # not affect the lookup process.
-        session = botocore.session.get_session()
+        session = yieldfrom.botocore.session.get_session()
         client = yield from session.create_client('ses', 'us-east-1')
         # If we have at least one waiter in the list, we know that we have
         # actually loaded the waiters and this test has passed.

@@ -11,6 +11,15 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import asyncio
 import sys
 sys.path.append('..')
@@ -24,13 +33,13 @@ import base64
 import mock
 import copy
 
-import botocore
-import botocore.session
-from botocore.hooks import first_non_none_response
-from botocore.awsrequest import AWSRequest
-from botocore.compat import quote
-from botocore.model import OperationModel, ServiceModel
-from botocore import handlers
+import yieldfrom.botocore
+import yieldfrom.botocore.session
+from yieldfrom.botocore.hooks import first_non_none_response
+from yieldfrom.botocore.awsrequest import AWSRequest
+from yieldfrom.botocore.compat import quote
+from yieldfrom.botocore.model import OperationModel, ServiceModel
+from yieldfrom.botocore import handlers
 
 class TestHandlers(BaseSessionTest):
 
@@ -55,7 +64,7 @@ class TestHandlers(BaseSessionTest):
         self.assertEqual(converted_value, value)
 
     def test_disable_signing(self):
-        self.assertEqual(handlers.disable_signing(), botocore.UNSIGNED)
+        self.assertEqual(handlers.disable_signing(), yieldfrom.botocore.UNSIGNED)
 
     @async_test
     def test_quote_source_header(self):

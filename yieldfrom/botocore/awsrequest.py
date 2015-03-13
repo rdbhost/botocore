@@ -26,7 +26,7 @@ from yieldfrom.urllib3.connection import HTTPConnection
 from yieldfrom.urllib3.connectionpool import HTTPConnectionPool
 from yieldfrom.urllib3.connectionpool import HTTPSConnectionPool
 
-import botocore.request_sessions_fixer
+from . import request_sessions_fixer
 
 logger = logging.getLogger(__name__)
 

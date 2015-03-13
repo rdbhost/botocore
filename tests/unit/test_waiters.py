@@ -10,6 +10,16 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import os
 import asyncio
 import sys
@@ -19,14 +29,14 @@ from tests import unittest, BaseEnvVar
 
 import mock
 
-import botocore
-from botocore.exceptions import ClientError, WaiterConfigError, WaiterError
-from botocore.waiter import Waiter, WaiterModel, SingleWaiterConfig
-from botocore.waiter import create_waiter_with_client
-from botocore.waiter import create_waiter_from_legacy
-from botocore.waiter import NormalizedOperationMethod
-from botocore.waiter import LegacyOperationMethod
-from botocore.loaders import Loader
+import yieldfrom.botocore
+from yieldfrom.botocore.exceptions import ClientError, WaiterConfigError, WaiterError
+from yieldfrom.botocore.waiter import Waiter, WaiterModel, SingleWaiterConfig
+from yieldfrom.botocore.waiter import create_waiter_with_client
+from yieldfrom.botocore.waiter import create_waiter_from_legacy
+from yieldfrom.botocore.waiter import NormalizedOperationMethod
+from yieldfrom.botocore.waiter import LegacyOperationMethod
+from yieldfrom.botocore.loaders import Loader
 
 
 class TestWaiterModel(unittest.TestCase):
@@ -548,7 +558,7 @@ class ServiceWaiterFunctionalTest(BaseEnvVar):
     def setUp(self):
         super(ServiceWaiterFunctionalTest, self).setUp()
         self.data_path = os.path.join(
-            os.path.dirname(botocore.__file__), 'data')
+            os.path.dirname(yieldfrom.botocore.__file__), 'data')
         self.environ['BOTO_DATA_PATH'] = self.data_path
         self.loader = Loader(self.data_path)
 

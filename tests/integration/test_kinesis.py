@@ -10,6 +10,15 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import time
 import random
 from tests import unittest
@@ -19,7 +28,7 @@ import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
-import botocore.session
+import yieldfrom.botocore.session
 
 
 class TestKinesisListStreams(unittest.TestCase):
@@ -32,7 +41,7 @@ class TestKinesisListStreams(unittest.TestCase):
     #@classmethod
     #def setUpClass(cls):
         cls = self
-        cls.session = botocore.session.get_session()
+        cls.session = yieldfrom.botocore.session.get_session()
         cls.stream_name = 'botocore-test-%s-%s' % (int(time.time()),
                                                    random.randint(1, 100))
         client = yield from cls.session.create_client('kinesis', cls.REGION)

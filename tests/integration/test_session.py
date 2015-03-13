@@ -10,19 +10,28 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
 
-import botocore.session
+import yieldfrom.botocore.session
 
 
 class TestCanChangeParsing(unittest.TestCase):
 
     def setUp(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
 
     @async_test
     def test_can_change_timestamp_parsing_with_service_obj(self):

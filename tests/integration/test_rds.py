@@ -11,6 +11,14 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 
 import unittest
 import itertools
@@ -19,14 +27,14 @@ import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped, pump_iter
 
-import botocore.session
+import yieldfrom.botocore.session
 
 
 class TestRDSPagination(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.service = yield from self.session.get_service('rds')
         self.endpoint = self.service.get_endpoint('us-west-2')
 

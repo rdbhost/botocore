@@ -11,9 +11,17 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import datetime
 
-from botocore.compat import total_seconds, unquote_str
+from yieldfrom.botocore.compat import total_seconds, unquote_str
 
 from tests import BaseEnvVar, unittest
 

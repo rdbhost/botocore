@@ -11,6 +11,16 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import mock
 import asyncio
 import sys
@@ -19,7 +29,7 @@ from asyncio_test_utils import async_test, future_wrapped
 
 from tests import BaseSessionTest
 
-import botocore.exceptions
+import yieldfrom.botocore.exceptions
 
 
 class TestService(BaseSessionTest):
@@ -75,7 +85,7 @@ class TestService(BaseSessionTest):
         # If you don't provide an endpoint_url, than you need to
         # provide a region_name.
         service = yield from self.session.get_service('ec2')
-        with self.assertRaises(botocore.exceptions.UnknownEndpointError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.UnknownEndpointError):
             service.get_endpoint()
 
     @async_test
@@ -92,7 +102,7 @@ class TestService(BaseSessionTest):
     def test_turnoff_signing(self):
         service = yield from self.session.get_service('ec2')
         service.signature_version = None
-        with mock.patch('botocore.endpoint.EndpointCreator.create_endpoint') \
+        with mock.patch('yieldfrom.botocore.endpoint.EndpointCreator.create_endpoint') \
                 as mock_create_endpoint:
             service.get_endpoint('us-east-1')
             self.assertEqual(

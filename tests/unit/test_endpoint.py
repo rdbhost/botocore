@@ -11,6 +11,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import asyncio
 import sys
 import io
@@ -23,12 +33,12 @@ from mock import Mock, patch, sentinel
 from yieldfrom.requests import ConnectionError
 from yieldfrom.requests.models import Response
 
-from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
-from botocore.endpoint import EndpointCreator
-from botocore.auth import SigV4Auth
-from botocore.session import Session
-from botocore.exceptions import UnknownServiceStyle
-from botocore.exceptions import UnknownSignatureVersionError
+from yieldfrom.botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
+from yieldfrom.botocore.endpoint import EndpointCreator
+from yieldfrom.botocore.auth import SigV4Auth
+from yieldfrom.botocore.session import Session
+from yieldfrom.botocore.exceptions import UnknownServiceStyle
+from yieldfrom.botocore.exceptions import UnknownSignatureVersionError
 
 
 def request_dict():
@@ -115,7 +125,7 @@ class TestEndpointBase(unittest.TestCase):
         self.event_emitter = Mock()
         self.event_emitter.emit.return_value = future_wrapped([])
         self.factory_patch = patch(
-            'botocore.parsers.ResponseParserFactory')
+            'yieldfrom.botocore.parsers.ResponseParserFactory')
         self.factory = self.factory_patch.start()
         self.endpoint = Endpoint(
             'us-west-2', 'https://ec2.us-west-2.amazonaws.com/',

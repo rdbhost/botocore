@@ -10,6 +10,15 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
 import asyncio
 import sys
@@ -18,8 +27,8 @@ from asyncio_test_utils import async_test
 
 from nose.tools import assert_true
 
-import botocore.session
-from botocore.paginate import DeprecatedPageIterator
+import yieldfrom.botocore.session
+from yieldfrom.botocore.paginate import DeprecatedPageIterator
 
 
 def test_emr_endpoints_work_with_py26():
@@ -27,7 +36,7 @@ def test_emr_endpoints_work_with_py26():
     # Python2.6 has an SSL cert bug where it can't read the SAN of
     # certain SSL certs.  We therefore need to always use the CN
     # as the hostname.
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     for region in ['us-east-1', 'us-west-2', 'us-west-2', 'ap-northeast-1',
                    'ap-southeast-1', 'ap-southeast-2', 'sa-east-1', 'eu-west-1',
                    'eu-central-1']:
@@ -47,7 +56,7 @@ class TestEMRGetExtraResources(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.service = yield from self.session.get_service('emr')
         self.endpoint = self.service.get_endpoint('us-west-2')
 

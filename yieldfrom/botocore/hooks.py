@@ -212,7 +212,7 @@ class HierarchicalEmitter(BaseEventHooks):
         for handler in handlers_to_call:
             logger.debug('Event %s: calling handler %s', event_name, handler)
             response = handler(**kwargs)
-            if type(response) == types.GeneratorType:
+            if asyncio.iscoroutine(response):
                 response = yield from response
             responses.append((handler, response))
             if stop_on_response and response is not None:

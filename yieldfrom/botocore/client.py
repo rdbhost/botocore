@@ -18,13 +18,14 @@ from .model import ServiceModel
 from .exceptions import DataNotFoundError
 from .exceptions import OperationNotPageableError
 from .exceptions import ClientError
-from botocore import waiter
-from botocore import xform_name
+from . import waiter
+from . import xform_name
 from .paginate import Paginator
 from .utils import CachedProperty
-import botocore.validate
-import botocore.serialize
-from botocore import credentials
+from . import validate as botovalidate
+from . import serialize as botoserialize
+from . import credentials as botocredentials
+from . import parsers as botoparsers
 from .signers import RequestSigner
 from .endpoint import EndpointCreator
 import asyncio
@@ -218,7 +219,7 @@ class ClientCreator(object):
         # * response parser
         # * request signer
         protocol = service_model.metadata['protocol']
-        serializer = botocore.serialize.create_serializer(
+        serializer = botoserialize.create_serializer(
             protocol, include_validation=True)
         event_emitter = copy.copy(self._event_emitter)
         endpoint_creator = EndpointCreator(self._endpoint_resolver, region_name,
@@ -227,7 +228,7 @@ class ClientCreator(object):
             service_model, region_name, is_secure=is_secure,
             endpoint_url=endpoint_url, verify=verify,
             response_parser_factory=self._response_parser_factory)
-        response_parser = botocore.parsers.create_parser(protocol)
+        response_parser = botoparsers.create_parser(protocol)
 
         signature_version, region_name = \
             self._get_signature_version_and_region(

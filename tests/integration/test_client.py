@@ -11,6 +11,14 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import asyncio
 import sys
 sys.path.append('..')
@@ -22,8 +30,8 @@ import logging
 import datetime
 from tests import unittest
 
-import botocore.session
-from botocore.client import ClientError
+import yieldfrom.botocore.session
+from yieldfrom.botocore.client import ClientError
 from io import StringIO
 
 
@@ -31,7 +39,7 @@ class TestBucketWithVersions(unittest.TestCase):
 
     @asyncio.coroutine
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('s3', region_name='us-west-2')
         self.bucket_name = 'botocoretest%s-%s' % (
             int(time.time()), random.randint(1, 1000000))
@@ -96,7 +104,7 @@ class TestResponseLog(unittest.TestCase):
         # are in the debug log.  It's an integration test so that
         # we can refactor the code however we want, as long as we don't
         # lose this feature.
-        session = botocore.session.get_session()
+        session = yieldfrom.botocore.session.get_session()
         client = yield from session.create_client('s3', region_name='us-west-2')
         debug_log = StringIO()
         session.set_stream_logger('', logging.DEBUG, debug_log)
@@ -109,7 +117,7 @@ class TestResponseLog(unittest.TestCase):
 class TestAcceptedDateTimeFormats(unittest.TestCase):
 
     def set_up(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('emr', 'us-west-2')
 
     @async_test
@@ -145,7 +153,7 @@ class TestAcceptedDateTimeFormats(unittest.TestCase):
 class TestClientCanBeCloned(unittest.TestCase):
 
     def setUp(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
 
     @async_test
     def test_client_can_clone_with_service_events(self):

@@ -12,11 +12,20 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest, BaseEnvVar
 import os
-import botocore.exceptions
-from botocore.config import raw_config_parse, load_config
-
+import yieldfrom.botocore.exceptions
+from yieldfrom.botocore.config import raw_config_parse, load_config
 
 def path(filename):
     return os.path.join(os.path.dirname(__file__), 'cfg', filename)
@@ -25,12 +34,12 @@ def path(filename):
 class TestConfig(BaseEnvVar):
 
     def test_config_not_found(self):
-        with self.assertRaises(botocore.exceptions.ConfigNotFound):
+        with self.assertRaises(yieldfrom.botocore.exceptions.ConfigNotFound):
             loaded_config = raw_config_parse(path('aws_config_notfound'))
 
     def test_config_parse_error(self):
         filename = path('aws_config_bad')
-        with self.assertRaises(botocore.exceptions.ConfigParseError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.ConfigParseError):
             raw_config_parse(filename)
 
     def test_config(self):
@@ -68,7 +77,7 @@ class TestConfig(BaseEnvVar):
 
     def test_nested_bad_config(self):
         filename = path('aws_config_nested_bad')
-        with self.assertRaises(botocore.exceptions.ConfigParseError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.ConfigParseError):
             loaded_config = load_config(filename)
 
 

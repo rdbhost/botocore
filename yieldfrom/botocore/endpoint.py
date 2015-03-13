@@ -14,24 +14,24 @@
 
 import os
 import logging
-import time
+#import time
 #import threading
 import asyncio
 
 from yieldfrom.requests.sessions import Session
 from yieldfrom.requests.utils import get_environ_proxies
 
-import botocore.response
-import botocore.exceptions
+from . import response as botoresponse
+from . import exceptions as botoexceptions
 from .exceptions import UnknownEndpointError
 from .awsrequest import AWSRequest
 from .compat import urljoin
 from .utils import percent_encode_sequence
 from .hooks import first_non_none_response
 from .response import StreamingBody
-from botocore import parsers
+from . import parsers
 
-import botocore.request_sessions_fixer
+from . import request_sessions_fixer
 
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60
@@ -200,7 +200,7 @@ class Endpoint(object):
             # for the specified number of times.
             logger.debug("Response received to retry, sleeping for "
                          "%s seconds", handler_response)
-            time.sleep(handler_response)
+            yield from asyncio.sleep(handler_response)
             return True
 
 

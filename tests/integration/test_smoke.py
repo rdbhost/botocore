@@ -1,4 +1,13 @@
 """Smoke tests to verify basic communication to all AWS services."""
+
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import mock
 import sys
 sys.path.append('..')
@@ -7,9 +16,9 @@ from asyncio_test_utils import async_test
 from pprint import pformat
 from nose.tools import assert_equals, assert_true
 
-from botocore import xform_name
-import botocore.session
-from botocore.client import ClientError
+from yieldfrom.botocore import xform_name
+import yieldfrom.botocore.session
+from yieldfrom.botocore.client import ClientError
 from yieldfrom.requests import adapters
 from yieldfrom.requests.exceptions import ConnectionError
 
@@ -84,7 +93,7 @@ ERROR_TESTS = {
 
 @async_test
 def test_can_make_request():
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     for service_name in SMOKE_TESTS:
         service = session.get_service(service_name)
         endpoint = service.get_endpoint(REGION)
@@ -102,7 +111,7 @@ def _make_call(service, endpoint, operation_name, kwargs):
 def test_can_make_request_with_client():
     # Same as test_can_make_request, but with Client objects
     # instead of service/operations.
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     for service_name in SMOKE_TESTS:
         client = yield from session.create_client(service_name, region_name=REGION)
         for operation_name in SMOKE_TESTS[service_name]:
@@ -118,7 +127,7 @@ def _make_client_call(client, operation_name, kwargs):
 
 
 def test_can_make_request_and_understand_errors_with_client():
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     for service_name in ERROR_TESTS:
         client = yield from session.create_client(service_name, region_name=REGION)
         for operation_name in ERROR_TESTS[service_name]:
@@ -139,7 +148,7 @@ def _make_error_client_call(client, operation_name, kwargs):
 
 
 def test_can_retry_request_properly():
-    session = botocore.session.get_session()
+    session = yieldfrom.botocore.session.get_session()
     for service_name in SMOKE_TESTS:
         client = yield from session.create_client(service_name, region_name=REGION)
         for operation_name in SMOKE_TESTS[service_name]:
@@ -160,7 +169,7 @@ def _make_call_with_errors(session, service_name,
             raise ConnectionError("Simulated ConnectionError raised.")
         else:
             return original_send(self, *args, **kwargs)
-    with mock.patch('botocore.vendored.requests.adapters.HTTPAdapter.send',
+    with mock.patch('yieldfrom.botocore.vendored.requests.adapters.HTTPAdapter.send',
                     mock_http_adapter_send):
         response = yield from operation.call(endpoint, **kwargs)[1]
         assert_true('Error' not in response,

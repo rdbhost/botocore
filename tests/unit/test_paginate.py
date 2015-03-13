@@ -11,11 +11,21 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
-from botocore.paginate import Paginator as FuturePaginator
-from botocore.paginate import DeprecatedPaginator as Paginator
-from botocore.exceptions import PaginationError
-from botocore.operation import Operation
+from yieldfrom.botocore.paginate import Paginator as FuturePaginator
+from yieldfrom.botocore.paginate import DeprecatedPaginator as Paginator
+from yieldfrom.botocore.exceptions import PaginationError
+from yieldfrom.botocore.operation import Operation
 
 import mock
 import asyncio

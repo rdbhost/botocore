@@ -12,6 +12,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import BaseSessionTest
 
 from mock import Mock, sentinel
@@ -20,8 +30,8 @@ import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
-import botocore.session
-from botocore.exceptions import ParamValidationError
+import yieldfrom.botocore.session
+from yieldfrom.botocore.exceptions import ParamValidationError
 
 
 # The param validation is tested in test_validate.py, but

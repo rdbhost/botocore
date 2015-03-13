@@ -12,7 +12,7 @@
 # language governing permissions and limitations under the License.
 import jmespath
 import logging
-import time
+#import time
 
 from .exceptions import WaiterError, ClientError, WaiterConfigError
 from . import xform_name
@@ -345,4 +345,4 @@ class Waiter(object):
             if num_attempts >= max_attempts:
                 raise WaiterError(name=self.name,
                                   reason='Max attempts exceeded')
-            time.sleep(sleep_amount)  # todo - replace with asyncio.sleep
+            yield from asyncio.sleep(sleep_amount)

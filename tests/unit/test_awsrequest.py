@@ -12,7 +12,14 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-from tests import unittest
+# This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import os
 import tempfile
 import shutil
@@ -27,11 +34,12 @@ from asyncio_test_utils import async_test, future_wrapped
 
 from mock import Mock, patch
 
-from botocore.exceptions import UnseekableStreamError
-from botocore.awsrequest import AWSRequest
-from botocore.awsrequest import AWSHTTPConnection
-from botocore.compat import file_type
+from yieldfrom.botocore.exceptions import UnseekableStreamError
+from yieldfrom.botocore.awsrequest import AWSRequest
+from yieldfrom.botocore.awsrequest import AWSHTTPConnection
+from yieldfrom.botocore.compat import file_type
 
+from tests import unittest
 
 class IgnoreCloseBytesIO(io.BytesIO):
     def close(self):
@@ -371,7 +379,7 @@ class TestAWSHTTPConnection(unittest.TestCase):
         conn.sock = s
         # Test that the standard library method was used by patching out
         # the ``_tunnel`` method and seeing if the std lib method was called.
-        with patch('botocore.vendored.requests.packages.urllib3.connection.'
+        with patch('yieldfrom.requests.packages.urllib3.connection.'
                    'HTTPConnection._tunnel') as mock_tunnel:
             conn._tunnel()
             self.assertTrue(mock_tunnel.called)

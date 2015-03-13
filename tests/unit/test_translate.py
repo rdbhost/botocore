@@ -11,8 +11,18 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+
+#
+#  This file altered by David Keeney 2015, as part of conversion to
+# asyncio.
+#
+import os
+os.environ['PYTHONASYNCIODEBUG'] = 1
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from tests import unittest
-from botocore.translate import ModelFiles, translate, merge_dicts, \
+from yieldfrom.botocore.translate import ModelFiles, translate, merge_dicts, \
                                resembles_jmespath_exp
 
 

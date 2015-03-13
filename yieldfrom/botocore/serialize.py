@@ -46,7 +46,7 @@ import calendar
 from .compat import json, formatdate
 from .utils import parse_timestamp, parse_to_aware_datetime
 from .utils import percent_encode
-from botocore import validate
+from . import validate
 
 
 # From the spec, the default timestamp format if not specified is iso8601.
