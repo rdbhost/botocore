@@ -17,7 +17,7 @@ spec.  This can happen for a number of reasons:
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = 1
+os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 

@@ -56,7 +56,7 @@ can set the BOTOCORE_TEST_ID env var with the ``suite_id:test_id`` syntax.
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = 1
+os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 

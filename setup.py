@@ -1,12 +1,13 @@
-#!/usr/bin/env python
+###!/usr/bin/env python
 
 """
 distutils/setuptools install script.
 """
 
-import botocore
+#import botocore
 
-from setuptools import setup, find_packages
+from codecs import open
+from setuptools import setup
 
 requires = ['jmespath==0.6.1',
             'python-dateutil>=2.1,<3.0.0']
@@ -26,21 +27,28 @@ with open('HISTORY.rst', 'r', 'utf-8') as f:
 
 setup(
     name='yieldfrom.botocore',
-    version='0.1.2',
+    version='0.1.1',
+
     description='asyncio port of botocore, the low-level, data-driven core of boto 3.',
-    long_description=open('README.rst').read(),
+    long_description=open('README.rst', 'r', 'utf-8').read(),
+
     author='Mitch Garnaatt',
     author_email='garnaat@amazon.com',
     maintainer='David Keeney',
-    author_email='dkeeney@rdbhost.com',
+    maintainer_email='dkeeney@rdbhost.com',
+
     url='https://github.com/rdbhost/yieldfromBotocore',
-    scripts=[],
+
     packages=packages,
-    package_data={'yieldfrom.botocore': ['data/*.json', 'data/aws/*.json']},
+    package_data={'': ['LICENSE', 'NOTICE'],
+                  'yieldfrom.botocore': ['data/*.json', 'data/aws/*.json']},
+                  #'yieldfrom': ['data/*.json', 'data/aws/*.json']},
+
     package_dir={'yieldfrom': 'yieldfrom'},
     include_package_data=True,
     namespace_packages=['yieldfrom'],
     install_requires=requires,
+
     license=open("LICENSE.txt").read(),
     zip_safe=False,
     classifiers=(

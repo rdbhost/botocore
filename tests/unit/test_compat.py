@@ -15,7 +15,7 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = 1
+os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
