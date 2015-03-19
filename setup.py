@@ -18,7 +18,8 @@ packages = [
 ]
 
 requires = ['jmespath==0.6.1', 'python-dateutil>=2.1,<3.0.0',
-            'yieldfrom.http.client<0.2.0', 'yieldfrom.urllib3<0.2.0', 'setuptools']
+            'yieldfrom.http.client<0.2.0', 'yieldfrom.urllib3<0.2.0',
+            'yieldfrom.requests<0.2.0', 'setuptools']
 
 with open('README.rst', 'r', 'utf-8') as f:
     readme = f.read()
