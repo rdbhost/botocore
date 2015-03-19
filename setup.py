@@ -9,8 +9,6 @@ distutils/setuptools install script.
 from codecs import open
 from setuptools import setup
 
-requires = ['jmespath==0.6.1',
-            'python-dateutil>=2.1,<3.0.0']
 
 packages = [
     'yieldfrom',
@@ -25,10 +23,12 @@ with open('README.rst', 'r', 'utf-8') as f:
     readme = f.read()
 with open('HISTORY.rst', 'r', 'utf-8') as f:
     history = f.read()
+with open('license.txt', 'r', 'utf-8') as f:
+    license = f.read()
 
 setup(
     name='yieldfrom.botocore',
-    version='0.1.1',
+    version='0.1.3',
 
     description='asyncio port of botocore, the low-level, data-driven core of boto 3.',
     long_description=open('README.rst', 'r', 'utf-8').read(),
@@ -50,7 +50,7 @@ setup(
     namespace_packages=['yieldfrom'],
     install_requires=requires,
 
-    license=open("LICENSE.txt").read(),
+    license=license,
     zip_safe=False,
     classifiers=(
         'Development Status :: 3 - Alpha',
