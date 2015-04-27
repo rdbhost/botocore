@@ -23,7 +23,7 @@ from . import response as botoresponse
 from . import exceptions as botoexceptions
 from .exceptions import UnknownEndpointError
 from .awsrequest import AWSRequest
-from .compat import urljoin, filter_ssl_san_warnings
+from .compat import urljoin, urlsplit, urlunsplit
 from .utils import percent_encode_sequence
 from .hooks import first_non_none_response
 from .response import StreamingBody
@@ -34,7 +34,6 @@ from . import request_sessions_fixer
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60
 NOT_SET = object()
-filter_ssl_san_warnings()
 
 @asyncio.coroutine
 def convert_to_response_dict(http_response, operation_model):
@@ -72,6 +71,64 @@ class PreserveAuthSession(Session):
         pass
 
 
+class RequestCreator(object):
+    """This object can convert a request dict to an AWSRequest class."""
+
+    def create_request_object(self, request_dict, user_agent, endpoint_url):
+        """
+
+        :type request_dict: dict
+        :param request_dict:  The request dict (created from the ``serialize``
+            module).
+
+        :type user_agent: string
+        :param user_agent: The user agent to use for this request.
+
+        :type endpoint_url: string
+        :param endpoint_url: The full endpoint url, which contains at least
+            the scheme, the hostname, and optionally any path components.
+
+        :rtype: ``botocore.awsrequest.AWSRequest``
+        :return: An AWSRequest object based on the request_dict.
+
+        """
+        r = request_dict
+        headers = r['headers']
+        headers['User-Agent'] = user_agent
+        url = self._urljoin(endpoint_url, r['url_path'])
+        if r['query_string']:
+            encoded_query_string = percent_encode_sequence(r['query_string'])
+            if '?' not in url:
+                url += '?%s' % encoded_query_string
+            else:
+                url += '&%s' % encoded_query_string
+        request = AWSRequest(method=r['method'], url=url,
+                             data=r['body'],
+                             headers=headers)
+        return request
+
+    def _urljoin(self, endpoint_url, url_path):
+        p = urlsplit(endpoint_url)
+        # <part>   - <index>
+        # scheme   - p[0]
+        # netloc   - p[1]
+        # path     - p[2]
+        # query    - p[3]
+        # fragment - p[4]
+        if not url_path or url_path == '/':
+            # If there's no path component, ensure the URL ends with
+            # a '/' for backwards compatibility.
+            if not p[2]:
+                return endpoint_url + '/'
+            return endpoint_url
+        if p[2].endswith('/') and url_path.startswith('/'):
+            new_path = p[2][:-1] + url_path
+        else:
+            new_path = p[2] + url_path
+        reconstructed = urlunsplit((p[0], p[1], new_path, p[3], p[4]))
+        return reconstructed
+
+
 class Endpoint(object):
     """
     Represents an endpoint for a particular service in a specific
@@ -101,6 +158,7 @@ class Endpoint(object):
         if response_parser_factory is None:
             response_parser_factory = parsers.ResponseParserFactory()
         self._response_parser_factory = response_parser_factory
+        self._request_creator = RequestCreator()
 
     def __repr__(self):
         return '%s(%s)' % (self._endpoint_prefix, self.host)
@@ -109,12 +167,12 @@ class Endpoint(object):
     def make_request(self, operation_model, request_dict):
         logger.debug("Making request for %s (verify_ssl=%s) with params: %s",
                      operation_model, self.verify, request_dict)
-        _r = yield from self._send_request(request_dict, operation_model)
-        return _r
+        return (yield from self._send_request(request_dict, operation_model))
 
     @asyncio.coroutine
     def create_request(self, params, operation_model=None):
-        request = self._create_request_object(params)
+        request = self._request_creator.create_request_object(
+            params, self._user_agent, self.host)
         if operation_model:
             event_name = 'request-created.{endpoint_prefix}.{op_name}'.format(
                 endpoint_prefix=self._endpoint_prefix,
@@ -124,27 +182,10 @@ class Endpoint(object):
         prepared_request = self.prepare_request(request)
         return prepared_request
 
-    def _create_request_object(self, request_dict):
-        r = request_dict
-        user_agent = self._user_agent
-        headers = r['headers']
-        headers['User-Agent'] = user_agent
-        url = urljoin(self.host, r['url_path'])
-        if r['query_string']:
-            encoded_query_string = percent_encode_sequence(r['query_string'])
-            if '?' not in url:
-                url += '?%s' % encoded_query_string
-            else:
-                url += '&%s' % encoded_query_string
-        request = AWSRequest(method=r['method'], url=url,
-                             data=r['body'],
-                             headers=headers)
-        return request
-
     def _encode_headers(self, headers):
         # In place encoding of headers to utf-8 if they are unicode.
         for key, value in headers.items():
-            if isinstance(value, six.text_type):
+            if isinstance(value, str):
                 headers[key] = value.encode('utf-8')
 
     def prepare_request(self, request):
@@ -342,7 +383,6 @@ class EndpointCreator(object):
             region_name = region_name_override
 
         return region_name
-
 
     def _get_endpoint(self, service_model, region_name, endpoint_url,
                       verify, response_parser_factory):
