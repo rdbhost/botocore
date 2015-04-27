@@ -39,7 +39,7 @@ from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.awsrequest import AWSHTTPConnection
 from yieldfrom.botocore.compat import file_type
 
-from tests import unittest
+import unittest
 
 class IgnoreCloseBytesIO(io.BytesIO):
     def close(self):
@@ -245,6 +245,24 @@ class TestAWSHTTPConnection(unittest.TestCase):
         self.assertEqual(response.status, 200)
 
     @async_test
+    def test_handles_expect_100_with_different_reason_phrase(self):
+        with patch('select.select') as select_mock:
+            # Shows the server first sending a 100 continue response
+            # then a 200 ok response.
+            s = FakeNotSocket(b'HTTP/1.1 100 (Continue)\r\n\r\nHTTP/1.1 200 OK\r\n')
+            conn = AWSHTTPConnection('s3.amazonaws.com', 443)
+            conn.sock = s
+            # select_mock.return_value = ([s], [], [])
+            yield from conn.request('GET', '/bucket/foo', io.BytesIO(b'body'),
+                         {'Expect': '100-continue', 'Content-Length': '4'})
+            response = yield from conn.getresponse()
+            # Now we should verify that our final response is the 200 OK.
+            self.assertEqual(response.status, 200)
+            # Verify that we went the request body because we got a 100
+            # continue.
+            self.assertIn(b'body', s.sent_data)
+
+    @async_test
     def test_expect_100_sends_connection_header(self):
         # When using squid as an HTTP proxy, it will also send
         # a Connection: keep-alive header back with the 100 continue
@@ -381,18 +399,19 @@ class TestAWSHTTPConnection(unittest.TestCase):
         # the ``_tunnel`` method and seeing if the std lib method was called.
         with patch('yieldfrom.requests.packages.urllib3.connection.'
                    'HTTPConnection._tunnel') as mock_tunnel:
-            conn._tunnel()
+            yield from conn._tunnel()
             self.assertTrue(mock_tunnel.called)
 
+    @async_test
     def test_encodes_unicode_method_line(self):
-        s = FakeSocket(b'HTTP/1.1 200 OK\r\n')
+        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n')
         conn = AWSHTTPConnection('s3.amazonaws.com', 443)
         conn.sock = s
         # Note the combination of unicode 'GET' and
         # bytes 'Utf8-Header' value.
-        conn.request(u'GET', '/bucket/foo', b'body',
+        yield from conn.request(u'GET', '/bucket/foo', b'body',
                      headers={"Utf8-Header": b"\xe5\xb0\x8f"})
-        response = conn.getresponse()
+        response = yield from conn.getresponse()
         self.assertEqual(response.status, 200)
 
 

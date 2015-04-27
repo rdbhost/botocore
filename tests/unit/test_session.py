@@ -169,7 +169,23 @@ class SessionTest(BaseSessionTest):
                              {'aws_access_key_id': 'FROM_CREDS_FILE_1',
                               'aws_secret_access_key': 'FROM_CREDS_FILE_2'})
 
+<<<<<<< HEAD
     @async_test
+=======
+    def test_path_not_in_available_profiles(self):
+        with temporary_file('w') as f:
+            self.session.set_config_variable('credentials_file', f.name)
+            f.write('[newprofile]\n')
+            f.write('aws_access_key_id=FROM_CREDS_FILE_1\n')
+            f.write('aws_secret_access_key=FROM_CREDS_FILE_2\n')
+            f.flush()
+
+            profiles = self.session.available_profiles
+            self.assertEqual(
+                set(profiles),
+                set(['foo', 'default', 'newprofile']))
+
+>>>>>>> tmp
     def test_register_unregister(self):
         calls = []
         handler = lambda **kwargs: calls.append(kwargs)

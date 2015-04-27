@@ -28,6 +28,7 @@ import io
 
 import mock
 
+<<<<<<< HEAD
 from yieldfrom.botocore import xform_name
 from yieldfrom.botocore.exceptions import InvalidExpressionError, ConfigNotFound
 from yieldfrom.botocore.utils import remove_dot_segments
@@ -44,6 +45,25 @@ from yieldfrom.botocore.utils import calculate_tree_hash
 from yieldfrom.botocore.utils import calculate_sha256
 from yieldfrom.botocore.model import DenormalizedStructureBuilder
 from yieldfrom.botocore.model import ShapeResolver
+=======
+from botocore import xform_name
+from botocore.exceptions import InvalidExpressionError, ConfigNotFound
+from botocore.utils import remove_dot_segments
+from botocore.utils import normalize_url_path
+from botocore.utils import validate_jmespath_for_set
+from botocore.utils import set_value_from_jmespath
+from botocore.utils import parse_key_val_file_contents
+from botocore.utils import parse_key_val_file
+from botocore.utils import parse_timestamp
+from botocore.utils import parse_to_aware_datetime
+from botocore.utils import CachedProperty
+from botocore.utils import ArgumentGenerator
+from botocore.utils import calculate_tree_hash
+from botocore.utils import calculate_sha256
+from botocore.utils import is_valid_endpoint_url
+from botocore.model import DenormalizedStructureBuilder
+from botocore.model import ShapeResolver
+>>>>>>> tmp
 
 
 class TestURINormalization(unittest.TestCase):
@@ -469,6 +489,40 @@ class TestTreeHash(unittest.TestCase):
         self.assertEqual(
             calculate_tree_hash(offset_four_mb),
             '12f3cbd6101b981cde074039f6f728071da8879d6f632de8afc7cdf00661b08f')
+
+
+class TestIsValidEndpointURL(unittest.TestCase):
+    def test_dns_name_is_valid(self):
+        self.assertTrue(is_valid_endpoint_url('https://s3.amazonaws.com/'))
+
+    def test_ip_address_is_allowed(self):
+        self.assertTrue(is_valid_endpoint_url('https://10.10.10.10/'))
+
+    def test_path_component_ignored(self):
+        self.assertTrue(
+            is_valid_endpoint_url('https://foo.bar.com/other/path/'))
+
+    def test_can_have_port(self):
+        self.assertTrue(is_valid_endpoint_url('https://foo.bar.com:12345/'))
+
+    def test_ip_can_have_port(self):
+        self.assertTrue(is_valid_endpoint_url('https://10.10.10.10:12345/'))
+
+    def test_cannot_have_spaces(self):
+        self.assertFalse(is_valid_endpoint_url('https://my invalid name/'))
+
+    def test_missing_scheme(self):
+        self.assertFalse(is_valid_endpoint_url('foo.bar.com'))
+
+    def test_no_new_lines(self):
+        self.assertFalse(is_valid_endpoint_url('https://foo.bar.com\nbar/'))
+
+    def test_long_hostname(self):
+        long_hostname = 'htps://%s.com' % ('a' * 256)
+        self.assertFalse(is_valid_endpoint_url(long_hostname))
+
+    def test_hostname_can_end_with_dot(self):
+        self.assertTrue(is_valid_endpoint_url('https://foo.bar.com./'))
 
 
 if __name__ == '__main__':

@@ -109,8 +109,7 @@ def load_config(config_filename):
 def raw_config_parse(config_filename):
     """Returns the parsed INI config contents.
 
-    Each section name is a top level key, and a _path key is inserted whose
-    value is the ``config_filename``.
+    Each section name is a top level key.
 
     :returns: A dict with keys for each profile found in the config
         file and the value of each key being a dict containing name
@@ -131,7 +130,6 @@ def raw_config_parse(config_filename):
         except configparser.Error:
             raise botoexceptions.ConfigParseError(path=path)
         else:
-            config['_path'] = path
             for section in cp.sections():
                 config[section] = {}
                 for option in cp.options(section):

@@ -27,32 +27,20 @@ import io
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
-from tests import unittest, BaseSessionTest, create_session
+import unittest
+from tests import BaseSessionTest, create_session
 
 from mock import Mock, patch, sentinel
 from yieldfrom.requests import ConnectionError
 from yieldfrom.requests.models import Response
 
-<<<<<<< HEAD
 from yieldfrom.botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
-from yieldfrom.botocore.endpoint import EndpointCreator, PreserveAuthSession
+from yieldfrom.botocore.endpoint import EndpointCreator, PreserveAuthSession, RequestCreator
 from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.auth import SigV4Auth
 from yieldfrom.botocore.session import Session
 from yieldfrom.botocore.exceptions import UnknownServiceStyle
 from yieldfrom.botocore.exceptions import UnknownSignatureVersionError
-=======
-from botocore.compat import six
-from botocore.awsrequest import AWSRequest
-from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
-from botocore.endpoint import EndpointCreator
-from botocore.endpoint import PreserveAuthSession
-from botocore.endpoint import RequestCreator
-from botocore.auth import SigV4Auth
-from botocore.session import Session
-from botocore.exceptions import UnknownServiceStyle
-from botocore.exceptions import UnknownSignatureVersionError
->>>>>>> tmp
 
 
 def request_dict():
@@ -174,7 +162,6 @@ class TestEndpointFeatures(TestEndpointBase):
         self.http_session.send.assert_called_with(
             prepared_request, verify=True, stream=False,
             proxies=proxies, timeout=DEFAULT_TIMEOUT)
-
 
     @async_test
     def test_make_request_with_no_auth(self):

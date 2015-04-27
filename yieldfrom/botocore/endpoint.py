@@ -28,6 +28,7 @@ from .utils import percent_encode_sequence
 from .hooks import first_non_none_response
 from .response import StreamingBody
 from . import parsers
+from .utils import is_valid_endpoint_url
 
 from . import request_sessions_fixer
 
@@ -347,6 +348,8 @@ class EndpointCreator(object):
             final_endpoint_url = endpoint_url
         else:
             final_endpoint_url = endpoint['uri']
+        if not is_valid_endpoint_url(final_endpoint_url):
+            raise ValueError("Invalid endpoint: %s" % final_endpoint_url)
         return self._get_endpoint(service_model, region_name,
                                   final_endpoint_url, verify,
                                   response_parser_factory)
