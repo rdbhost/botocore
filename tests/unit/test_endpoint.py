@@ -11,8 +11,6 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-<<<<<<< HEAD
-
 #
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
@@ -37,25 +35,12 @@ from yieldfrom.requests.models import Response
 
 from yieldfrom.botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
 from yieldfrom.botocore.endpoint import EndpointCreator, PreserveAuthSession, RequestCreator
+from yieldfrom.botocore.exceptions import EndpointConnectionError
 from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.auth import SigV4Auth
 from yieldfrom.botocore.session import Session
 from yieldfrom.botocore.exceptions import UnknownServiceStyle
 from yieldfrom.botocore.exceptions import UnknownSignatureVersionError
-=======
-from tests import unittest
-
-from mock import Mock, patch
-from botocore.vendored.requests import ConnectionError
-
-from botocore.compat import six
-from botocore.awsrequest import AWSRequest
-from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
-from botocore.endpoint import EndpointCreator
-from botocore.endpoint import PreserveAuthSession
-from botocore.endpoint import RequestCreator
-from botocore.exceptions import EndpointConnectionError
->>>>>>> tmp
 
 
 def request_dict():
@@ -259,20 +244,12 @@ class TestRetryInterface(TestEndpointBase):
         op = Mock()
         op.name = 'DescribeInstances'
         op.metadata = {'protocol': 'json'}
-<<<<<<< HEAD
 
         side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Retry needed.
             [(None, None)], # Request created
             [(None, None)]  # Check if retry needed. Retry not needed.
-=======
-        self.event_emitter.emit.side_effect = [
-            [(None, None)],    # Request created.
-            [(None, 0)],       # Check if retry needed. Retry needed.
-            [(None, None)],    # Request created.
-            [(None, None)]     # Check if retry needed. Retry not needed.
->>>>>>> tmp
         ]
         side_effects = [future_wrapped(se) for se in side_effect_src]
         self.event_emitter.emit.side_effect = side_effects
@@ -294,20 +271,12 @@ class TestRetryInterface(TestEndpointBase):
     def test_retry_on_socket_errors(self):
         op = Mock()
         op.name = 'DescribeInstances'
-<<<<<<< HEAD
 
         side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Retry needed.
             [(None, None)], # Request created
             [(None, None)]  # Check if retry needed. Retry not needed.
-=======
-        self.event_emitter.emit.side_effect = [
-            [(None, None)],    # Request created.
-            [(None, 0)],       # Check if retry needed. Retry needed.
-            [(None, None)],    # Request created
-            [(None, None)]     # Check if retry needed. Retry not needed.
->>>>>>> tmp
         ]
         side_effects = [future_wrapped(se) for se in side_effect_src]
         self.event_emitter.emit.side_effect = side_effects
@@ -353,7 +322,7 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
         op.metadata = {'protocol': 'rest-xml'}
         request = request_dict()
         request['body'] = body
-<<<<<<< HEAD
+
         side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Needs Retry.
@@ -361,15 +330,6 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
             [(None, 0)],  # Check if retry needed again. Needs Retry.
             [(None, None)], # Request created.
             [(None, None)], # Finally emit no rety is needed.
-=======
-        self.event_emitter.emit.side_effect = [
-            [(None, None)],   # Request created.
-            [(None, 0)],      # Check if retry needed. Needs Retry.
-            [(None, None)],   # Request created.
-            [(None, 0)],      # Check if retry needed again. Needs Retry.
-            [(None, None)],   # Request created.
-            [(None, None)],   # Finally emit no rety is needed.
->>>>>>> tmp
         ]
         side_effects = [future_wrapped(se) for se in side_effect_src]
         self.event_emitter.emit.side_effect = side_effects

@@ -36,17 +36,21 @@ SMOKE_TESTS = {
                     'ListStacks': {}},
  'cloudfront': {'ListDistributions': {},
                 'ListStreamingDistributions': {}},
+ 'cloudhsm': {'ListAvailableZones': {}},
  'cloudsearch': {'DescribeDomains': {},
                  'ListDomainNames': {}},
  'cloudtrail': {'DescribeTrails': {}},
  'cloudwatch': {'ListMetrics': {}},
+ 'codedeploy': {'ListApplications': {}},
  'cognito-identity': {'ListIdentityPools': {'MaxResults': 1}},
  'cognito-sync': {'ListIdentityPoolUsage': {}},
+ 'config': {'DescribeDeliveryChannels': {}},
  'datapipeline': {'ListPipelines': {}},
  'directconnect': {'DescribeConnections': {}},
  'dynamodb': {'ListTables': {}},
  'ec2': {'DescribeRegions': {},
          'DescribeInstances': {}},
+ 'ecs': {'DescribeClusters': {}},
  'elasticache': {'DescribeCacheClusters': {}},
  'elasticbeanstalk': {'DescribeApplications': {}},
  'elastictranscoder': {'ListPipelines': {}},
@@ -59,7 +63,10 @@ SMOKE_TESTS = {
  #'importexport': {'ListJobs': {}},
  'importexport': {},
  'kinesis': {'ListStreams': {}},
+ 'kms': {'ListKeys': {}},
+ 'lambda': {'ListFunctions': {}},
  'logs': {'DescribeLogGroups': {}},
+ 'machinelearning': {'DescribeMLModels': {}},
  'opsworks': {'DescribeStacks': {}},
  'rds': {'DescribeDBInstances': {}},
  'redshift': {'DescribeClusters': {}},
@@ -70,6 +77,7 @@ SMOKE_TESTS = {
  'ses': {'ListIdentities': {}},
  'sns': {'ListTopics': {}},
  'sqs': {'ListQueues': {}},
+ 'ssm': {'ListDocuments': {}},
  'storagegateway': {'ListGateways': {}},
  # sts tests would normally go here, but
  # there aren't any calls you can make when
@@ -80,6 +88,7 @@ SMOKE_TESTS = {
  # Subscription needed for support API calls.
  'support': {},
  'swf': {'ListDomains': {'registrationStatus': 'REGISTERED'}},
+ 'workspaces': {'DescribeWorkspaces': {}},
 }
 
 # Same thing as the SMOKE_TESTS hash above, except these verify

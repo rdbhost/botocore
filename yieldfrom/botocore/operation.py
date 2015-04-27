@@ -17,6 +17,7 @@ import logging
 from .exceptions import MissingParametersError
 from .exceptions import UnknownParameterError
 from .exceptions import NoRegionError
+from .exceptions import ImminentRemovalWarning
 from .paginate import DeprecatedPaginator
 from .signers import RequestSigner
 from . import serialize
@@ -25,7 +26,6 @@ from . import BotoCoreObject, xform_name
 from .validate import ParamValidator
 from .exceptions import ParamValidationError
 import asyncio
-# import threading
 import warnings
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class Operation(BotoCoreObject):
     @asyncio.coroutine
     def call(self, endpoint, **kwargs):
         warnings.warn("call() is deprecated and will be removed.  "
-                      "Use clients instead.", DeprecationWarning)
+                      "Use clients instead.", ImminentRemovalWarning)
         logger.debug("%s called with kwargs: %s", self, kwargs)
         # It probably seems a little weird to be firing two different
         # events here.  The reason is that the first event is fired
@@ -193,7 +193,7 @@ class Operation(BotoCoreObject):
     def can_paginate(self):
         warnings.warn("can_paginate is deprecated and will be removed.  "
                       "Use client.can_paginate instead.",
-                      DeprecationWarning)
+                      ImminentRemovalWarning)
         try:
             self._load_pagination_config()
         except Exception as e:
@@ -215,7 +215,7 @@ class Operation(BotoCoreObject):
         """
         warnings.warn("paginate is deprecated and will be removed.  "
                       "Use client.get_paginator instead.",
-                      DeprecationWarning)
+                      ImminentRemovalWarning)
         if not self.can_paginate:
             raise TypeError("Operation cannot be paginated: %s" % self)
         config = self._load_pagination_config()

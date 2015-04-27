@@ -18,6 +18,7 @@ import warnings
 from .endpoint import EndpointCreator
 from .operation import Operation
 from .exceptions import ServiceNotInRegionError, NoRegionError
+from .exceptions import ImminentRemovalWarning
 from .exceptions import UnknownEndpointError
 from .model import ServiceModel, OperationModel
 from .translate import denormalize_waiters
@@ -163,7 +164,7 @@ class Service(object):
 
         """
         warnings.warn("get_endpoint is deprecated and will be removed.  "
-                      "Use create_client instead.", DeprecationWarning)
+                      "Use create_client instead.", ImminentRemovalWarning)
         resolver = self.session.get_component('endpoint_resolver')
         region = self.session.get_config_variable('region')
         event_emitter = self.session.get_component('event_emitter')
@@ -191,7 +192,7 @@ class Service(object):
         :param operation_name: The name of the operation.
         """
         warnings.warn("get_operation is deprecated and will be removed.  "
-                      "Use create_client instead.", DeprecationWarning)
+                      "Use create_client instead.", ImminentRemovalWarning)
         for operation in self.operations:
             op_names = (operation.name, operation.py_name, operation.cli_name)
             if operation_name in op_names:
@@ -201,7 +202,7 @@ class Service(object):
     def get_waiter(self, waiter_name, endpoint):
         warnings.warn("get_waiter is deprecated and will be removed.  "
                       "Use client.get_waiter instead.",
-                      DeprecationWarning)
+                      ImminentRemovalWarning)
         try:
             config = self._load_waiter_config()
         except Exception as e:
@@ -234,7 +235,7 @@ def get_service(session, service_name, provider, api_version=None):
     """
     warnings.warn("get_service is deprecated and will be removed.  "
                   "Use Session.create_client instead.",
-                  DeprecationWarning)
+                  ImminentRemovalWarning)
     logger.debug("Creating service object for: %s", service_name)
     s = Service(session, provider, service_name)
     yield from s._init()

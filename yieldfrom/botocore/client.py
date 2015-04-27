@@ -190,7 +190,13 @@ class ClientCreator(object):
 
     def _create_api_method(self, py_operation_name, operation_name, service_model):
         @asyncio.coroutine
-        def _api_call(self, **kwargs):
+        def _api_call(self, *args, **kwargs):
+            # We're accepting *args so that we can give a more helpful
+            # error message than TypeError: _api_call takes exactly
+            # 1 argument.
+            if args:
+                raise TypeError(
+                    "%s() only accepts keyword arguments." % py_operation_name)
             # The "self" in this scope is referring to the BaseClient.
             return (yield from self._make_api_call(operation_name, kwargs))
 
