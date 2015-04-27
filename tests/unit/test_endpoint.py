@@ -11,6 +11,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+<<<<<<< HEAD
 
 #
 #  This file altered by David Keeney 2015, as part of conversion to
@@ -41,6 +42,20 @@ from yieldfrom.botocore.auth import SigV4Auth
 from yieldfrom.botocore.session import Session
 from yieldfrom.botocore.exceptions import UnknownServiceStyle
 from yieldfrom.botocore.exceptions import UnknownSignatureVersionError
+=======
+from tests import unittest
+
+from mock import Mock, patch
+from botocore.vendored.requests import ConnectionError
+
+from botocore.compat import six
+from botocore.awsrequest import AWSRequest
+from botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
+from botocore.endpoint import EndpointCreator
+from botocore.endpoint import PreserveAuthSession
+from botocore.endpoint import RequestCreator
+from botocore.exceptions import EndpointConnectionError
+>>>>>>> tmp
 
 
 def request_dict():
@@ -188,6 +203,19 @@ class TestEndpointFeatures(TestEndpointBase):
         prepared_request = self.http_session.send.call_args[0][0]
         self.assertNotIn('Authorization', prepared_request.headers)
 
+    def test_make_request_injects_better_dns_error_msg(self):
+        self.endpoint = Endpoint(
+            'us-west-2', 'https://ec2.us-west-2.amazonaws.com/',
+            user_agent='botoore',
+            endpoint_prefix='ec2', event_emitter=self.event_emitter)
+        self.endpoint.http_session = self.http_session
+        fake_request = Mock(url='https://ec2.us-west-2.amazonaws.com')
+        self.http_session.send.side_effect = ConnectionError(
+            "Fake gaierror(8, node or host not known)", request=fake_request)
+        with self.assertRaisesRegexp(EndpointConnectionError,
+                                     'Could not connect'):
+            self.endpoint.make_request(self.op, request_dict())
+
 
 class TestRetryInterface(TestEndpointBase):
     def setUp(self):
@@ -231,12 +259,20 @@ class TestRetryInterface(TestEndpointBase):
         op = Mock()
         op.name = 'DescribeInstances'
         op.metadata = {'protocol': 'json'}
+<<<<<<< HEAD
 
         side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Retry needed.
             [(None, None)], # Request created
             [(None, None)]  # Check if retry needed. Retry not needed.
+=======
+        self.event_emitter.emit.side_effect = [
+            [(None, None)],    # Request created.
+            [(None, 0)],       # Check if retry needed. Retry needed.
+            [(None, None)],    # Request created.
+            [(None, None)]     # Check if retry needed. Retry not needed.
+>>>>>>> tmp
         ]
         side_effects = [future_wrapped(se) for se in side_effect_src]
         self.event_emitter.emit.side_effect = side_effects
@@ -258,12 +294,20 @@ class TestRetryInterface(TestEndpointBase):
     def test_retry_on_socket_errors(self):
         op = Mock()
         op.name = 'DescribeInstances'
+<<<<<<< HEAD
 
         side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Retry needed.
             [(None, None)], # Request created
             [(None, None)]  # Check if retry needed. Retry not needed.
+=======
+        self.event_emitter.emit.side_effect = [
+            [(None, None)],    # Request created.
+            [(None, 0)],       # Check if retry needed. Retry needed.
+            [(None, None)],    # Request created
+            [(None, None)]     # Check if retry needed. Retry not needed.
+>>>>>>> tmp
         ]
         side_effects = [future_wrapped(se) for se in side_effect_src]
         self.event_emitter.emit.side_effect = side_effects
@@ -309,6 +353,7 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
         op.metadata = {'protocol': 'rest-xml'}
         request = request_dict()
         request['body'] = body
+<<<<<<< HEAD
         side_effect_src = [
             [(None, None)], # Request created.
             [(None, 0)],  # Check if retry needed. Needs Retry.
@@ -316,6 +361,15 @@ class TestS3ResetStreamOnRetry(TestEndpointBase):
             [(None, 0)],  # Check if retry needed again. Needs Retry.
             [(None, None)], # Request created.
             [(None, None)], # Finally emit no rety is needed.
+=======
+        self.event_emitter.emit.side_effect = [
+            [(None, None)],   # Request created.
+            [(None, 0)],      # Check if retry needed. Needs Retry.
+            [(None, None)],   # Request created.
+            [(None, 0)],      # Check if retry needed again. Needs Retry.
+            [(None, None)],   # Request created.
+            [(None, None)],   # Finally emit no rety is needed.
+>>>>>>> tmp
         ]
         side_effects = [future_wrapped(se) for se in side_effect_src]
         self.event_emitter.emit.side_effect = side_effects
@@ -357,7 +411,7 @@ class TestEndpointCreator(unittest.TestCase):
         endpoint = creator.create_endpoint(self.service_model)
         self.assertEqual(endpoint.region_name, 'us-east-1')
 
-    def test_endpoint_resolver_no_uses_credential_scope_with_endpoint_url(self):
+    def test_resolver_no_uses_cred_scope_with_endpoint_url(self):
         resolver = Mock()
         resolver_region_override = 'us-east-1'
         resolver.construct_endpoint.return_value = {
@@ -371,10 +425,11 @@ class TestEndpointCreator(unittest.TestCase):
         original_region_name = 'us-west-2'
         creator = EndpointCreator(resolver, original_region_name,
                                   Mock(), 'user-agent')
-        endpoint = creator.create_endpoint(self.service_model, endpoint_url='https://foo')
+        endpoint = creator.create_endpoint(self.service_model,
+                                           endpoint_url='https://foo')
         self.assertEqual(endpoint.region_name, 'us-west-2')
 
-    def test_endpoint_resolver_uses_credential_scope_with_endpoint_url_and_no_region(self):
+    def test_resolver_uses_cred_scope_with_endpoint_url_and_no_region(self):
         resolver = Mock()
         resolver_region_override = 'us-east-1'
         resolver.construct_endpoint.return_value = {
@@ -388,7 +443,8 @@ class TestEndpointCreator(unittest.TestCase):
         original_region_name = None
         creator = EndpointCreator(resolver, original_region_name,
                                   Mock(), 'user-agent')
-        endpoint = creator.create_endpoint(self.service_model, endpoint_url='https://foo')
+        endpoint = creator.create_endpoint(self.service_model,
+                                           endpoint_url='https://foo')
         self.assertEqual(endpoint.region_name, resolver_region_override)
 
 
@@ -417,7 +473,7 @@ class TestAWSSession(unittest.TestCase):
         session = PreserveAuthSession()
         session.send = Mock(return_value=success_response)
 
-        responses = list(session.resolve_redirects(
+        list(session.resolve_redirects(
             fake_response, prepared_request, stream=False))
 
         redirected_request = session.send.call_args[0][0]

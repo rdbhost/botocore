@@ -20,7 +20,7 @@ from binascii import crc32
 from yieldfrom.requests import ConnectionError, Timeout
 from yieldfrom.urllib3.exceptions import ClosedPoolError
 
-from .exceptions import ChecksumError
+from .exceptions import ChecksumError, EndpointConnectionError
 import asyncio
 import types
 
@@ -31,7 +31,10 @@ logger = logging.getLogger(__name__)
 # to get more specific exceptions from requests we can update
 # this mapping with more specific exceptions.
 EXCEPTION_MAP = {
-    'GENERAL_CONNECTION_ERROR': [ConnectionError, ClosedPoolError, Timeout],
+    'GENERAL_CONNECTION_ERROR': [
+        ConnectionError, ClosedPoolError, Timeout,
+        EndpointConnectionError
+    ],
 }
 
 

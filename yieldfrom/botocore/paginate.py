@@ -252,6 +252,15 @@ class PageIterator(object):
         response = yield from self.next()
         while response:
             _, page = response
+
+            # We want to try to catch operation object pagination
+            # and format correctly for those. They come in the form
+            # of a tuple of two elements: (http_response, parsed_responsed).
+            # We want the parsed_response as that is what the page iterator
+            # uses. We can remove it though once operation objects are removed.
+            if isinstance(response, tuple) and len(response) == 2:
+                page = response[1]
+
             # We're incrementally building the full response page
             # by page.  For each page in the response we need to
             # inject the necessary components from the page

@@ -98,6 +98,7 @@ import logging
 from pprint import pformat
 
 from http import client as http_client
+from .compat import XMLParseError
 
 from .utils import parse_timestamp
 
@@ -330,11 +331,16 @@ class BaseXMLResponseParser(ResponseParser):
         return xml_dict
 
     def _parse_xml_string_to_dom(self, xml_string):
-        parser = xml.etree.cElementTree.XMLParser(
-            target=xml.etree.cElementTree.TreeBuilder(),
-            encoding=self.DEFAULT_ENCODING)
-        parser.feed(xml_string)
-        root = parser.close()
+        try:
+            parser = xml.etree.cElementTree.XMLParser(
+                target=xml.etree.cElementTree.TreeBuilder(),
+                encoding=self.DEFAULT_ENCODING)
+            parser.feed(xml_string)
+            root = parser.close()
+        except XMLParseError as e:
+            raise ResponseParserError(
+                "Unable to parse response (%s), "
+                "invalid XML received:\n%s" % (e, xml_string))
         return root
 
     def _replace_nodes(self, parsed):

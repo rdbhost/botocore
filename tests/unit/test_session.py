@@ -367,6 +367,7 @@ class TestGetServiceModel(BaseSessionTest):
         self.session.register_component('data_loader', loader)
         model = yield from self.session.get_service_model('made_up')
         self.assertIsInstance(model, ServiceModel)
+        self.assertEqual(model.service_name, 'made_up')
 
 
 class TestGetWaiterModel(BaseSessionTest):
@@ -416,6 +417,7 @@ class TestCreateClient(BaseSessionTest):
         client_creator.return_value.create_client.assert_called_with(
             mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY,
             scoped_config=mock.ANY, client_config=config)
+
 
 class TestPerformOperation(BaseSessionTest):
 

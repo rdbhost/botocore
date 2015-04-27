@@ -18,10 +18,12 @@ import asyncio
 
 from yieldfrom.requests.sessions import Session
 from yieldfrom.requests.utils import get_environ_proxies
+from yieldfrom.requests.exceptions import ConnectionError
 
 from . import response as botoresponse
 from . import exceptions as botoexceptions
 from .exceptions import UnknownEndpointError
+from .exceptions import EndpointConnectionError
 from .awsrequest import AWSRequest
 from .compat import urljoin, urlsplit, urlunsplit
 from .utils import percent_encode_sequence
@@ -231,6 +233,18 @@ class Endpoint(object):
                 request, verify=self.verify,
                 stream=operation_model.has_streaming_output,
                 proxies=self.proxies, timeout=self.timeout)
+        except ConnectionError as e:
+            # For a connection error, if it looks like it's a DNS
+            # lookup issue, 99% of the time this is due to a misconfigured
+            # region/endpoint so we'll raise a more specific error message
+            # to help users.
+            if self._looks_like_dns_error(e):
+                endpoint_url = e.request.url
+                better_exception = EndpointConnectionError(
+                    endpoint_url=endpoint_url, error=e)
+                return (None, better_exception)
+            else:
+                return (None, e)
         except Exception as e:
             logger.debug("Exception received when sending HTTP request.",
                          exc_info=True)
@@ -243,6 +257,9 @@ class Endpoint(object):
         return ((http_response, parser.parse(response_dict,
                                              operation_model.output_shape)),
                 None)
+
+    def _looks_like_dns_error(self, e):
+        return 'gaierror' in str(e) and e.request is not None
 
     @asyncio.coroutine
     def _needs_retry(self, attempts, operation_model, response=None,
