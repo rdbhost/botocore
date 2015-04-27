@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 import time
 import random
-from tests import unittest
+import unittest
 
 import asyncio
 import sys
@@ -29,6 +29,8 @@ sys.path.append('..')
 from asyncio_test_utils import async_test
 
 import yieldfrom.botocore.session
+from nose.plugins.attrib import attr
+
 
 
 class TestKinesisListStreams(unittest.TestCase):
@@ -64,6 +66,7 @@ class TestKinesisListStreams(unittest.TestCase):
         self.assertIn('StreamNames', parsed)
 
     @async_test
+    @attr('slow')
     def test_can_put_stream_blob(self):
 
         yield from self.client.put_record(StreamName=self.stream_name, PartitionKey='foo', Data='foobar')
@@ -82,6 +85,7 @@ class TestKinesisListStreams(unittest.TestCase):
         self.assertEqual(records['Records'][0]['Data'], b'foobar')
 
     @async_test
+    @attr('slow')
     def test_can_put_records_single_blob(self):
         yield from self.client.put_records(
             StreamName=self.stream_name,
@@ -105,6 +109,7 @@ class TestKinesisListStreams(unittest.TestCase):
         self.assertEqual(records['Records'][0]['Data'], b'foobar')
 
     @async_test
+    @attr('slow')
     def test_can_put_records_multiple_blob(self):
         _t = yield from self.client.put_records(
             StreamName=self.stream_name,

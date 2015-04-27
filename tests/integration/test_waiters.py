@@ -22,14 +22,22 @@ logging.basicConfig(level=logging.DEBUG)
 import random
 from tests import unittest
 
+<<<<<<< HEAD
 import yieldfrom.botocore.session
 from yieldfrom.botocore.client import ClientError
 import asyncio
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test
+=======
+from nose.plugins.attrib import attr
+
+import botocore.session
+from botocore.client import ClientError
+>>>>>>> tmp
 
 
+@attr('slow')
 class TestWaiterLegacy(unittest.TestCase):
 
     @asyncio.coroutine
@@ -62,6 +70,7 @@ class TestWaiterLegacy(unittest.TestCase):
 
 
 # This is the same test as above, except using the client interface.
+@attr('slow')
 class TestWaiterForDynamoDB(unittest.TestCase):
 
     @asyncio.coroutine

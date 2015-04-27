@@ -19,7 +19,7 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from tests import unittest
+import unittest
 import itertools
 import asyncio
 
@@ -28,6 +28,8 @@ sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped, pump_iter
 
 import yieldfrom.botocore.session
+from nose.plugins.attrib import attr
+
 
 
 class TestEC2(unittest.TestCase):
@@ -80,6 +82,7 @@ class TestEC2Pagination(unittest.TestCase):
             self.assertEqual(len(reserved_inst_offer), 1)
 
 
+@attr('slow')
 class TestCopySnapshotCustomization(unittest.TestCase):
 
     @asyncio.coroutine

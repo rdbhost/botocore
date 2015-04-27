@@ -37,6 +37,7 @@ try:
 except ImportError:
     from itertools import zip_longest
 
+<<<<<<< HEAD
 from yieldfrom.requests import adapters
 from yieldfrom.requests.exceptions import ConnectionError
 import yieldfrom.botocore.session
@@ -49,6 +50,17 @@ import yieldfrom.requests as requests
 
 sys.path.append('..')
 from asyncio_test_utils import async_test
+=======
+from nose.plugins.attrib import attr
+
+from botocore.vendored.requests import adapters
+from botocore.vendored.requests.exceptions import ConnectionError
+from botocore.compat import six
+import botocore.session
+import botocore.auth
+import botocore.credentials
+import botocore.vendored.requests as requests
+>>>>>>> tmp
 
 
 class BaseS3Test(unittest.TestCase):
@@ -210,7 +222,11 @@ class TestS3Objects(TestS3BaseWithBucket):
         response = (yield from operation.call(self.endpoint, bucket=self.bucket_name, key=key_name))[0]
         self.assertEqual(response.status_code, 204)
 
+<<<<<<< HEAD
     @async_test
+=======
+    @attr('slow')
+>>>>>>> tmp
     def test_can_paginate(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -230,7 +246,11 @@ class TestS3Objects(TestS3BaseWithBucket):
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
+<<<<<<< HEAD
     @async_test
+=======
+    @attr('slow')
+>>>>>>> tmp
     def test_can_paginate_with_page_size(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -251,7 +271,11 @@ class TestS3Objects(TestS3BaseWithBucket):
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
+<<<<<<< HEAD
     @async_test
+=======
+    @attr('slow')
+>>>>>>> tmp
     def test_client_can_paginate_with_page_size(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -273,8 +297,13 @@ class TestS3Objects(TestS3BaseWithBucket):
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
+<<<<<<< HEAD
     @async_test
     def tst_result_key_iters(self):
+=======
+    @attr('slow')
+    def test_result_key_iters(self):
+>>>>>>> tmp
         for i in range(5):
             key_name = 'key/%s/%s' % (i, i)
             yield from self.create_object(key_name)
@@ -296,7 +325,11 @@ class TestS3Objects(TestS3BaseWithBucket):
         self.assertIn('Contents', response)
         self.assertIn('CommonPrefixes', response)
 
+<<<<<<< HEAD
     @async_test
+=======
+    @attr('slow')
+>>>>>>> tmp
     def test_can_get_and_put_object(self):
         yield from self.create_object('foobarbaz', body='body contents')
         time.sleep(3)
@@ -737,7 +770,11 @@ class TestS3SigV4Client(BaseS3ClientTest):
             self.assert_status_code(response, 200)
             self.keys.append('foo.txt')
 
+<<<<<<< HEAD
     @async_test
+=======
+    @attr('slow')
+>>>>>>> tmp
     def test_paginate_list_objects_unicode(self):
         key_names = [
             u'non-ascii-key-\xe4\xf6\xfc-01.txt',
@@ -763,7 +800,11 @@ class TestS3SigV4Client(BaseS3ClientTest):
 
         self.assertEqual(key_names, key_refs)
 
+<<<<<<< HEAD
     @async_test
+=======
+    @attr('slow')
+>>>>>>> tmp
     def test_paginate_list_objects_safe_chars(self):
 
         key_names = [
