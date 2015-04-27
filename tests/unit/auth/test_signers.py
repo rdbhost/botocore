@@ -12,7 +12,7 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from tests import unittest
+import unittest
 import datetime
 import time
 import io
@@ -273,12 +273,7 @@ class TestS3SigV4Auth(BaseTestWithFixedDate):
     maxDiff = None
 
     def setUp(self):
-<<<<<<< HEAD
         self.credentials = yieldfrom.botocore.credentials.Credentials(
-=======
-        super(TestS3SigV4Auth, self).setUp()
-        self.credentials = botocore.credentials.Credentials(
->>>>>>> tmp
             access_key='foo', secret_key='bar', token='baz')
         self.auth = yieldfrom.botocore.auth.S3SigV4Auth(
             self.credentials, 'ec2', 'eu-central-1')
@@ -355,10 +350,10 @@ class TestSigV4(unittest.TestCase):
             'fields%22%3A%5B%22directors%5E10%22%5D%7D&q=George%20Lucas'
         )
         request.method = 'GET'
-        auth = botocore.auth.SigV4Auth(
+        auth = yieldfrom.botocore.auth.SigV4Auth(
             self.credentials, 'cloudsearchdomain', 'us-west-2')
         with mock.patch.object(
-                botocore.auth.datetime, 'datetime',
+                yieldfrom.botocore.auth.datetime, 'datetime',
                 mock.Mock(wraps=datetime.datetime)) as mock_datetime:
             original_utcnow = datetime.datetime(2014, 1, 1, 0, 0)
 
@@ -390,18 +385,12 @@ class TestSigV4Resign(BaseTestWithFixedDate):
     maxDiff = None
 
     def setUp(self):
-<<<<<<< HEAD
         self.credentials = yieldfrom.botocore.credentials.Credentials(
-=======
-        super(TestSigV4Resign, self).setUp()
-        self.credentials = botocore.credentials.Credentials(
->>>>>>> tmp
             access_key='foo', secret_key='bar', token='baz')
         self.auth = yieldfrom.botocore.auth.SigV4Auth(self.credentials, 'ec2', 'us-west-2')
         self.request = AWSRequest()
         self.request.method = 'PUT'
         self.request.url = 'https://ec2.amazonaws.com/'
-<<<<<<< HEAD
         self.datetime_patch = mock.patch('yieldfrom.botocore.auth.datetime')
         self.datetime_mock = self.datetime_patch.start()
         self.now = datetime.datetime.utcnow()
@@ -409,8 +398,6 @@ class TestSigV4Resign(BaseTestWithFixedDate):
 
     def tearDown(self):
         self.datetime_patch.stop()
-=======
->>>>>>> tmp
 
     def test_resign_request_with_date(self):
         self.request.headers['Date'] = 'Thu, 17 Nov 2005 18:49:58 GMT'

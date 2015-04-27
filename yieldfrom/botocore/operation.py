@@ -25,6 +25,8 @@ from . import BotoCoreObject, xform_name
 from .validate import ParamValidator
 from .exceptions import ParamValidationError
 import asyncio
+# import threading
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +73,7 @@ class Operation(BotoCoreObject):
         resolver = self.session.get_component('endpoint_resolver')
         scheme = endpoint.host.split(':')[0]
         if endpoint.region_name is None:
-            raise NoRegionError(env_var='region')
+            raise NoRegionError()
         endpoint_config = resolver.construct_endpoint(
                 service_model.endpoint_prefix,
                 endpoint.region_name, scheme=scheme)
@@ -98,6 +100,8 @@ class Operation(BotoCoreObject):
 
     @asyncio.coroutine
     def call(self, endpoint, **kwargs):
+        warnings.warn("call() is deprecated and will be removed.  "
+                      "Use clients instead.", DeprecationWarning)
         logger.debug("%s called with kwargs: %s", self, kwargs)
         # It probably seems a little weird to be firing two different
         # events here.  The reason is that the first event is fired
@@ -187,6 +191,9 @@ class Operation(BotoCoreObject):
 
     @property
     def can_paginate(self):
+        warnings.warn("can_paginate is deprecated and will be removed.  "
+                      "Use client.can_paginate instead.",
+                      DeprecationWarning)
         try:
             self._load_pagination_config()
         except Exception as e:
@@ -196,12 +203,19 @@ class Operation(BotoCoreObject):
     def paginate(self, endpoint, **kwargs):
         """Iterate over the responses of an operation.
 
+        .. warning::
+            This method is deprecated and will be removed in the
+            near future.  Use ``client.get_paginator`` instead.
+
         This will return an iterator with each element
         being a tuple of (``http_response``, ``parsed_response``).
         If the operation does not paginate, a ``TypeError`` will
         be raised.  You can check if an operation can be paginated
         by using the ``can_paginate`` arg.
         """
+        warnings.warn("paginate is deprecated and will be removed.  "
+                      "Use client.get_paginator instead.",
+                      DeprecationWarning)
         if not self.can_paginate:
             raise TypeError("Operation cannot be paginated: %s" % self)
         config = self._load_pagination_config()

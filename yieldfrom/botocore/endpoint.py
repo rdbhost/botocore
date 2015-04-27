@@ -23,7 +23,7 @@ from yieldfrom.requests.exceptions import ConnectionError
 from . import response as botoresponse
 from . import exceptions as botoexceptions
 from .exceptions import UnknownEndpointError
-from .exceptions import EndpointConnectionError
+from .exceptions import EndpointConnectionError, BaseEndpointResolverError
 from .awsrequest import AWSRequest
 from .compat import urljoin, urlsplit, urlunsplit
 from .utils import percent_encode_sequence
@@ -33,6 +33,8 @@ from . import parsers
 from .utils import is_valid_endpoint_url
 
 from . import request_sessions_fixer
+import time
+#import threading
 
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60
@@ -348,7 +350,7 @@ class EndpointCreator(object):
             endpoint = self._endpoint_resolver.construct_endpoint(
                 service_model.endpoint_prefix,
                 region_name, scheme=scheme)
-        except UnknownEndpointError:
+        except BaseEndpointResolverError:
             if endpoint_url is not None:
                 # If the user provides an endpoint_url, it's ok
                 # if the heuristics didn't find anything.  We use the

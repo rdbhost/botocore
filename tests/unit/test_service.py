@@ -26,7 +26,7 @@ import asyncio
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
-
+import unittest
 from tests import BaseSessionTest
 
 import yieldfrom.botocore.exceptions
@@ -85,7 +85,7 @@ class TestService(BaseSessionTest):
         # If you don't provide an endpoint_url, than you need to
         # provide a region_name.
         service = yield from self.session.get_service('ec2')
-        with self.assertRaises(yieldfrom.botocore.exceptions.UnknownEndpointError):
+        with self.assertRaises(yieldfrom.botocore.exceptions.NoRegionError):
             service.get_endpoint()
 
     @async_test

@@ -31,7 +31,9 @@ from dateutil.tz import tzlocal
 from yieldfrom.botocore import credentials
 import yieldfrom.botocore.exceptions
 import yieldfrom.botocore.session
-from tests import unittest, BaseEnvVar
+from yieldfrom.botocore.credentials import EnvProvider
+from tests import BaseEnvVar
+import unittest
 import asyncio
 import functools
 
@@ -675,9 +677,32 @@ class TestCreateCredentialResolver(BaseEnvVar):
             'metadata_service_num_attempts': 'e',
             'profile': 'profilename',
         }
-        fake_session.get_config_variable = lambda x: config[x]
-        resolver = credentials.create_credential_resolver(fake_session)
+        self.session.get_config_variable = lambda x: self.config[x]
+
+        resolver = credentials.create_credential_resolver(self.session)
         self.assertIsInstance(resolver, credentials.CredentialResolver)
+
+    def test_explicit_profile_ignores_env_provider(self):
+        self.config['profile'] = 'dev'
+        resolver = credentials.create_credential_resolver(self.session)
+
+        self.assertTrue(
+            all(not isinstance(p, EnvProvider) for p in resolver.providers))
+
+    def test_no_profile_checks_env_provider(self):
+        self.config['profile'] = None
+        self.session.profile = None
+        resolver = credentials.create_credential_resolver(self.session)
+
+        self.assertTrue(
+            any(isinstance(p, EnvProvider) for p in resolver.providers))
+
+    def test_no_profile_env_provider_is_first(self):
+        self.config['profile'] = None
+        self.session.profile = None
+        resolver = credentials.create_credential_resolver(self.session)
+
+        self.assertIsInstance(resolver.providers[0], credentials.EnvProvider)
 
 
 if __name__ == "__main__":

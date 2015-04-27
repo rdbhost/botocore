@@ -20,13 +20,14 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from tests import unittest, BaseSessionTest, create_session
+from tests import BaseSessionTest, create_session
+import unittest
 
 import mock
 from nose.tools import assert_equals
 
 from yieldfrom.botocore import regions
-from yieldfrom.botocore.exceptions import UnknownEndpointError
+from yieldfrom.botocore.exceptions import UnknownEndpointError, NoRegionError
 
 
 # NOTE: sqs endpoint updated to be the CN in the SSL cert because
@@ -355,6 +356,17 @@ class TestEndpointHeuristics(unittest.TestCase):
             resolver.construct_endpoint(service_name='iam',
                                         region_name='not-us-gov-2')
 
+    def test_no_region_throws_specific_error(self):
+        resolver = self.create_endpoint_resolver({
+            'iam': [
+                {'uri': 'https://{service}.us-gov.amazonaws.com',
+                 'constraints': [['region', 'startsWith', 'us-gov']]}
+            ]
+        })
+        with self.assertRaises(NoRegionError):
+            resolver.construct_endpoint(service_name='iam',
+                                        region_name=None)
+
     def test_use_default_section_if_no_service_name(self):
         resolver = self.create_endpoint_resolver({
             '_default': [
@@ -471,3 +483,4 @@ class TestEndpointHeuristics(unittest.TestCase):
         self.assertEqual(endpoint['properties'],
                          {'credentialScope': {'region': 'us-east-1'},
                           'signatureVersion': 'v4'})
+

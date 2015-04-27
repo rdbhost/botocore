@@ -17,7 +17,7 @@ In a nutshell, you give it some input data (a service name, a
 region name, and a scheme) and it gives you a complete url.
 
 """
-from .exceptions import UnknownEndpointError
+from .exceptions import UnknownEndpointError, NoRegionError
 
 
 class EndpointResolver(object):
@@ -63,8 +63,13 @@ class EndpointResolver(object):
                                          region_name, **kwargs)
 
         if endpoint is None:
-            raise UnknownEndpointError(service_name=service_name,
-                                       region_name=region_name)
+            if region_name is None:
+                # Raise a more specific error message that will give
+                # better guidance to the user what needs to happen.
+                raise NoRegionError()
+            else:
+                raise UnknownEndpointError(service_name=service_name,
+                                           region_name=region_name)
         return endpoint
 
     def _match_rules(self, service_rules, region_name, **kwargs):
