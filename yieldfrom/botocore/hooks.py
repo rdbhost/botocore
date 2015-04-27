@@ -174,7 +174,7 @@ class HierarchicalEmitter(BaseEventHooks):
         self._handlers = _PrefixTrie()
         # This is used to ensure that unique_id's are only
         # registered once.
-        self._unique_id_cache = {}
+        self._unique_id_handlers = {}
 
     @asyncio.coroutine
     def _emit(self, event_name, kwargs, stop_on_response=False):
@@ -272,10 +272,10 @@ class HierarchicalEmitter(BaseEventHooks):
     def _register_section(self, event_name, handler, unique_id,
                           unique_id_uses_count, section):
         if unique_id is not None:
-            if unique_id in self._unique_id_cache:
+            if unique_id in self._unique_id_handlers:
                 # We've already registered a handler using this unique_id
                 # so we don't need to register it again.
-                count = self._unique_id_cache[unique_id].get('count', None)
+                count = self._unique_id_handlers[unique_id].get('count', None)
                 if unique_id_uses_count:
                     if not count:
                         raise ValueError("Initial registration of"
@@ -283,7 +283,7 @@ class HierarchicalEmitter(BaseEventHooks):
                             " Subsequent register calls to unique id must"
                             " specify use of a counter as well." % unique_id)
                     else:
-                        self._unique_id_cache[unique_id]['count'] += 1
+                        self._unique_id_handlers[unique_id]['count'] += 1
                 else:
                     if count:
                         raise ValueError("Initial registration of"
@@ -295,13 +295,13 @@ class HierarchicalEmitter(BaseEventHooks):
             else:
                 # Note that the trie knows nothing about the unique
                 # id.  We track uniqueness in this class via the
-                # _unique_id_cache.
+                # _unique_id_handlers.
                 self._handlers.append_item(event_name, handler,
                                            section=section)
-                unique_id_cache_item = {'handler': handler}
+                unique_id_handler_item = {'handler': handler}
                 if unique_id_uses_count:
-                    unique_id_cache_item['count'] = 1
-                self._unique_id_cache[unique_id] = unique_id_cache_item
+                    unique_id_handler_item['count'] = 1
+                self._unique_id_handlers[unique_id] = unique_id_handler_item
         else:
             self._handlers.append_item(event_name, handler, section=section)
         # Super simple caching strategy for now, if we change the registrations
@@ -312,7 +312,7 @@ class HierarchicalEmitter(BaseEventHooks):
                    unique_id_uses_count=False):
         if unique_id is not None:
             try:
-                count = self._unique_id_cache[unique_id].get('count', None)
+                count = self._unique_id_handlers[unique_id].get('count', None)
             except KeyError:
                 # There's no handler matching that unique_id so we have
                 # nothing to unregister.
@@ -324,9 +324,9 @@ class HierarchicalEmitter(BaseEventHooks):
                         " Subsequent unregister calls to unique id must"
                         " specify use of a counter as well." % unique_id)
                 elif count == 1:
-                    handler = self._unique_id_cache.pop(unique_id)['handler']
+                    handler = self._unique_id_handlers.pop(unique_id)['handler']
                 else:
-                    self._unique_id_cache[unique_id]['count'] -= 1
+                    self._unique_id_handlers[unique_id]['count'] -= 1
                     return
             else:
                 if count:
@@ -335,7 +335,7 @@ class HierarchicalEmitter(BaseEventHooks):
                         " Subsequent unregister calls to unique id must"
                         " specify not to use a counter as well." % 
                         unique_id)
-                handler = self._unique_id_cache.pop(unique_id)['handler']
+                handler = self._unique_id_handlers.pop(unique_id)['handler']
         try:
             self._handlers.remove_item(event_name, handler)
             self._lookup_cache = {}
@@ -346,6 +346,7 @@ class HierarchicalEmitter(BaseEventHooks):
         new_instance = self.__class__()
         new_state = self.__dict__.copy()
         new_state['_handlers'] = copy.copy(self._handlers)
+        new_state['_unique_id_handlers'] = copy.copy(self._unique_id_handlers)
         new_instance.__dict__ = new_state
         return new_instance
 

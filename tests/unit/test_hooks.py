@@ -24,7 +24,7 @@ import copy
 import functools
 import asyncio
 
-from tests import unittest
+import unittest
 from functools import partial
 
 from yieldfrom.botocore.hooks import HierarchicalEmitter, first_non_none_response
@@ -549,6 +549,47 @@ class TestWildcardHandlers(unittest.TestCase):
         self.emitter.unregister('foo.bar.baz', first_handler)
         self.emitter.register('foo.bar.baz', first_handler)
         yield from self.emitter.emit('foo.bar.baz', id_name='last-time')
+        self.assertEqual(second, ['third-time'])
+
+    @async_test
+    def test_copy_emitter_with_unique_id_event(self):
+        # Here we're not testing copy directly, we're testing
+        # the observable behavior from copying an event emitter.
+        first = []
+        def first_handler(id_name, **kwargs):
+            first.append(id_name)
+
+        second = []
+        def second_handler(id_name, **kwargs):
+            second.append(id_name)
+
+        self.emitter.register('foo', first_handler, 'bar')
+        yield from self.emitter.emit('foo', id_name='first-time')
+        self.assertEqual(first, ['first-time'])
+        self.assertEqual(second, [])
+
+        copied_emitter = copy.copy(self.emitter)
+
+        # If we register an event handler with the copied
+        # emitter, the event should not get registered again
+        # because the unique id was already used.
+        copied_emitter.register('foo', second_handler, 'bar')
+        yield from copied_emitter.emit('foo', id_name='second-time')
+        self.assertEqual(first, ['first-time', 'second-time'])
+        self.assertEqual(second, [])
+
+        # If we unregister the first event from the copied emitter,
+        # We should be able to register the second handler.
+        copied_emitter.unregister('foo', first_handler, 'bar')
+        copied_emitter.register('foo', second_handler, 'bar')
+        yield from copied_emitter.emit('foo', id_name='third-time')
+        self.assertEqual(first, ['first-time', 'second-time'])
+        self.assertEqual(second, ['third-time'])
+
+        # The original event emitter should have the unique id event still
+        # registered though.
+        self.emitter.emit('foo', id_name='fourth-time')
+        self.assertEqual(first, ['first-time', 'second-time', 'fourth-time'])
         self.assertEqual(second, ['third-time'])
 
     @async_test
