@@ -38,6 +38,19 @@ def nextTee(iterable, n=2):
     return deques
 
 
+class PaginatorModel(object):
+    def __init__(self, paginator_config):
+        self._paginator_config = paginator_config['pagination']
+
+    def get_paginator(self, operation_name):
+        try:
+            single_paginator_config = self._paginator_config[operation_name]
+        except KeyError:
+            raise ValueError("Paginator for operation does not exist: %s"
+                             % operation_name)
+        return single_paginator_config
+
+
 class PageIterator(object):
 
     def __init__(self, method, input_token, output_token, more_results,

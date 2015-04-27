@@ -235,7 +235,6 @@ class TestEnvVar(BaseEnvVar):
         with self.assertRaises(yieldfrom.botocore.exceptions.PartialCredentialsError):
             yield from provider.load()
 
-
 class TestSharedCredentialsProvider(BaseEnvVar):
     def setUp(self):
         super(TestSharedCredentialsProvider, self).setUp()

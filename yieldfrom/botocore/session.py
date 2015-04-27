@@ -26,6 +26,7 @@ from . import __version__
 from . import config as botoconfig
 from . import credentials as botocredentials
 from . import client as botoclient
+from . import paginate
 from .endpoint import EndpointCreator
 from .exceptions import EventNotFound, ConfigNotFound, ProfileNotFound
 from . import handlers
@@ -510,6 +511,14 @@ class Session(object):
         waiter_path = latest.replace('.normal', '.waiters')
         waiter_config = loader.load_data(waiter_path)
         return waiter.WaiterModel(waiter_config)
+
+    def get_paginator_model(self, service_name, api_version=None):
+        loader = self.get_component('data_loader')
+        latest = loader.determine_latest('%s/%s' % (
+            self.provider.name, service_name), api_version)
+        paginator_path = latest.replace('.normal', '.paginators')
+        paginator_config = loader.load_data(paginator_path)
+        return paginate.PaginatorModel(paginator_config)
 
     @asyncio.coroutine
     def get_service_data(self, service_name, api_version=None):
