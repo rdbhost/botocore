@@ -14,8 +14,6 @@
 
 import os
 import logging
-#import time
-#import threading
 import asyncio
 
 from yieldfrom.requests.sessions import Session
@@ -25,7 +23,7 @@ from . import response as botoresponse
 from . import exceptions as botoexceptions
 from .exceptions import UnknownEndpointError
 from .awsrequest import AWSRequest
-from .compat import urljoin
+from .compat import urljoin, filter_ssl_san_warnings
 from .utils import percent_encode_sequence
 from .hooks import first_non_none_response
 from .response import StreamingBody
@@ -36,6 +34,7 @@ from . import request_sessions_fixer
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60
 NOT_SET = object()
+filter_ssl_san_warnings()
 
 @asyncio.coroutine
 def convert_to_response_dict(http_response, operation_model):
@@ -68,6 +67,11 @@ def convert_to_response_dict(http_response, operation_model):
     return response_dict
 
 
+class PreserveAuthSession(Session):
+    def rebuild_auth(self, prepared_request, response):
+        pass
+
+
 class Endpoint(object):
     """
     Represents an endpoint for a particular service in a specific
@@ -91,7 +95,7 @@ class Endpoint(object):
         if proxies is None:
             proxies = {}
         self.proxies = proxies
-        self.http_session = Session()
+        self.http_session = PreserveAuthSession()
         self.timeout = timeout
         #self._lock = threading.Lock()  # perhaps eliminate
         if response_parser_factory is None:
@@ -117,8 +121,7 @@ class Endpoint(object):
                 op_name=operation_model.name)
             yield from self._event_emitter.emit(event_name, request=request,
                 operation_name=operation_model.name)
-        prepared_request = self.prepare_request(
-            request)
+        prepared_request = self.prepare_request(request)
         return prepared_request
 
     def _create_request_object(self, request_dict):
@@ -161,10 +164,18 @@ class Endpoint(object):
             response, exception = yield from self._get_response(request, operation_model,
                                                      attempts)
 
-        return response
+        if exception is not None:
+            raise exception
+        else:
+            return response
 
     @asyncio.coroutine
     def _get_response(self, request, operation_model, attempts):
+        # This will return a tuple of (success_response, exception)
+        # and success_response is itself a tuple of
+        # (http_response, parsed_dict).
+        # If an exception occurs then the success_response is None.
+        # If no exception occurs then exception is None.
         try:
             logger.debug("Sending http request: %s", request)
             http_response = yield from self.http_session.send(

@@ -34,7 +34,8 @@ from yieldfrom.requests import ConnectionError
 from yieldfrom.requests.models import Response
 
 from yieldfrom.botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
-from yieldfrom.botocore.endpoint import EndpointCreator
+from yieldfrom.botocore.endpoint import EndpointCreator, PreserveAuthSession
+from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.auth import SigV4Auth
 from yieldfrom.botocore.session import Session
 from yieldfrom.botocore.exceptions import UnknownServiceStyle
@@ -270,7 +271,8 @@ class TestRetryInterface(TestEndpointBase):
         self.event_emitter.emit.side_effect = side_effects
 
         self.http_session.send.side_effect = ConnectionError()
-        yield from self.endpoint.make_request(op, request_dict())
+        with self.assertRaises(ConnectionError):
+            yield from self.endpoint.make_request(op, request_dict())
         call_args = self.event_emitter.emit.call_args_list
         self.assertEqual(self.event_emitter.emit.call_count, 4)
         # Check that all of the events are as expected.
@@ -354,3 +356,39 @@ class TestEndpointCreator(unittest.TestCase):
                                   Mock(), 'user-agent')
         endpoint = creator.create_endpoint(self.service_model)
         self.assertEqual(endpoint.region_name, 'us-east-1')
+
+
+class TestAWSSession(unittest.TestCase):
+    def test_auth_header_preserved_from_s3_redirects(self):
+        request = AWSRequest()
+        request.url = 'https://bucket.s3.amazonaws.com/'
+        request.method = 'GET'
+        request.headers['Authorization'] = 'original auth header'
+        prepared_request = request.prepare()
+
+        fake_response = Mock()
+        fake_response.headers = {
+            'location': 'https://bucket.s3-us-west-2.amazonaws.com'}
+        fake_response.url = request.url
+        fake_response.status_code = 307
+        fake_response.is_permanent_redirect = False
+        # This line is needed to disable the cookie handling
+        # code in requests.
+        fake_response.raw._original_response = None
+
+        success_response = Mock()
+        success_response.raw._original_response = None
+        success_response.is_redirect = False
+        success_response.status_code = 200
+        session = PreserveAuthSession()
+        session.send = Mock(return_value=success_response)
+
+        responses = list(session.resolve_redirects(
+            fake_response, prepared_request, stream=False))
+
+        redirected_request = session.send.call_args[0][0]
+        # The Authorization header for the newly sent request should
+        # still have our original Authorization header.
+        self.assertEqual(
+            redirected_request.headers['Authorization'],
+            'original auth header')
