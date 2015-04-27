@@ -27,11 +27,8 @@ import calendar
 from .exceptions import NoCredentialsError
 from .utils import normalize_url_path, percent_encode_sequence
 from .compat import HTTPHeaders
-#from .compat import quote, unquote, urlsplit, parse_qs
 from urllib.parse import quote, unquote, urlsplit, parse_qs, urlunsplit
 from base64 import encodebytes
-#from .compat import urlunsplit
-#from .compat import encodebytes
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +70,11 @@ class SigV2Auth(BaseSigner):
                          digestmod=sha256)
         pairs = []
         for key in sorted(params):
+            # Any previous signature should not be a part of this
+            # one, so we skip that particular key. This prevents
+            # issues during retries.
+            if key == 'Signature':
+                continue
             value = str(params[key])
             pairs.append(quote(key.encode('utf-8'), safe='') + '=' +
                          quote(value.encode('utf-8'), safe='-_~'))
