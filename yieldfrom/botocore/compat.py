@@ -15,10 +15,13 @@ import copy
 import datetime
 import sys
 import inspect
+import warnings
+
+from yieldfrom.urllib3 import exceptions
 
 
-from yieldfrom.http import client
-class HTTPHeaders(client.HTTPMessage):
+import http.client as http_client
+class HTTPHeaders(http_client.HTTPMessage):
     pass
 from urllib.parse import quote
 from urllib.parse import urlencode
@@ -29,7 +32,7 @@ from urllib.parse import urlunsplit
 from urllib.parse import urljoin
 from urllib.parse import parse_qsl
 from urllib.parse import parse_qs
-from yieldfrom.http.client import HTTPResponse
+from http.client import HTTPResponse
 from io import IOBase as _IOBase
 from base64 import encodebytes
 from email.utils import formatdate
@@ -66,10 +69,39 @@ if sys.version_info[:2] == (2, 6):
     # will raise a plain old SyntaxError instead of
     # a real exception, so we need to abstract this change.
     XMLParseError = SyntaxError
+
+    # Handle https://github.com/shazow/urllib3/issues/497 for py2.6.  In
+    # python2.6, there is a known issue where sometimes we cannot read the SAN
+    # from an SSL cert (http://bugs.python.org/issue13034).  However, newer
+    # versions of urllib3 will warn you when there is no SAN.  While we could
+    # just turn off this warning in urllib3 altogether, we _do_ want warnings
+    # when they're legitimate warnings.  This method tries to scope the warning
+    # filter to be as specific as possible.
+    def filter_ssl_san_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message="Certificate has no.*subjectAltName.*",
+            category=exceptions.SecurityWarning,
+            module=".*urllib3\.connection")
 else:
     import xml.etree.cElementTree
     XMLParseError = xml.etree.cElementTree.ParseError
     import json
+
+    def filter_ssl_san_warnings():
+        # Noop for non-py26 versions.  We will parse the SAN
+        # appropriately.
+        pass
+
+
+def filter_ssl_warnings():
+    # Ignore warnings related to SNI as it is not being used in validations.
+    warnings.filterwarnings(
+        'ignore',
+        message="A true SSLContext object is not available.*",
+        category=exceptions.InsecurePlatformWarning,
+        module=".*urllib3\.util\.ssl_")
+    filter_ssl_san_warnings()
 
 
 @classmethod

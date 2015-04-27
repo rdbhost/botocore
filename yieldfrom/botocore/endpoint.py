@@ -33,12 +33,12 @@ from . import parsers
 from .utils import is_valid_endpoint_url
 
 from . import request_sessions_fixer
-import time
-#import threading
+#import time
 
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 60
 NOT_SET = object()
+
 
 @asyncio.coroutine
 def convert_to_response_dict(http_response, operation_model):
