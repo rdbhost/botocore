@@ -34,15 +34,15 @@ from nose.plugins.attrib import attr
 
 class TestEC2(unittest.TestCase):
 
-    def setUp(self):
+    def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
-        self.client = self.session.create_client(
+        self.client = yield from self.session.create_client(
             'ec2', region_name='us-west-2')
 
     @async_test
     def test_can_make_request(self):
         # Basic smoke test to ensure we can talk to ec2.
-        result = self.client.describe_availability_zones()
+        result = yield from self.client.describe_availability_zones()
         assert result
         zones = list(sorted(a['ZoneName'] for a in result['AvailabilityZones']))
         self.assertEqual(zones, ['us-west-2a', 'us-west-2b', 'us-west-2c'])
@@ -53,7 +53,7 @@ class TestEC2Pagination(unittest.TestCase):
     @asyncio.coroutine
     def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
-        self.client = self.session.create_client(
+        self.client = yield from self.session.create_client(
             'ec2', region_name='us-west-2')
 
     @async_test
@@ -90,6 +90,7 @@ class TestCopySnapshotCustomization(unittest.TestCase):
     def set_up(self):
         # However, all the test fixture setup/cleanup can use
         # the client interface.
+        self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('ec2', 'us-west-2')
         self.client_us_east_1 = yield from self.session.create_client(
             'ec2', 'us-east-1')

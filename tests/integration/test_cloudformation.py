@@ -15,20 +15,20 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
+import unittest
 import random
-
 import asyncio
 import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test
 
 import yieldfrom.botocore.session
 from yieldfrom.botocore.exceptions import ClientError
+
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestCloudformation(unittest.TestCase):

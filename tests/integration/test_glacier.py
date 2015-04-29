@@ -15,20 +15,20 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
 import unittest
 import io
-
 import asyncio
 import sys
+
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
 from yieldfrom.botocore.exceptions import ClientError
 import yieldfrom.botocore.session
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestGlacier(unittest.TestCase):

@@ -115,6 +115,7 @@ class TestResponseLog(unittest.TestCase):
 
 class TestAcceptedDateTimeFormats(unittest.TestCase):
 
+    @asyncio.coroutine
     def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('emr', 'us-west-2')
@@ -167,18 +168,18 @@ class TestClientCanBeCloned(unittest.TestCase):
 
     def test_client_raises_exception_invalid_region(self):
         with self.assertRaisesRegexp(ValueError, 'Invalid endpoint'):
-            self.session.create_client('cloudformation',
+            yield from self.session.create_client('cloudformation',
                                        region_name='invalid region name')
 
 
 class TestClientErrorMessages(unittest.TestCase):
     def test_region_mentioned_in_invalid_region(self):
         session = yieldfrom.botocore.session.get_session()
-        client = session.create_client(
+        client = yield from session.create_client(
             'cloudformation', region_name='bad-region-name')
         with self.assertRaisesRegexp(EndpointConnectionError,
                                      'Could not connect to the endpoint URL'):
-            client.list_stacks()
+            yield from client.list_stacks()
 
 
 class TestClientMeta(unittest.TestCase):
@@ -186,11 +187,11 @@ class TestClientMeta(unittest.TestCase):
         self.session = yieldfrom.botocore.session.get_session()
 
     def test_region_name_on_meta(self):
-        client = self.session.create_client('s3', 'us-west-2')
+        client = yield from self.session.create_client('s3', 'us-west-2')
         self.assertEqual(client.meta.region_name, 'us-west-2')
 
     def test_endpoint_url_on_meta(self):
-        client = self.session.create_client('s3', 'us-west-2',
+        client = yield from self.session.create_client('s3', 'us-west-2',
                                             endpoint_url='https://foo')
         self.assertEqual(client.meta.endpoint_url, 'https://foo')
 
@@ -210,7 +211,7 @@ class TestClientInjection(unittest.TestCase):
         self.session.register('creating-client-class.s3',
                               inject_client_method)
 
-        client = self.session.create_client('s3', 'us-west-2')
+        client = yield from self.session.create_client('s3', 'us-west-2')
 
         # We should now have access to the extra_client_method above.
         self.assertEqual(client.extra_client_method('foo'), 'foo')

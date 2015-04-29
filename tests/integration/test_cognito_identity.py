@@ -15,18 +15,19 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
+import unittest
 import random
 import asyncio
 import sys
+
+import yieldfrom.botocore.session
+
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
-import yieldfrom.botocore.session
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestCognitoIdentity(unittest.TestCase):

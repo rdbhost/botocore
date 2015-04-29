@@ -15,20 +15,21 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
+import unittest
 import asyncio
 import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test
-
 import functools
 import random
 
 import yieldfrom.botocore.session
+
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
+
 
 DEFAULT_ROLE_POLICY = """\
 {"Statement": [

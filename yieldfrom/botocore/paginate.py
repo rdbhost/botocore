@@ -264,7 +264,7 @@ class PageIterator(object):
 
         response = yield from self.next()
         while response:
-            _, page = response
+            page = response # was _, page = response
 
             # We want to try to catch operation object pagination
             # and format correctly for those. They come in the form
@@ -458,8 +458,7 @@ class DeprecatedPageIterator(PageIterator):
 
     @asyncio.coroutine
     def _make_request(self, current_kwargs):
-        _r = yield from self._operation.call(self._endpoint, **current_kwargs)
-        return _r
+        return (yield from self._operation.call(self._endpoint, **current_kwargs))
 
     def _extract_parsed_response(self, response):
         return response[1]

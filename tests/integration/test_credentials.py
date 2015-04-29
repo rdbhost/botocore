@@ -11,11 +11,14 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import os
+import os, sys
 import mock
 
-from botocore.session import Session
+from yieldfrom.botocore.session import Session
+
+sys.path.extend(['../..', '..'])
 from tests import BaseEnvVar
+from asyncio_test_utils import async_test
 
 
 class TestCredentialPrecedence(BaseEnvVar):
@@ -40,6 +43,7 @@ class TestCredentialPrecedence(BaseEnvVar):
 
         return Session(*args, **kwargs)
 
+    @async_test
     def test_access_secret_vs_profile_env(self):
         # If all three are given, then the access/secret keys should
         # take precedence.
@@ -48,24 +52,26 @@ class TestCredentialPrecedence(BaseEnvVar):
         os.environ['BOTO_DEFAULT_PROFILE'] = 'test'
 
         s = self.create_session()
-        credentials = s.get_credentials()
+        credentials = yield from s.get_credentials()
 
         self.assertEqual(credentials.access_key, 'env')
         self.assertEqual(credentials.secret_key, 'env-secret')
 
-    @mock.patch('botocore.credentials.Credentials')
+    @mock.patch('yieldfrom.botocore.credentials.Credentials')
+    @async_test
     def test_access_secret_vs_profile_code(self, credentials_cls):
         # If all three are given, then the access/secret keys should
         # take precedence.
         s = self.create_session()
         s.profile = 'test'
 
-        client = s.create_client('s3', aws_access_key_id='code',
+        client = yield from s.create_client('s3', aws_access_key_id='code',
                                  aws_secret_access_key='code-secret')
 
         credentials_cls.assert_called_with(
             access_key='code', secret_key='code-secret', token=mock.ANY)
 
+    @async_test
     def test_profile_env_vs_code(self):
         # If the profile is set both by the env var and by code,
         # then the one set by code should take precedence.
@@ -73,12 +79,13 @@ class TestCredentialPrecedence(BaseEnvVar):
         s = self.create_session()
         s.profile = 'default'
 
-        credentials = s.get_credentials()
+        credentials = yield from s.get_credentials()
 
         self.assertEqual(credentials.access_key, 'default')
         self.assertEqual(credentials.secret_key, 'default-secret')
 
-    @mock.patch('botocore.credentials.Credentials')
+    @mock.patch('yieldfrom.botocore.credentials.Credentials')
+    @async_test
     def test_access_secret_env_vs_code(self, credentials_cls):
         # If the access/secret keys are set both as env vars and via
         # code, then those set by code should take precedence.
@@ -86,12 +93,13 @@ class TestCredentialPrecedence(BaseEnvVar):
         os.environ['AWS_SECRET_ACCESS_KEY'] = 'secret'
         s = self.create_session()
 
-        client = s.create_client('s3', aws_access_key_id='code',
+        client = yield from s.create_client('s3', aws_access_key_id='code',
                                  aws_secret_access_key='code-secret')
 
         credentials_cls.assert_called_with(
             access_key='code', secret_key='code-secret', token=mock.ANY)
 
+    @async_test
     def test_access_secret_env_vs_profile_code(self):
         # If access/secret keys are set in the environment, but then a
         # specific profile is passed via code, then the access/secret
@@ -105,7 +113,7 @@ class TestCredentialPrecedence(BaseEnvVar):
         s = self.create_session()
         s.profile = 'test'
 
-        credentials = s.get_credentials()
+        credentials = yield from s.get_credentials()
 
         self.assertEqual(credentials.access_key, 'test')
         self.assertEqual(credentials.secret_key, 'test-secret')

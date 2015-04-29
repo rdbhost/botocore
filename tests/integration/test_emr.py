@@ -15,20 +15,21 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
+import unittest
 import asyncio
 import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test
 
 from nose.tools import assert_true
 
 import yieldfrom.botocore.session
 from yieldfrom.botocore.paginate import DeprecatedPageIterator
+
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 def test_emr_endpoints_work_with_py26():
@@ -42,7 +43,7 @@ def test_emr_endpoints_work_with_py26():
                    'eu-central-1']:
         yield _test_can_list_clusters_in_region, session, region
 
-
+@asyncio.coroutine
 def _test_can_list_clusters_in_region(session, region):
     client = yield from session.create_client('emr', region_name=region)
     response = client.list_clusters()
