@@ -16,19 +16,20 @@ spec.  This can happen for a number of reasons:
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
+import os, sys
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
 import base64
 import json
 import datetime
 import dateutil.tz
-from tests import unittest
+import unittest
 
 from yieldfrom.botocore.model import ServiceModel
 from yieldfrom.botocore import serialize
+
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestBinaryTypes(unittest.TestCase):

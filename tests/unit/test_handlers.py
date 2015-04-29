@@ -15,28 +15,28 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
+import sys, os
 import io
-
-from tests import BaseSessionTest
-
 import base64
 import mock
 import copy
-
+import unittest
 import yieldfrom.botocore
 import yieldfrom.botocore.session
 from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.compat import quote
 from yieldfrom.botocore.model import OperationModel, ServiceModel
 from yieldfrom.botocore import handlers
+
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test, future_wrapped
+from tests import BaseSessionTest
+
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
+
 
 class TestHandlers(BaseSessionTest):
 
@@ -101,7 +101,7 @@ class TestHandlers(BaseSessionTest):
         request = request.prepare()
         endpoint.create_request.return_value = request
 
-        handlers.copy_snapshot_encrypted({'body': params},
+        yield from handlers.copy_snapshot_encrypted({'body': params},
                                          request_signer,
                                          endpoint)
         self.assertEqual(params['PresignedUrl'],

@@ -19,16 +19,16 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
 import sys
-from tests import BaseSessionTest
 from mock import Mock
 
-sys.path.append('..')
+sys.path.extend(['..', '../..'])
+from tests import BaseSessionTest
 from asyncio_test_utils import async_test, future_wrapped
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestSQSOperations(BaseSessionTest):

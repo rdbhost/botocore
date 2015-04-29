@@ -14,16 +14,19 @@
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
+import os, sys
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
+os.environ['PYTHONASYNCIODEBUG'] = '1'
 import datetime
+import unittest
 
 from yieldfrom.botocore.compat import total_seconds, unquote_str
 
-from tests import BaseEnvVar, unittest
+sys.path.extend(['../..'])
+from tests import BaseEnvVar
+
+logging.basicConfig(level=logging.DEBUG)
+
 
 
 class TotalSecondsTest(BaseEnvVar):

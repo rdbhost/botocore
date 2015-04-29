@@ -18,23 +18,25 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
+import os, sys
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
 import asyncio
 import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
-
 import mock
+import unittest
+
 from yieldfrom.requests import ConnectionError, Timeout
 from yieldfrom.urllib3.exceptions import ClosedPoolError
 
 from yieldfrom.botocore import retryhandler
 from yieldfrom.botocore.exceptions import ChecksumError
+
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
+
 
 
 HTTP_500_RESPONSE = mock.Mock()

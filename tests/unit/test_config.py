@@ -17,13 +17,17 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-from tests import unittest, BaseEnvVar
-import os
+import os, sys
+import logging
+import unittest
+
 import yieldfrom.botocore.exceptions
 from yieldfrom.botocore.config import raw_config_parse, load_config
 
+sys.path.extend(['../..'])
+from tests import BaseEnvVar
+
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 

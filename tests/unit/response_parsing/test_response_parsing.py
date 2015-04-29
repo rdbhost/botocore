@@ -22,7 +22,7 @@ import yieldfrom.botocore.session
 from yieldfrom.botocore import parsers
 from yieldfrom.botocore.exceptions import IncompleteReadError
 
-sys.path.extend(['..', '../..'])
+sys.path.extend(['..', '../../..'])
 from tests import unittest, create_session
 
 log = logging.getLogger(__name__)

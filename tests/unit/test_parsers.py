@@ -15,17 +15,17 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
+import os, sys
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
 import datetime
-
 from dateutil.tz import tzutc
-
 from yieldfrom.botocore import parsers, model
+
+#sys.path.extend(['..', '../..'])
+import unittest
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 # These tests contain botocore specific tests that either

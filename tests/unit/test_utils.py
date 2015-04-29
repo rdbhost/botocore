@@ -17,16 +17,12 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
+import unittest
+import io
+import mock
 from dateutil.tz import tzutc, tzoffset
 import datetime
-import io
-
-import mock
 
 from yieldfrom.botocore import xform_name
 from yieldfrom.botocore.exceptions import InvalidExpressionError, ConfigNotFound
@@ -42,8 +38,12 @@ from yieldfrom.botocore.utils import CachedProperty
 from yieldfrom.botocore.utils import ArgumentGenerator
 from yieldfrom.botocore.utils import calculate_tree_hash
 from yieldfrom.botocore.utils import calculate_sha256
+from yieldfrom.botocore.utils import is_valid_endpoint_url
 from yieldfrom.botocore.model import DenormalizedStructureBuilder
 from yieldfrom.botocore.model import ShapeResolver
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestURINormalization(unittest.TestCase):

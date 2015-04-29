@@ -15,16 +15,10 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-import sys
+import asyncio
+import sys, os
 import io
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
-
 import unittest
 
 from mock import Mock, patch
@@ -34,6 +28,12 @@ from yieldfrom.botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
 from yieldfrom.botocore.endpoint import EndpointCreator, PreserveAuthSession, RequestCreator
 from yieldfrom.botocore.exceptions import EndpointConnectionError
 from yieldfrom.botocore.awsrequest import AWSRequest
+
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 def request_dict():
@@ -192,7 +192,7 @@ class TestEndpointFeatures(TestEndpointBase):
             "Fake gaierror(8, node or host not known)", request=fake_request)
         with self.assertRaisesRegexp(EndpointConnectionError,
                                      'Could not connect'):
-            self.endpoint.make_request(self.op, request_dict())
+            yield from self.endpoint.make_request(self.op, request_dict())
 
 
 class TestRetryInterface(TestEndpointBase):
@@ -418,6 +418,9 @@ class TestAWSSession(unittest.TestCase):
         # This line is needed to disable the cookie handling
         # code in requests.
         fake_response.raw._original_response = None
+        rv = asyncio.Future()
+        rv.set_result(None)
+        fake_response.content.return_value = rv
 
         success_response = Mock()
         success_response.raw._original_response = None
@@ -426,8 +429,8 @@ class TestAWSSession(unittest.TestCase):
         session = PreserveAuthSession()
         session.send = Mock(return_value=success_response)
 
-        list(session.resolve_redirects(
-            fake_response, prepared_request, stream=False))
+        list((yield from session.resolve_redirects(
+            fake_response, prepared_request, stream=False)))
 
         redirected_request = session.send.call_args[0][0]
         # The Authorization header for the newly sent request should

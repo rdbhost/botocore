@@ -249,15 +249,16 @@ class TestFuturePaginator(unittest.TestCase):
              mock.call(Marker='m2', MaxKeys=1)]
         )
 
+    @async_test
     def test_build_full_result_with_single_key(self):
         responses = [
             {"Users": ["User1"], "Marker": "m1"},
             {"Users": ["User2"], "Marker": "m2"},
             {"Users": ["User3"]}
         ]
-        self.method.side_effect = responses
+        self.method.side_effect = [future_wrapped(r) for r in responses]
         pages = self.paginator.paginate()
-        complete = pages.build_full_result()
+        complete = yield from pages.build_full_result()
         self.assertEqual(complete, {'Users': ['User1', 'User2', 'User3']})
 
 

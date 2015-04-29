@@ -24,11 +24,8 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
+import os, sys
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
 import mock
 
 from yieldfrom.botocore.exceptions import ApiVersionNotFoundError
@@ -36,7 +33,12 @@ from yieldfrom.botocore.exceptions import DataNotFoundError
 from yieldfrom.botocore.loaders import JSONFileLoader
 from yieldfrom.botocore.loaders import Loader
 
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test
 from tests import unittest, BaseEnvVar
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class JSONFileLoaderTestCase(BaseEnvVar):

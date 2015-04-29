@@ -14,11 +14,14 @@ import sys
 import contextlib
 import warnings
 
-from tests import unittest
 from nose.tools import assert_equal
 from nose.tools import assert_true
 import yieldfrom.botocore.session
 from yieldfrom.botocore.exceptions import ImminentRemovalWarning
+
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test
+import unittest
 
 
 @contextlib.contextmanager
@@ -45,14 +48,14 @@ class TestDeprecationsHaveWarnings(unittest.TestCase):
 
     def test_get_service_deprecated(self):
         with assert_warns(ImminentRemovalWarning, contains='get_service'):
-            self.session.get_service('cloudformation')
+            yield from self.session.get_service('cloudformation')
 
     def test_service_get_operation_deprecated(self):
-        service = self.session.get_service('cloudformation')
+        service = yield from self.session.get_service('cloudformation')
         with assert_warns(ImminentRemovalWarning, contains='get_operation'):
-            service.get_operation('ListStacks')
+            yield from service.get_operation('ListStacks')
 
     def test_get_endpoint(self):
         service = self.session.get_service('cloudformation')
         with assert_warns(ImminentRemovalWarning, contains='get_endpoint'):
-            service.get_endpoint('us-east-1')
+            yield from service.get_endpoint('us-east-1')

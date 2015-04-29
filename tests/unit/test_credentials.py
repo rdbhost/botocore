@@ -19,7 +19,11 @@
 #
 import datetime
 import mock
-import os
+import os, sys
+import unittest
+import asyncio
+import functools
+import logging
 
 from dateutil.tz import tzlocal
 
@@ -27,29 +31,13 @@ from yieldfrom.botocore import credentials
 import yieldfrom.botocore.exceptions
 import yieldfrom.botocore.session
 from yieldfrom.botocore.credentials import EnvProvider
+
+sys.path.extend(['../..', '..'])
 from tests import BaseEnvVar
-import unittest
-import asyncio
-import functools
+from asyncio_test_utils import async_test
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
-
-
-def async_test(f):
-
-    testLoop = asyncio.get_event_loop()
-
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        coro = asyncio.coroutine(f)
-        future = coro(*args, **kwargs)
-        testLoop.run_until_complete(future)
-    return wrapper
-
-async_test.__test__ = False # not a test
-
 
 
 # Passed to session to keep it from finding default config file
@@ -665,11 +653,11 @@ class CredentialResolverTest(BaseEnvVar):
 
 
 class TestCreateCredentialResolver(BaseEnvVar):
+    def setUp(self):
+        super(TestCreateCredentialResolver, self).setUp()
 
-    @async_test
-    def test_create_credential_resolver(self):
-        fake_session = mock.Mock()
-        config = {
+        self.session = mock.Mock()
+        self.config = {
             'credentials_file': 'a',
             'legacy_config_file': 'b',
             'config_file': 'c',
@@ -679,6 +667,8 @@ class TestCreateCredentialResolver(BaseEnvVar):
         }
         self.session.get_config_variable = lambda x: self.config[x]
 
+    @async_test
+    def test_create_credential_resolver(self):
         resolver = credentials.create_credential_resolver(self.session)
         self.assertIsInstance(resolver, credentials.CredentialResolver)
 

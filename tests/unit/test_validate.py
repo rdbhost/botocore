@@ -4,17 +4,18 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
+import unittest
 from datetime import datetime
 import decimal
 import io
 
 from yieldfrom.botocore.model import ShapeResolver
 from yieldfrom.botocore.validate import ParamValidator
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
+
 
 BOILER_PLATE_SHAPES = {
     'StringType': {

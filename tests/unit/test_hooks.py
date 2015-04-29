@@ -18,16 +18,16 @@
 import copy
 import functools
 import asyncio
-import os
+import os, sys
 import unittest
+import logging
+from functools import partial
+from yieldfrom.botocore.hooks import HierarchicalEmitter, first_non_none_response
 
-import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
-from yieldfrom.botocore.hooks import HierarchicalEmitter, first_non_none_response
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -585,7 +585,7 @@ class TestWildcardHandlers(unittest.TestCase):
 
         # The original event emitter should have the unique id event still
         # registered though.
-        self.emitter.emit('foo', id_name='fourth-time')
+        yield from self.emitter.emit('foo', id_name='fourth-time')
         self.assertEqual(first, ['first-time', 'second-time', 'fourth-time'])
         self.assertEqual(second, ['third-time'])
 

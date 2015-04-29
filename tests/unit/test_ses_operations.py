@@ -17,17 +17,18 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-from tests import BaseSessionTest
 
 import asyncio
 import sys, os
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
+import logging
 
 from yieldfrom.botocore.exceptions import ParamValidationError
 
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test, future_wrapped
+from tests import BaseSessionTest
+
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 

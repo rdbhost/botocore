@@ -17,17 +17,17 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-from tests import BaseSessionTest
 import sys, os
 from mock import Mock
+import logging
 
 from yieldfrom.botocore.compat import OrderedDict
 
-sys.path.append('..')
+sys.path.extend(['..', '../..'])
 from asyncio_test_utils import async_test, future_wrapped
+from tests import BaseSessionTest
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 

@@ -27,7 +27,7 @@ from yieldfrom.requests.models import Request
 
 class BaseTestWithFixedDate(unittest.TestCase):
     def setUp(self):
-        self.datetime_patch = mock.patch('botocore.auth.datetime')
+        self.datetime_patch = mock.patch('yieldfrom.botocore.auth.datetime')
         self.datetime_mock = self.datetime_patch.start()
         self.fixed_date = datetime.datetime(2014, 3, 10, 17, 2, 55, 0)
         self.datetime_mock.datetime.utcnow.return_value = self.fixed_date
@@ -272,6 +272,7 @@ class TestS3SigV4Auth(BaseTestWithFixedDate):
     maxDiff = None
 
     def setUp(self):
+        super(TestS3SigV4Auth, self).setUp()
         self.credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
         self.auth = yieldfrom.botocore.auth.S3SigV4Auth(
@@ -384,19 +385,13 @@ class TestSigV4Resign(BaseTestWithFixedDate):
     maxDiff = None
 
     def setUp(self):
+        super(TestSigV4Resign, self).setUp()
         self.credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar', token='baz')
         self.auth = yieldfrom.botocore.auth.SigV4Auth(self.credentials, 'ec2', 'us-west-2')
         self.request = AWSRequest()
         self.request.method = 'PUT'
         self.request.url = 'https://ec2.amazonaws.com/'
-        self.datetime_patch = mock.patch('yieldfrom.botocore.auth.datetime')
-        self.datetime_mock = self.datetime_patch.start()
-        self.now = datetime.datetime.utcnow()
-        self.datetime_mock.datetime.utcnow.return_value = self.now
-
-    def tearDown(self):
-        self.datetime_patch.stop()
 
     def test_resign_request_with_date(self):
         self.request.headers['Date'] = 'Thu, 17 Nov 2005 18:49:58 GMT'

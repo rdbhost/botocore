@@ -25,12 +25,6 @@ import tempfile
 import shutil
 import asyncio
 import sys
-
-from tests import create_session, temporary_file
-
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
-
 import mock
 
 import yieldfrom.botocore.session
@@ -41,6 +35,11 @@ from yieldfrom.botocore.hooks import HierarchicalEmitter
 from yieldfrom.botocore.waiter import WaiterModel
 from yieldfrom.botocore.paginate import PaginatorModel
 import yieldfrom.botocore.loaders
+
+sys.path.extend(['..', '../..'])
+from tests import create_session, temporary_file
+from asyncio_test_utils import async_test, future_wrapped
+
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
 logging.basicConfig(level=logging.DEBUG)

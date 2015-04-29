@@ -19,11 +19,10 @@
 import mock
 import sys, os
 import unittest
-from .. import BaseSessionTest
-
 import yieldfrom.botocore.exceptions
 
-sys.path.append('..')
+sys.path.extend(['..', '../..'])
+from tests import BaseSessionTest
 from asyncio_test_utils import async_test, future_wrapped
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'

@@ -17,11 +17,8 @@
 #
 import asyncio
 import sys, os
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
-from tests import unittest, BaseEnvVar
-
 import mock
+import logging
 
 import yieldfrom.botocore
 from yieldfrom.botocore.exceptions import ClientError, WaiterConfigError, WaiterError
@@ -32,8 +29,12 @@ from yieldfrom.botocore.waiter import NormalizedOperationMethod
 from yieldfrom.botocore.waiter import LegacyOperationMethod
 from yieldfrom.botocore.loaders import Loader
 
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test, future_wrapped
+from tests import unittest, BaseEnvVar
+
+
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 

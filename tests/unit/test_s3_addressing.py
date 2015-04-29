@@ -20,13 +20,13 @@
 #
 import asyncio
 import sys, os
-from tests import BaseSessionTest
 from mock import patch, Mock
 
 from yieldfrom.botocore import auth, credentials
 from yieldfrom.botocore.handlers import fix_s3_host
 
-sys.path.append('..')
+sys.path.extend(['..', '../..'])
+from tests import BaseSessionTest
 from asyncio_test_utils import async_test, future_wrapped
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
@@ -226,7 +226,7 @@ class TestS3Addressing(BaseSessionTest):
 
     def test_invalid_endpoint_raises_exception(self):
         with self.assertRaisesRegexp(ValueError, 'Invalid endpoint'):
-            self.s3.get_endpoint('bad region name')
+            yield from self.s3.get_endpoint('bad region name')
 
     @async_test
     def test_non_existent_region(self):

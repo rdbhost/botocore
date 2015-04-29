@@ -20,11 +20,11 @@ import unittest
 import datetime
 import asyncio
 import sys, os
-
+import logging
 from dateutil.tz import tzutc
 
 import yieldfrom.botocore
-from yieldfrom.botocore import response
+from yieldfrom.botocore import response, session as botosession
 from yieldfrom.botocore.exceptions import IncompleteReadError
 from yieldfrom.requests.models import Response, Request
 
@@ -32,7 +32,6 @@ sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -189,7 +188,7 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'ok'
         http_response.request = Request()
 
-        session = yieldfrom.botocore.session.get_session()
+        session = botosession.get_session()
         s3 = yield from session.get_service('s3')
         operation = s3.get_operation('ListObjects')  # non-streaming operation
 

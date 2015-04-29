@@ -16,17 +16,17 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
+import os, sys
+import logging
+import unittest
 
 from yieldfrom.botocore import translate
+from yieldfrom.botocore.translate import ModelFiles, merge_dicts, translate, \
+                               resembles_jmespath_exp
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from tests import unittest
-from yieldfrom.botocore.translate import ModelFiles, merge_dicts, \
-                               resembles_jmespath_exp
 
 
 SERVICES = {
