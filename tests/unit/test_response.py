@@ -16,25 +16,25 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest
+import unittest
 import datetime
 import asyncio
-import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
+import sys, os
 
 from dateutil.tz import tzutc
-import io
 
 import yieldfrom.botocore
 from yieldfrom.botocore import response
 from yieldfrom.botocore.exceptions import IncompleteReadError
 from yieldfrom.requests.models import Response, Request
+
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 
 XMLBODY1 = (b'<?xml version="1.0" encoding="UTF-8"?><Error>'
             b'<Code>AccessDenied</Code>'

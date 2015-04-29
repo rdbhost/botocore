@@ -17,21 +17,18 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 from tests import BaseSessionTest
 
-from mock import Mock, sentinel
 import asyncio
-import sys
+import sys, os
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
-import yieldfrom.botocore.session
 from yieldfrom.botocore.exceptions import ParamValidationError
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 # The param validation is tested in test_validate.py, but

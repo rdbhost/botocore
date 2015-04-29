@@ -12,20 +12,18 @@
 # language governing permissions and limitations under the License.
 
 import os
-import sys
-import mock
 import time
 import random
 import shutil
 import contextlib
 import tempfile
 import asyncio
-
 import unittest
 
-from yieldfrom import botocore
+import mock
 import yieldfrom.botocore.loaders
 import yieldfrom.botocore.session
+
 _LOADER = yieldfrom.botocore.loaders.Loader()
 
 

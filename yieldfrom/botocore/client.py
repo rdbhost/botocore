@@ -50,19 +50,20 @@ class ClientCreator(object):
                       credentials=None, scoped_config=None,
                       client_config=None):
         service_model = self._load_service_model(service_name)
-        cls = self.create_client_class(service_name)
+        cls = yield from self.create_client_class(service_name)
         client_args = self._get_client_args(
             service_model, region_name, is_secure, endpoint_url,
             verify, credentials, scoped_config, client_config)
         return cls(**client_args)
 
+    @asyncio.coroutine
     def create_client_class(self, service_name):
         service_model = self._load_service_model(service_name)
         class_attributes = self._create_methods(service_model)
         py_name_to_operation_name = self._create_name_mapping(service_model)
         class_attributes['_PY_TO_OP_NAME'] = py_name_to_operation_name
         bases = [BaseClient]
-        self._event_emitter.emit('creating-client-class.%s' % service_name,
+        yield from self._event_emitter.emit('creating-client-class.%s' % service_name,
                                  class_attributes=class_attributes,
                                  base_classes=bases)
         cls = type(str(service_name), tuple(bases), class_attributes)
@@ -239,7 +240,7 @@ class BaseClient(object):
     @asyncio.coroutine
     def _make_api_call(self, operation_name, api_params):
         operation_model = self._service_model.operation_model(operation_name)
-        request_dict = self._convert_to_request_dict(
+        request_dict = yield from self._convert_to_request_dict(
             api_params, operation_model)
 
         http, parsed_response = yield from self._endpoint.make_request(
@@ -258,13 +259,14 @@ class BaseClient(object):
         else:
             return parsed_response
 
+    @asyncio.coroutine
     def _convert_to_request_dict(self, api_params, operation_model):
         # Given the API params provided by the user and the operation_model
         # we can serialize the request to a request_dict.
         operation_name = operation_model.name
         event_name = (
             'before-parameter-build.{endpoint_prefix}.{operation_name}')
-        self.meta.events.emit(
+        yield from self.meta.events.emit(
             event_name.format(
                 endpoint_prefix=self._service_model.endpoint_prefix,
                 operation_name=operation_name),
@@ -273,7 +275,7 @@ class BaseClient(object):
         request_dict = self._serializer.serialize_to_request(
             api_params, operation_model)
 
-        self.meta.events.emit(
+        yield from self.meta.events.emit(
             'before-call.{endpoint_prefix}.{operation_name}'.format(
                 endpoint_prefix=self._service_model.endpoint_prefix,
                 operation_name=operation_name),

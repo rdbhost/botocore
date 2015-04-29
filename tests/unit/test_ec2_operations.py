@@ -29,8 +29,6 @@ sys.path.append('..')
 from asyncio_test_utils import async_test
 
 from tests import TestParamSerialization
-import base64
-import yieldfrom.botocore.session
 
 
 class TestEC2Operations(TestParamSerialization):

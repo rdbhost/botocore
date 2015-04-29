@@ -16,18 +16,18 @@
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
+import sys
+import unittest
+sys.path.append('../..')
+from tests import BaseSessionTest
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
-from tests import unittest, BaseSessionTest
-import os
-
-import mock
 
 import yieldfrom.botocore.session
 import yieldfrom.botocore.exceptions
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestConfig(BaseSessionTest):

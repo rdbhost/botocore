@@ -17,15 +17,15 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 from tests import unittest, BaseEnvVar
 import os
 import yieldfrom.botocore.exceptions
 from yieldfrom.botocore.config import raw_config_parse, load_config
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 
 def path(filename):
     return os.path.join(os.path.dirname(__file__), 'cfg', filename)

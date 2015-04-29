@@ -22,11 +22,9 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 import mock
-import asyncio
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
-import functools
 
 import yieldfrom.botocore
 import yieldfrom.botocore.auth
@@ -35,7 +33,7 @@ from yieldfrom.botocore.credentials import Credentials
 from yieldfrom.botocore.exceptions import NoRegionError, UnknownSignatureVersionError
 from yieldfrom.botocore.signers import RequestSigner
 
-from tests import unittest
+import unittest
 
 
 class TestSigner(unittest.TestCase):

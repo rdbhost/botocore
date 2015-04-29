@@ -28,17 +28,13 @@ import io
 import datetime
 from io import BytesIO
 import http.server
+from urllib.parse import urlsplit
+from urllib.parse import parse_qsl
 
-import nose.tools as t
-from nose import with_setup
 import mock
-
 import yieldfrom.botocore.auth
 from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.credentials import Credentials
-
-from urllib.parse import urlsplit
-from urllib.parse import parse_qsl
 
 
 CREDENTIAL_SCOPE = "KEYNAME/20110909/us-west-1/s3/aws4_request"

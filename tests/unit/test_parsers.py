@@ -25,8 +25,7 @@ import datetime
 
 from dateutil.tz import tzutc
 
-from yieldfrom.botocore import parsers
-from yieldfrom.botocore import model
+from yieldfrom.botocore import parsers, model
 
 
 # These tests contain botocore specific tests that either

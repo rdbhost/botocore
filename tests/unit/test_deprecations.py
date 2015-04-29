@@ -11,15 +11,14 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import sys
-from tests import unittest
 import contextlib
 import warnings
 
+from tests import unittest
 from nose.tools import assert_equal
 from nose.tools import assert_true
-
-import botocore.session
-from botocore.exceptions import ImminentRemovalWarning
+import yieldfrom.botocore.session
+from yieldfrom.botocore.exceptions import ImminentRemovalWarning
 
 
 @contextlib.contextmanager
@@ -42,7 +41,7 @@ def assert_warns(warning_type, contains=''):
 
 class TestDeprecationsHaveWarnings(unittest.TestCase):
     def setUp(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
 
     def test_get_service_deprecated(self):
         with assert_warns(ImminentRemovalWarning, contains='get_service'):

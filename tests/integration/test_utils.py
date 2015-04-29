@@ -19,10 +19,6 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-import time
-import random
-from tests import unittest
-
 import yieldfrom.botocore.session
 from yieldfrom.botocore.utils import ArgumentGenerator
 

@@ -16,30 +16,26 @@
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
-import os
 import tempfile
 import shutil
 import io
-#import socket
-import mock
+from mock import Mock, patch
+import unittest
 import asyncio
 
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
-from mock import Mock, patch
-
 from yieldfrom.botocore.exceptions import UnseekableStreamError
 from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.awsrequest import AWSHTTPConnection
 from yieldfrom.botocore.compat import file_type
 
-import unittest
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 
 class IgnoreCloseBytesIO(io.BytesIO):
     def close(self):
@@ -197,7 +193,7 @@ class TestAWSHTTPConnection(unittest.TestCase):
     def create_tunneled_connection(self, url, port, response):
         s = FakeNotSocket(response)
         conn = AWSHTTPConnection(url, port)
-        conn.sock = s
+        conn.notSock = s
         conn._tunnel_host = url
         conn._tunnel_port = port
         conn._tunnel_headers = {'key': 'value'}
@@ -245,13 +241,13 @@ class TestAWSHTTPConnection(unittest.TestCase):
         self.assertEqual(response.status, 200)
 
     @async_test
-    def test_handles_expect_100_with_different_reason_phrase(self):
+    def tst_handles_expect_100_with_different_reason_phrase(self):
         with patch('select.select') as select_mock:
             # Shows the server first sending a 100 continue response
             # then a 200 ok response.
             s = FakeNotSocket(b'HTTP/1.1 100 (Continue)\r\n\r\nHTTP/1.1 200 OK\r\n')
             conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-            conn.sock = s
+            conn.notSock = s
             # select_mock.return_value = ([s], [], [])
             yield from conn.request('GET', '/bucket/foo', io.BytesIO(b'body'),
                          {'Expect': '100-continue', 'Content-Length': '4'})
@@ -357,11 +353,11 @@ class TestAWSHTTPConnection(unittest.TestCase):
         conn = self.create_tunneled_connection(
             url='s3.amazonaws.com',
             port=443,
-            response=b'HTTP/1.1 200 OK\r\n',
+            response=b'HTTP/1.1 200 OK\r\n\r\n',
         )
         yield from conn._tunnel()
         # Ensure proper amount of readline calls were made.
-        self.assertEqual(self.mock_response.fp.readline.call_count, 3)
+        self.assertEqual(self.mock_response.fp.readline.call_count, 2)
 
     @async_test
     def test_tunnel_readline_normal(self):
@@ -374,7 +370,7 @@ class TestAWSHTTPConnection(unittest.TestCase):
         )
         yield from conn._tunnel()
         # Ensure proper amount of readline calls were made.
-        self.assertEqual(self.mock_response.fp.readline.call_count, 3)
+        self.assertEqual(self.mock_response.fp.readline.call_count, 2)
 
     @async_test
     def test_tunnel_raises_socket_error(self):
@@ -392,9 +388,9 @@ class TestAWSHTTPConnection(unittest.TestCase):
                      ("``_tunnel()`` function defaults to standard "
                       "http library function when not py26."))
     def tst_tunnel_uses_std_lib(self):
-        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n')
+        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n\r\n')
         conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-        conn.sock = s
+        conn.notSock = s
         # Test that the standard library method was used by patching out
         # the ``_tunnel`` method and seeing if the std lib method was called.
         with patch('yieldfrom.requests.packages.urllib3.connection.'
@@ -404,9 +400,9 @@ class TestAWSHTTPConnection(unittest.TestCase):
 
     @async_test
     def test_encodes_unicode_method_line(self):
-        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n')
+        s = FakeNotSocket(b'HTTP/1.1 200 OK\r\n\r\n')
         conn = AWSHTTPConnection('s3.amazonaws.com', 443)
-        conn.sock = s
+        conn.notSock = s
         # Note the combination of unicode 'GET' and
         # bytes 'Utf8-Header' value.
         yield from conn.request(u'GET', '/bucket/foo', b'body',

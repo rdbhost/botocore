@@ -33,10 +33,8 @@ import mock
 
 from yieldfrom.botocore.exceptions import ApiVersionNotFoundError
 from yieldfrom.botocore.exceptions import DataNotFoundError
-from yieldfrom.botocore.loaders import cachable
 from yieldfrom.botocore.loaders import JSONFileLoader
 from yieldfrom.botocore.loaders import Loader
-import yieldfrom.botocore.session
 
 from tests import unittest, BaseEnvVar
 

@@ -20,11 +20,9 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-import asyncio
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
-import asyncio
 import io
 
 from tests import BaseSessionTest
@@ -35,7 +33,6 @@ import copy
 
 import yieldfrom.botocore
 import yieldfrom.botocore.session
-from yieldfrom.botocore.hooks import first_non_none_response
 from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.compat import quote
 from yieldfrom.botocore.model import OperationModel, ServiceModel

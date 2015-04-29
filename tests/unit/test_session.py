@@ -18,19 +18,16 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 import unittest
-from tests import create_session, temporary_file
 import os
 import logging
 import tempfile
 import shutil
 import asyncio
 import sys
+
+from tests import create_session, temporary_file
+
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
@@ -44,6 +41,9 @@ from yieldfrom.botocore.hooks import HierarchicalEmitter
 from yieldfrom.botocore.waiter import WaiterModel
 from yieldfrom.botocore.paginate import PaginatorModel
 import yieldfrom.botocore.loaders
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class BaseSessionTest(unittest.TestCase):
@@ -67,7 +67,7 @@ class BaseSessionTest(unittest.TestCase):
                                    'foo_config')
         self.environ['FOO_CONFIG_FILE'] = config_path
         self.session = create_session(session_vars=self.env_vars)
-        self.loader = botocore.loaders.Loader()
+        self.loader = yieldfrom.botocore.loaders.Loader()
         self.session.register_component('data_loader', self.loader)
 
     def tearDown(self):

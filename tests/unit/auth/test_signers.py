@@ -18,7 +18,6 @@ import time
 import io
 
 import mock
-
 import yieldfrom.botocore.auth
 import yieldfrom.botocore.credentials
 from yieldfrom.botocore.compat import HTTPHeaders, urlsplit, parse_qs

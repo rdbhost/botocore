@@ -28,7 +28,6 @@ import io
 
 import mock
 
-<<<<<<< HEAD
 from yieldfrom.botocore import xform_name
 from yieldfrom.botocore.exceptions import InvalidExpressionError, ConfigNotFound
 from yieldfrom.botocore.utils import remove_dot_segments
@@ -45,25 +44,6 @@ from yieldfrom.botocore.utils import calculate_tree_hash
 from yieldfrom.botocore.utils import calculate_sha256
 from yieldfrom.botocore.model import DenormalizedStructureBuilder
 from yieldfrom.botocore.model import ShapeResolver
-=======
-from botocore import xform_name
-from botocore.exceptions import InvalidExpressionError, ConfigNotFound
-from botocore.utils import remove_dot_segments
-from botocore.utils import normalize_url_path
-from botocore.utils import validate_jmespath_for_set
-from botocore.utils import set_value_from_jmespath
-from botocore.utils import parse_key_val_file_contents
-from botocore.utils import parse_key_val_file
-from botocore.utils import parse_timestamp
-from botocore.utils import parse_to_aware_datetime
-from botocore.utils import CachedProperty
-from botocore.utils import ArgumentGenerator
-from botocore.utils import calculate_tree_hash
-from botocore.utils import calculate_sha256
-from botocore.utils import is_valid_endpoint_url
-from botocore.model import DenormalizedStructureBuilder
-from botocore.model import ShapeResolver
->>>>>>> tmp
 
 
 class TestURINormalization(unittest.TestCase):

@@ -18,26 +18,20 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 import asyncio
-import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
-
-import os
-
+import sys, os
 from tests import BaseSessionTest
 from mock import patch, Mock
 
-import yieldfrom.botocore.session
-from yieldfrom.botocore import auth
-from yieldfrom.botocore import credentials
-from yieldfrom.botocore.exceptions import ServiceNotInRegionError
+from yieldfrom.botocore import auth, credentials
 from yieldfrom.botocore.handlers import fix_s3_host
+
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestS3Addressing(BaseSessionTest):
@@ -230,14 +224,11 @@ class TestS3Addressing(BaseSessionTest):
             prepared_request.url,
             'https://s3-us-west-2.amazonaws.com/192.168.5.256/mykeyname')
 
-<<<<<<< HEAD
-    @async_test
-=======
     def test_invalid_endpoint_raises_exception(self):
         with self.assertRaisesRegexp(ValueError, 'Invalid endpoint'):
             self.s3.get_endpoint('bad region name')
 
->>>>>>> tmp
+    @async_test
     def test_non_existent_region(self):
         # If I ask for a region that does not
         # exist on a global endpoint, such as:

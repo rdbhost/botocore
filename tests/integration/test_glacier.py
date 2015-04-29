@@ -19,8 +19,7 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from tests import unittest
-import random
+import unittest
 import io
 
 import asyncio

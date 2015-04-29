@@ -16,20 +16,19 @@
 #  This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
+import mock
+import sys, os
+import unittest
+from .. import BaseSessionTest
+
+import yieldfrom.botocore.exceptions
+
+sys.path.append('..')
+from asyncio_test_utils import async_test, future_wrapped
+
 os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
-
-import mock
-import asyncio
-import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test, future_wrapped
-import unittest
-from tests import BaseSessionTest
-
-import yieldfrom.botocore.exceptions
 
 
 class TestService(BaseSessionTest):

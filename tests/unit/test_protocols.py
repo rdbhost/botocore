@@ -56,17 +56,11 @@ can set the BOTOCORE_TEST_ID env var with the ``suite_id:test_id`` syntax.
 # asyncio.
 #
 import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
-import os
 import copy
 
 from dateutil.tz import tzutc
 
 from yieldfrom.botocore.compat import json, OrderedDict
-from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.model import ServiceModel, OperationModel
 from yieldfrom.botocore.serialize import EC2Serializer, QuerySerializer, \
         JSONSerializer, RestJSONSerializer, RestXMLSerializer
@@ -77,6 +71,10 @@ from calendar import timegm
 from yieldfrom.botocore.compat import urlencode
 
 from nose.tools import assert_equal as _assert_equal
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 TEST_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),

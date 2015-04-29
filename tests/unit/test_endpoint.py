@@ -20,27 +20,20 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-import asyncio
 import sys
 import io
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 
 import unittest
-from tests import BaseSessionTest, create_session
 
-from mock import Mock, patch, sentinel
+from mock import Mock, patch
 from yieldfrom.requests import ConnectionError
-from yieldfrom.requests.models import Response
 
 from yieldfrom.botocore.endpoint import get_endpoint, Endpoint, DEFAULT_TIMEOUT
 from yieldfrom.botocore.endpoint import EndpointCreator, PreserveAuthSession, RequestCreator
 from yieldfrom.botocore.exceptions import EndpointConnectionError
 from yieldfrom.botocore.awsrequest import AWSRequest
-from yieldfrom.botocore.auth import SigV4Auth
-from yieldfrom.botocore.session import Session
-from yieldfrom.botocore.exceptions import UnknownServiceStyle
-from yieldfrom.botocore.exceptions import UnknownSignatureVersionError
 
 
 def request_dict():

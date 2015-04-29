@@ -23,13 +23,12 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-import asyncio
 import sys
+from tests import BaseSessionTest
+from mock import Mock
+
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
-
-from tests import unittest, BaseSessionTest
-import yieldfrom.botocore.session
 
 
 class TestSQSOperations(BaseSessionTest):

@@ -14,33 +14,24 @@
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 import asyncio
-import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test
-
+import sys, os
 import time
 import random
 import logging
 import datetime
 import unittest
+from io import StringIO
 
-<<<<<<< HEAD
 import yieldfrom.botocore.session
 from yieldfrom.botocore.client import ClientError
-from io import StringIO
-=======
-import botocore.session
-from botocore.client import ClientError
-from botocore.compat import six
-from botocore.exceptions import EndpointConnectionError
-from six import StringIO
->>>>>>> tmp
+from yieldfrom.botocore.exceptions import EndpointConnectionError
+
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestBucketWithVersions(unittest.TestCase):
@@ -182,7 +173,7 @@ class TestClientCanBeCloned(unittest.TestCase):
 
 class TestClientErrorMessages(unittest.TestCase):
     def test_region_mentioned_in_invalid_region(self):
-        session = botocore.session.get_session()
+        session = yieldfrom.botocore.session.get_session()
         client = session.create_client(
             'cloudformation', region_name='bad-region-name')
         with self.assertRaisesRegexp(EndpointConnectionError,
@@ -192,7 +183,7 @@ class TestClientErrorMessages(unittest.TestCase):
 
 class TestClientMeta(unittest.TestCase):
     def setUp(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
 
     def test_region_name_on_meta(self):
         client = self.session.create_client('s3', 'us-west-2')
@@ -206,7 +197,7 @@ class TestClientMeta(unittest.TestCase):
 
 class TestClientInjection(unittest.TestCase):
     def setUp(self):
-        self.session = botocore.session.get_session()
+        self.session = yieldfrom.botocore.session.get_session()
 
     def test_can_inject_client_methods(self):
 

@@ -16,18 +16,15 @@
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
+import sys, os
+import unittest
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test
+from tests import TestParamSerialization
+
 os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
-
-import sys
-sys.path.append('..')
-from asyncio_test_utils import async_test
-
-
-from tests import TestParamSerialization
-import yieldfrom.botocore.session
 
 
 class TestCloudformationOperations(TestParamSerialization):

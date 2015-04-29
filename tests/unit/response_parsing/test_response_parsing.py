@@ -11,21 +11,19 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import os
+import os, sys
 import glob
 import json
 import pprint
 import logging
 import difflib
-from tests import unittest, create_session
-
-from mock import Mock
-from yieldfrom.requests.structures import CaseInsensitiveDict
 
 import yieldfrom.botocore.session
-from yieldfrom.botocore import response
 from yieldfrom.botocore import parsers
 from yieldfrom.botocore.exceptions import IncompleteReadError
+
+sys.path.extend(['..', '../..'])
+from tests import unittest, create_session
 
 log = logging.getLogger(__name__)
 

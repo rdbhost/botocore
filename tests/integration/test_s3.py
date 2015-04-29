@@ -15,29 +15,19 @@
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
-import os
-import sys
+import sys, os
 import time
 import random
-from tests import unittest, temporary_file
 from collections import defaultdict
 import tempfile
 import shutil
-import threading
+import unittest
 import mock
 import asyncio
 import io
-try:
-    from itertools import izip_longest as zip_longest
-except ImportError:
-    from itertools import zip_longest
+from itertools import zip_longest
+from nose.plugins.attrib import attr
 
-<<<<<<< HEAD
 from yieldfrom.requests import adapters
 from yieldfrom.requests.exceptions import ConnectionError
 import yieldfrom.botocore.session
@@ -45,22 +35,13 @@ import yieldfrom.botocore.auth
 import yieldfrom.botocore.credentials
 import yieldfrom.requests as requests
 
-#import logging
-#logging.basicConfig(level=logging.DEBUG)
-
-sys.path.append('..')
+sys.path.extend(['..', '../..'])
 from asyncio_test_utils import async_test
-=======
-from nose.plugins.attrib import attr
+from tests import temporary_file
 
-from botocore.vendored.requests import adapters
-from botocore.vendored.requests.exceptions import ConnectionError
-from botocore.compat import six
-import botocore.session
-import botocore.auth
-import botocore.credentials
-import botocore.vendored.requests as requests
->>>>>>> tmp
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 class BaseS3Test(unittest.TestCase):
@@ -222,11 +203,8 @@ class TestS3Objects(TestS3BaseWithBucket):
         response = (yield from operation.call(self.endpoint, bucket=self.bucket_name, key=key_name))[0]
         self.assertEqual(response.status_code, 204)
 
-<<<<<<< HEAD
     @async_test
-=======
     @attr('slow')
->>>>>>> tmp
     def test_can_paginate(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -246,11 +224,8 @@ class TestS3Objects(TestS3BaseWithBucket):
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
-<<<<<<< HEAD
     @async_test
-=======
     @attr('slow')
->>>>>>> tmp
     def test_can_paginate_with_page_size(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -271,11 +246,8 @@ class TestS3Objects(TestS3BaseWithBucket):
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
-<<<<<<< HEAD
     @async_test
-=======
     @attr('slow')
->>>>>>> tmp
     def test_client_can_paginate_with_page_size(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -297,13 +269,9 @@ class TestS3Objects(TestS3BaseWithBucket):
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
-<<<<<<< HEAD
     @async_test
-    def tst_result_key_iters(self):
-=======
     @attr('slow')
-    def test_result_key_iters(self):
->>>>>>> tmp
+    def tst_result_key_iters(self):
         for i in range(5):
             key_name = 'key/%s/%s' % (i, i)
             yield from self.create_object(key_name)
@@ -325,11 +293,8 @@ class TestS3Objects(TestS3BaseWithBucket):
         self.assertIn('Contents', response)
         self.assertIn('CommonPrefixes', response)
 
-<<<<<<< HEAD
     @async_test
-=======
     @attr('slow')
->>>>>>> tmp
     def test_can_get_and_put_object(self):
         yield from self.create_object('foobarbaz', body='body contents')
         time.sleep(3)
@@ -426,29 +391,29 @@ class TestS3Objects(TestS3BaseWithBucket):
         parsed = (yield from operation.call(self.endpoint, bucket=self.bucket_name, key=key_name))[1]
         self.assertEqual((yield from parsed['Body'].read()).decode('utf-8'), 'foo')
 
-    @async_test
-    def tst_thread_safe_auth(self):
-        self.auth_paths = []
-        self.caught_exceptions = []
-        self.session.register('before-sign', self.increment_auth)
-        yield from self.create_object(key_name='foo1')
-        threads = []
-        for i in range(10):
-            t = threading.Thread(target=self.create_object_catch_exceptions,
-                                 args=('foo%s' % i,))
-            t.daemon = True
-            threads.append(t)
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
-        self.assertEqual(
-            self.caught_exceptions, [],
-            "Unexpectedly caught exceptions: %s" % self.caught_exceptions)
-        self.assertEqual(
-            len(set(self.auth_paths)), 10,
-            "Expected 10 unique auth paths, instead received: %s" %
-            (self.auth_paths))
+    # @async_test
+    # def tst_thread_safe_auth(self):
+    #     self.auth_paths = []
+    #     self.caught_exceptions = []
+    #     self.session.register('before-sign', self.increment_auth)
+    #     yield from self.create_object(key_name='foo1')
+    #     threads = []
+    #     for i in range(10):
+    #         t = threading.Thread(target=self.create_object_catch_exceptions,
+    #                              args=('foo%s' % i,))
+    #         t.daemon = True
+    #         threads.append(t)
+    #     for thread in threads:
+    #         thread.start()
+    #     for thread in threads:
+    #         thread.join()
+    #     self.assertEqual(
+    #         self.caught_exceptions, [],
+    #         "Unexpectedly caught exceptions: %s" % self.caught_exceptions)
+    #     self.assertEqual(
+    #         len(set(self.auth_paths)), 10,
+    #         "Expected 10 unique auth paths, instead received: %s" %
+    #         (self.auth_paths))
 
     @async_test
     def test_non_normalized_key_paths(self):
@@ -770,11 +735,8 @@ class TestS3SigV4Client(BaseS3ClientTest):
             self.assert_status_code(response, 200)
             self.keys.append('foo.txt')
 
-<<<<<<< HEAD
     @async_test
-=======
     @attr('slow')
->>>>>>> tmp
     def test_paginate_list_objects_unicode(self):
         key_names = [
             u'non-ascii-key-\xe4\xf6\xfc-01.txt',
@@ -800,11 +762,8 @@ class TestS3SigV4Client(BaseS3ClientTest):
 
         self.assertEqual(key_names, key_refs)
 
-<<<<<<< HEAD
     @async_test
-=======
     @attr('slow')
->>>>>>> tmp
     def test_paginate_list_objects_safe_chars(self):
 
         key_names = [
@@ -927,7 +886,7 @@ class TestSSEKeyParamValidation(unittest.TestCase):
 class TestS3UTF8Headers(BaseS3ClientTest):
     def test_can_set_utf_8_headers(self):
         bucket_name = self.create_bucket()
-        body = six.BytesIO(b"Hello world!")
+        body = io.BytesIO(b"Hello world!")
         response = self.client.put_object(
             Bucket=bucket_name, Key="foo.txt", Body=body,
             ContentDisposition="attachment; filename=5小時接力起跑.jpg;")

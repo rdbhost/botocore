@@ -572,9 +572,9 @@ class Session(object):
         """
         warnings.warn("get_service is deprecated and will be removed.  "
                       "Use create_client instead.", DeprecationWarning)
+        #service = yield from botoservice.get_service(self, service_name,
+        #              "Use create_client instead.", ImminentRemovalWarning)
         service = yield from botoservice.get_service(self, service_name,
-                      "Use create_client instead.", ImminentRemovalWarning)
-        service = botoservice.get_service(self, service_name,
                                                self.provider,
                                                api_version=api_version)
         event = self.create_event('service-created')

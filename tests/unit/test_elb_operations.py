@@ -23,13 +23,11 @@ os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-import asyncio
 import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
 from tests import TestParamSerialization
-import yieldfrom.botocore.session
 
 
 class TestELBOperations(TestParamSerialization):

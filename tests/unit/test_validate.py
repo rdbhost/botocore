@@ -14,7 +14,6 @@ import decimal
 import io
 
 from yieldfrom.botocore.model import ShapeResolver
-from yieldfrom.botocore.model import StructureShape
 from yieldfrom.botocore.validate import ParamValidator
 
 BOILER_PLATE_SHAPES = {

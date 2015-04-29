@@ -17,12 +17,15 @@
 # asyncio.
 #
 import os
+
+from yieldfrom.botocore import translate
+
 os.environ['PYTHONASYNCIODEBUG'] = '1'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from tests import unittest
-from yieldfrom.botocore.translate import ModelFiles, translate, merge_dicts, \
+from yieldfrom.botocore.translate import ModelFiles, merge_dicts, \
                                resembles_jmespath_exp
 
 
