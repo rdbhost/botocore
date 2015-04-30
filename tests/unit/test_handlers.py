@@ -22,6 +22,8 @@ import base64
 import mock
 import copy
 import unittest
+import asyncio
+
 import yieldfrom.botocore
 import yieldfrom.botocore.session
 from yieldfrom.botocore.awsrequest import AWSRequest
@@ -99,7 +101,9 @@ class TestHandlers(BaseSessionTest):
         request.method = 'POST'
         request.url = 'https://ec2.us-east-1.amazonaws.com'
         request = request.prepare()
-        endpoint.create_request.return_value = request
+        req = asyncio.Future()
+        req.set_result(request)
+        endpoint.create_request.return_value = req
 
         yield from handlers.copy_snapshot_encrypted({'body': params},
                                          request_signer,

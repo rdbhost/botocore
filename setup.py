@@ -26,7 +26,7 @@ with open('LICENSE.txt', 'r', 'utf-8') as f:
 
 setup(
     name='yieldfrom.botocore',
-    version='0.1.3',
+    version='0.1.4',
 
     description='asyncio port of botocore, the low-level, data-driven core of boto 3.',
     long_description=open('README.rst', 'r', 'utf-8').read(),
