@@ -14,13 +14,17 @@
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
+import os, sys
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
 import yieldfrom.botocore.session
 from yieldfrom.botocore.utils import ArgumentGenerator
+
+sys.path.append('..')
+from asyncio_test_utils import async_test
+
+logging.basicConfig(level=logging.DEBUG)
+os.environ['PYTHONASYNCIODEBUG'] = '1'
 
 
 class ArgumentGeneratorError(AssertionError):

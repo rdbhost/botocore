@@ -14,18 +14,16 @@
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
-import os
-os.environ['PYTHONASYNCIODEBUG'] = '1'
+import os, sys
 import logging
-logging.basicConfig(level=logging.DEBUG)
+import unittest
+import yieldfrom.botocore.session
 
-from tests import unittest
-import sys
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
-
-import yieldfrom.botocore.session
+os.environ['PYTHONASYNCIODEBUG'] = '1'
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestCanChangeParsing(unittest.TestCase):
@@ -64,16 +62,18 @@ class TestCanChangeParsing(unittest.TestCase):
         self.assertTrue(all(isinstance(date, str) for date in dates),
                         "Expected all str types but instead got: %s" % dates)
 
+    @async_test
     def test_maps_service_name_when_overriden(self):
-        ses = self.session.get_service_model('ses')
+        ses = yield from self.session.get_service_model('ses')
         self.assertEqual(ses.endpoint_prefix, 'email')
         # But we should map the service_name to be the same name
         # used when calling get_service_model which is different
         # than the endpoint_prefix.
         self.assertEqual(ses.service_name, 'ses')
 
+    @async_test
     def test_maps_service_name_from_client(self):
         # Same thing as test_maps_service_name_from_client,
         # except through the client interface.
-        client = self.session.create_client('ses', region_name='us-east-1')
+        client = yield from self.session.create_client('ses', region_name='us-east-1')
         self.assertEqual(client.meta.service_model.service_name, 'ses')

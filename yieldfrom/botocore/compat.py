@@ -20,7 +20,7 @@ import warnings
 from yieldfrom.urllib3 import exceptions
 
 
-import http.client as http_client
+import yieldfrom.http.client as http_client
 class HTTPHeaders(http_client.HTTPMessage):
     pass
 from urllib.parse import quote
@@ -32,7 +32,7 @@ from urllib.parse import urlunsplit
 from urllib.parse import urljoin
 from urllib.parse import parse_qsl
 from urllib.parse import parse_qs
-from http.client import HTTPResponse
+from yieldfrom.http.client import HTTPResponse  ## todo - rewrite this to use yieldfrom.http.client
 from io import IOBase as _IOBase
 from base64 import encodebytes
 from email.utils import formatdate

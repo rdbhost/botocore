@@ -18,15 +18,17 @@ import random
 import unittest
 import asyncio
 import sys, os
+import logging
+
 from nose.plugins.attrib import attr
 
 import yieldfrom.botocore.session
 from yieldfrom.botocore.client import ClientError
+
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 

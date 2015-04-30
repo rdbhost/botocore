@@ -104,12 +104,17 @@ class TestElasticTranscoder(unittest.TestCase):
         role = yield from self.create_iam_role()
         pipeline_name = 'botocore-test-create-%s' % (random.randint(1, 1000000))
 
+        delete_pipeline = self.service.get_operation('DeletePipeline')
+
         operation = self.service.get_operation('CreatePipeline')
         http, parsed = yield from operation.call(
             self.endpoint, input_bucket=input_bucket, output_bucket=output_bucket,
             role=role, name=pipeline_name,
             notifications={'Progressing': '', 'Completed': '',
                            'Warning': '', 'Error': ''})
+        pipeline_id = parsed['Pipeline']['Id']
+        self.addCleanup(
+            functools.partial(delete_pipeline.call, self.endpoint, Id=pipeline_id))
         if http.status_code == 429:
             # It's possible that we have too many existing pipelines.
             # We don't want to fail the test, but we need to indicate

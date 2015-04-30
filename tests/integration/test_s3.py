@@ -25,6 +25,8 @@ import unittest
 import mock
 import asyncio
 import io
+import logging
+
 from itertools import zip_longest
 from nose.plugins.attrib import attr
 
@@ -40,7 +42,6 @@ from asyncio_test_utils import async_test
 from tests import temporary_file
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -884,10 +885,12 @@ class TestSSEKeyParamValidation(unittest.TestCase):
 
 
 class TestS3UTF8Headers(BaseS3ClientTest):
+
+    @async_test
     def test_can_set_utf_8_headers(self):
-        bucket_name = self.create_bucket()
+        bucket_name = yield from self.create_bucket()
         body = io.BytesIO(b"Hello world!")
-        response = self.client.put_object(
+        response = yield from self.client.put_object(
             Bucket=bucket_name, Key="foo.txt", Body=body,
             ContentDisposition="attachment; filename=5小時接力起跑.jpg;")
         self.assert_status_code(response, 200)

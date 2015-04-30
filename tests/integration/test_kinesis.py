@@ -58,7 +58,7 @@ class TestKinesisListStreams(unittest.TestCase):
     @asyncio.coroutine
     def tear_down(cls):
         client = yield from cls.session.create_client('kinesis', cls.REGION)
-        client.delete_stream(StreamName=cls.stream_name)
+        yield from client.delete_stream(StreamName=cls.stream_name)
 
     @async_test
     def test_list_streams(self):
@@ -122,7 +122,7 @@ class TestKinesisListStreams(unittest.TestCase):
             }]
         )
         # Give it a few seconds for the record to get into the stream.
-        time.sleep(10)
+        yield from asyncio.sleep(10)
 
         stream = yield from self.client.describe_stream(StreamName=self.stream_name)
         shard = stream['StreamDescription']['Shards'][0]

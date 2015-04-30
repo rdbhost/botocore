@@ -866,7 +866,7 @@ class Session(object):
         client_creator = botoclient.ClientCreator(
             loader, endpoint_resolver, self.user_agent(), event_emitter,
             retryhandler, translate, response_parser_factory)
-        client = client_creator.create_client(
+        client = yield from client_creator.create_client(
             service_name, region_name, use_ssl, endpoint_url, verify,
             credentials, scoped_config=self.get_scoped_config(),
             client_config=config)
