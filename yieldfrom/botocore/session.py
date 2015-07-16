@@ -33,7 +33,7 @@ from .exceptions import ImminentRemovalWarning
 from .exceptions import EventNotFound, ConfigNotFound, ProfileNotFound
 from . import handlers
 from .hooks import HierarchicalEmitter, first_non_none_response
-from .loaders import Loader
+from .loaders import Loader, create_loader
 from .provider import get_provider
 from .parsers import ResponseParserFactory
 from . import regions
@@ -166,9 +166,6 @@ class Session(object):
         # This is a dict that stores per session specific config variable
         # overrides via set_config_variable().
         self._session_instance_vars = {}
-        if loader is None:
-            loader = Loader()
-        self._loader = loader
         # _data_paths_added is used to track whether or not we added
         # extra paths to the loader.  We will do this lazily
         # only when we ask for the loader.
@@ -194,12 +191,12 @@ class Session(object):
     def _register_data_loader(self):
         self._components.lazy_register_component(
             'data_loader',
-            lambda:  Loader(self.get_config_variable('data_path') or ''))
+            lambda:  create_loader(self.get_config_variable('data_path')))
 
     def _register_endpoint_resolver(self):
         self._components.lazy_register_component(
             'endpoint_resolver',
-            lambda:  regions.EndpointResolver(self.get_data('aws/_endpoints')))
+            lambda:  regions.EndpointResolver(self.get_data('_endpoints')))
 
     def _register_response_parser_factory(self):
         self._components.register_component('response_parser_factory',
@@ -519,18 +516,14 @@ class Session(object):
 
     def get_waiter_model(self, service_name, api_version=None):
         loader = self.get_component('data_loader')
-        latest = loader.determine_latest('%s/%s' % (
-            self.provider.name, service_name), api_version)
-        waiter_path = latest.replace('.normal', '.waiters')
-        waiter_config = loader.load_data(waiter_path)
+        waiter_config = loader.load_service_model(
+            service_name, 'waiters-2', api_version)
         return waiter.WaiterModel(waiter_config)
 
     def get_paginator_model(self, service_name, api_version=None):
         loader = self.get_component('data_loader')
-        latest = loader.determine_latest('%s/%s' % (
-            self.provider.name, service_name), api_version)
-        paginator_path = latest.replace('.normal', '.paginators')
-        paginator_config = loader.load_data(paginator_path)
+        paginator_config = loader.load_service_model(
+            service_name, 'paginators-1', api_version)
         return paginate.PaginatorModel(paginator_config)
 
     @asyncio.coroutine
@@ -538,9 +531,10 @@ class Session(object):
         """
         Retrieve the fully merged data associated with a service.
         """
-        data_path = '%s/%s' % (self.provider.name, service_name)
+        data_path = service_name
         service_data = self.get_component('data_loader').load_service_model(
             data_path,
+            type_name='service-2',
             api_version=api_version
         )
         event_name = self.create_event('service-data-loaded', service_name)
@@ -552,9 +546,8 @@ class Session(object):
         """
         Return a list of names of available services.
         """
-        data_path = '%s' % self.provider.name
         return self.get_component('data_loader')\
-                .list_available_services(data_path)
+            .list_available_services(type_name='service-2')
 
     @asyncio.coroutine
     def get_service(self, service_name, api_version=None):
