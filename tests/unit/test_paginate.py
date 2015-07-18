@@ -102,8 +102,8 @@ class TestPagination(unittest.TestCase):
                      {'NextToken': 'token2'},
                      {'not_next_token': 'foo'}]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        #actual = list(self.paginator.paginate(None))
-        actual = yield from pump_paginator(self.paginator.paginate(None))
+        #actual = list(self.paginator.paginate())
+        actual = yield from pump_paginator(self.paginator.paginate())
         self.assertEqual(actual, responses)
         # The first call has no next token, the second and third call should
         # have 'token1' and 'token2' respectively.
@@ -117,9 +117,9 @@ class TestPagination(unittest.TestCase):
                      {'NextToken': 'token2'},
                      {'not_next_token': 'foo'}]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        #actual = list(self.paginator.paginate(None))
-        actual = yield from pump_paginator(self.paginator.paginate(None, Foo='foo', Bar='bar'))
-        #actual = list(self.paginator.paginate(None, Foo='foo', Bar='bar'))
+        #actual = list(self.paginator.paginate())
+        actual = yield from pump_paginator(self.paginator.paginate(Foo='foo', Bar='bar'))
+        #actual = list(self.paginator.paginate(Foo='foo', Bar='bar'))
         self.assertEqual(actual, responses)
         self.assertEqual(
             self.method.call_args_list,
@@ -156,7 +156,7 @@ class TestPagination(unittest.TestCase):
             {'not_next_token': 'foo'},
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        #actual = list(self.paginator.paginate(None))
+        #actual = list(self.paginator.paginate())
         actual = yield from pump_paginator(self.paginator.paginate())
         self.assertEqual(
             self.method.call_args_list,
@@ -183,7 +183,7 @@ class TestPagination(unittest.TestCase):
             {'Foo': [4], 'not_next_token': 'foo'},
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        yield from pump_paginator(self.paginator.paginate(None))
+        yield from pump_paginator(self.paginator.paginate())
         self.assertEqual(
             self.method.call_args_list,
             [mock.call(),
@@ -205,13 +205,14 @@ class TestPagination(unittest.TestCase):
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
-        #list(self.paginator.paginate(None))
-        yield from pump_paginator(self.paginator.paginate(None))
+        #list(self.paginator.paginate())
+        yield from pump_paginator(self.paginator.paginate())
         self.assertEqual(
             self.method.call_args_list,
             [mock.call(),
              mock.call(NextToken='token1')])
 
+    @async_test
     def test_page_size(self):
         self.paginate_config = {
             "output_token": "Marker",
@@ -237,13 +238,14 @@ class TestPagination(unittest.TestCase):
              mock.call(Marker='m2', MaxKeys=1)]
         )
 
+    @async_test
     def test_with_empty_markers(self):
         responses = [
             {"Users": ["User1"], "Marker": ""},
             {"Users": ["User1"], "Marker": ""},
             {"Users": ["User1"], "Marker": ""}
         ]
-        self.method.side_effect = responses
+        self.method.side_effect = [future_wrapped(r) for r in responses]
         users = []
         pages = yield from pump_paginator(self.paginator.paginate())
         for page in pages:
@@ -324,7 +326,7 @@ class TestPaginatorWithPathExpressions(unittest.TestCase):
             {'NextMarker': 'token2'},
             {'not_next_token': 'foo'}]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        yield from pump_paginator(self.paginator.paginate(None))
+        yield from pump_paginator(self.paginator.paginate())
         self.assertEqual(
             self.method.call_args_list,
             [mock.call(),
@@ -339,7 +341,7 @@ class TestPaginatorWithPathExpressions(unittest.TestCase):
                 'Contents': [{"Key": "first"}, {"Key": "Last"}]}},
             {'not_next_token': 'foo'}]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        yield from pump_paginator(self.paginator.paginate(None))
+        yield from pump_paginator(self.paginator.paginate())
         self.assertEqual(
             self.method.call_args_list,
             [mock.call(),
@@ -371,7 +373,7 @@ class TestMultipleTokens(unittest.TestCase):
             {}
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        yield from pump_paginator(self.paginator.paginate(None))
+        yield from pump_paginator(self.paginator.paginate())
         self.assertEqual(
             self.method.call_args_list,
             [mock.call(),
@@ -415,7 +417,7 @@ class TestKeyIterators(unittest.TestCase):
             {"Users": ["User3"]},
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(None)
+        pages = self.paginator.paginate()
         complete = yield from pages.build_full_result()
         self.assertEqual(complete, {'Users': ['User1', 'User2', 'User3']})
 
@@ -477,7 +479,7 @@ class TestKeyIterators(unittest.TestCase):
         #self.operation.call.side_effect = responses
         self.assertEqual(
             (yield from paginator.paginate(max_items=4).build_full_result()),
-            #paginator.paginate(None, max_items=4).build_full_result(),
+            #paginator.paginate(max_items=4).build_full_result(),
             {'Users': ['User1', 'User2', 'User3', 'User4'], 'NextToken': 'm1___1'})
 
     @async_test
@@ -494,7 +496,7 @@ class TestKeyIterators(unittest.TestCase):
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
         self.assertEqual(
-            (yield from paginator.paginate(None, starting_token='m1___1').build_full_result()),
+            (yield from paginator.paginate(starting_token='m1___1').build_full_result()),
             {'Users': ['User5', 'User6', 'User7']})
         self.assertEqual(
             self.method.call_args_list,
@@ -514,7 +516,7 @@ class TestKeyIterators(unittest.TestCase):
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
         self.assertEqual(
-            (yield from paginator.paginate(None, max_items=10).build_full_result()),
+            (yield from paginator.paginate(max_items=10).build_full_result()),
             {'Users': ['User1', 'User2', 'User3']})
 
     @async_test
@@ -549,9 +551,9 @@ class TestMultipleResultKeys(unittest.TestCase):
             {"Users": ["User2"], "Groups": ["Group2"], "Marker": "m2"},
             {"Users": ["User3"], "Groups": ["Group3"]},
         ]
-        self.method.side_effect = r[future_wrapped(r) for r in responses]
+        self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
-        pages = self.paginator.paginate(None)
+        pages = self.paginator.paginate()
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": ['User1', 'User2', 'User3'],
@@ -566,7 +568,7 @@ class TestMultipleResultKeys(unittest.TestCase):
             {"Users": [], "Groups": ["Group3"]},
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(None)
+        pages = self.paginator.paginate()
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": ['User1'],
@@ -583,7 +585,7 @@ class TestMultipleResultKeys(unittest.TestCase):
             {"Users": [], "Groups": ["Group3"]},
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(None)
+        pages = self.paginator.paginate()
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": [],
@@ -599,7 +601,7 @@ class TestMultipleResultKeys(unittest.TestCase):
             {"Users": ["User4"], "Groups": ["Group4"]},
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(None, max_items=1)
+        pages = self.paginator.paginate(max_items=1)
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": ["User1"], "Groups": ["Group1", "Group2"],
@@ -619,7 +621,7 @@ class TestMultipleResultKeys(unittest.TestCase):
             {"Users": ["User4"], "Groups": ["Group4"]},
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(None, max_items=1,
+        pages = self.paginator.paginate(max_items=1,
                                         starting_token="None___1")
         complete = yield from pages.build_full_result()
         # Note that the secondary keys ("Groups") are all truncated because
@@ -651,7 +653,7 @@ class TestMultipleInputKeys(unittest.TestCase):
             {"Users": ["User5"], "Groups": ["Group3"]}
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(None, max_items=3)
+        pages = self.paginator.paginate(max_items=3)
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": ['User1', 'User2', 'User3'],
@@ -666,7 +668,7 @@ class TestMultipleInputKeys(unittest.TestCase):
             {"Users": ["User5"], "Groups": ["Group3"]},
         ]
         self.method.side_effect =[future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(None, max_items=1,
+        pages = self.paginator.paginate(max_items=1,
                                         starting_token='m1___m2___1')
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
@@ -713,7 +715,7 @@ class TestExpressionKeyIterators(unittest.TestCase):
     @async_test
     def test_result_key_iters(self):
         self.method.side_effect = [future_wrapped(r) for r in self.responses]
-        pages = self.paginator.paginate(None)
+        pages = self.paginator.paginate()
         iterators = yield from pages.result_key_iters()
         self.assertEqual(len(iterators), 1)
         itms = yield from pump_paginator(iterators[0])
@@ -723,7 +725,7 @@ class TestExpressionKeyIterators(unittest.TestCase):
     def test_build_full_result_with_single_key(self):
         self.method.side_effect = [future_wrapped(r) for r in self.responses]
         #self.operation.call.side_effect = self.responses
-        pages = self.paginator.paginate(None)
+        pages = self.paginator.paginate()
         complete = yield from pages.build_full_result()
         self.assertEqual(complete, {
             'EngineDefaults': {
@@ -764,7 +766,7 @@ class TestIncludeNonResultKeys(unittest.TestCase):
     def test_include_with_multiple_result_keys(self):
         self.paginate_config['result_key'] = ['ResultKey1', 'ResultKey2']
         self.paginator = Paginator(self.method, self.paginate_config)
-        self.method.side_effect = [
+        raw = [
             {'ResultKey1': ['a', 'b'], 'ResultKey2': ['u', 'v'],
              'NotResultKey': 'a', 'NextToken': 'token1'},
             {'ResultKey1': ['c', 'd'], 'ResultKey2': ['w', 'x'],
@@ -772,6 +774,7 @@ class TestIncludeNonResultKeys(unittest.TestCase):
             {'ResultKey1': ['e', 'f'], 'ResultKey2': ['y', 'z'],
              'NotResultKey': 'a'}
         ]
+        self.method.side_effect = [future_wrapped(r) for r in raw]
         pages = self.paginator.paginate()
         actual = yield from pages.build_full_result()
         expected = {
@@ -788,7 +791,7 @@ class TestIncludeNonResultKeys(unittest.TestCase):
             'Outer', 'Result.Inner',
         ]
         self.paginator = Paginator(self.method, self.paginate_config)
-        self.method.side_effect = [
+        raw = [
             # The non result keys shows hypothetical
             # example.  This doesn't actually happen,
             # but in the case where the non result keys
@@ -801,6 +804,7 @@ class TestIncludeNonResultKeys(unittest.TestCase):
             {'Result': {'Key': ['qux'], 'Inner': 'v5'},
              'Outer': 'v6', 'NextToken': 't3'},
         ]
+        self.method.side_effect = [future_wrapped(r) for r in raw]
         pages = self.paginator.paginate()
         actual = yield from pages.build_full_result()
         self.assertEqual(pages.non_aggregate_part,

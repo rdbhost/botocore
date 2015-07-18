@@ -260,7 +260,7 @@ class S3PostPresigner(object):
         # Create an expiration date for the policy
         datetime_now = datetime.datetime.utcnow()
         expire_date = datetime_now + datetime.timedelta(seconds=expires_in)
-        policy['expiration'] = expire_date.strftime(botocore.auth.ISO8601)
+        policy['expiration'] = expire_date.strftime(botoauth.ISO8601)
 
         # Append all of the conditions that the user supplied.
         policy['conditions'] = []

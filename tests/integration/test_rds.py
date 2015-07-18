@@ -31,7 +31,8 @@ import yieldfrom.botocore.session
 
 
 class TestRDSPagination(unittest.TestCase):
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('rds', 'us-west-2')
 

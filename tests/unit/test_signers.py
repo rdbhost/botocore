@@ -23,12 +23,14 @@ logging.basicConfig(level=logging.DEBUG)
 
 import mock
 import sys
+import asyncio
 sys.path.append('..')
 from asyncio_test_utils import async_test, future_wrapped
 import datetime
 
 import yieldfrom.botocore
 import yieldfrom.botocore.auth
+import yieldfrom.botocore.session
 
 from yieldfrom.botocore.credentials import Credentials
 from yieldfrom.botocore.exceptions import NoRegionError, UnknownSignatureVersionError, \
@@ -118,7 +120,7 @@ class TestSigner(BaseSignerTest):
                              {'v4': mock.Mock()}):
             yield from self.signer.sign('operation_name', request)
 
-        yield from self.emitter.emit_until_response.assert_called_with(
+        self.emitter.emit_until_response.assert_called_with(
             'choose-signer.service_name.operation_name',
             signing_name='signing_name', region_name='region_name',
             signature_version='v4')
@@ -278,7 +280,7 @@ class TestS3PostPresigner(BaseSignerTest):
         self.add_auth = mock.Mock()
         self.auth.return_value.add_auth = self.add_auth
 
-        self.datetime_patch = mock.patch('botocore.signers.datetime')
+        self.datetime_patch = mock.patch('yieldfrom.botocore.signers.datetime')
         self.datetime_mock = self.datetime_patch.start()
         self.fixed_date = datetime.datetime(2014, 3, 10, 17, 2, 55, 0)
         self.fixed_delta = datetime.timedelta(seconds=3600)
@@ -359,19 +361,21 @@ class TestS3PostPresigner(BaseSignerTest):
 
 
 class TestGenerateUrl(unittest.TestCase):
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
-        self.client = self.session.create_client('s3', region_name='us-east-1')
+        self.client = yield from self.session.create_client('s3', region_name='us-east-1')
         self.bucket = 'mybucket'
         self.key = 'mykey'
         self.client_kwargs = {'Bucket': self.bucket, 'Key': self.key}
         self.generate_url_patch = mock.patch(
-            'botocore.signers.RequestSigner.generate_presigned_url')
+            'yieldfrom.botocore.signers.RequestSigner.generate_presigned_url')
         self.generate_url_mock = self.generate_url_patch.start()
 
     def tearDown(self):
         self.generate_url_patch.stop()
 
+    @async_test
     def test_generate_presigned_url(self):
         self.client.generate_presigned_url(
             'get_object', Params={'Bucket': self.bucket, 'Key': self.key})
@@ -386,14 +390,17 @@ class TestGenerateUrl(unittest.TestCase):
         self.generate_url_mock.assert_called_with(
             request_dict=ref_request_dict, expires_in=3600)
 
+    @async_test
     def test_generate_presigned_url_unknown_method_name(self):
         with self.assertRaises(UnknownClientMethodError):
             self.client.generate_presigned_url('getobject')
 
+    @async_test
     def test_generate_presigned_url_missing_required_params(self):
         with self.assertRaises(ParamValidationError):
             self.client.generate_presigned_url('get_object')
 
+    @async_test
     def test_generate_presigned_url_expires(self):
         self.client.generate_presigned_url(
             'get_object', Params={'Bucket': self.bucket, 'Key': self.key},
@@ -408,6 +415,7 @@ class TestGenerateUrl(unittest.TestCase):
         self.generate_url_mock.assert_called_with(
             request_dict=ref_request_dict, expires_in=20)
 
+    @async_test
     def test_generate_presigned_url_override_http_method(self):
         self.client.generate_presigned_url(
             'get_object', Params={'Bucket': self.bucket, 'Key': self.key},
@@ -424,18 +432,20 @@ class TestGenerateUrl(unittest.TestCase):
 
 
 class TestGeneratePresignedPost(unittest.TestCase):
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
-        self.client = self.session.create_client('s3', region_name='us-east-1')
+        self.client = yield from self.session.create_client('s3', region_name='us-east-1')
         self.bucket = 'mybucket'
         self.key = 'mykey'
         self.presign_post_patch = mock.patch(
-            'botocore.signers.S3PostPresigner.generate_presigned_post')
+            'yieldfrom.botocore.signers.S3PostPresigner.generate_presigned_post')
         self.presign_post_mock = self.presign_post_patch.start()
 
     def tearDown(self):
         self.presign_post_patch.stop()
 
+    @async_test
     def test_generate_presigned_post(self):
         self.client.generate_presigned_post(self.bucket, self.key)
 
@@ -453,6 +463,7 @@ class TestGeneratePresignedPost(unittest.TestCase):
             fields,
             {'key': 'mykey'})
 
+    @async_test
     def test_generate_presigned_post_with_filename(self):
         self.key = 'myprefix/${filename}'
         self.client.generate_presigned_post(self.bucket, self.key)
@@ -471,6 +482,7 @@ class TestGeneratePresignedPost(unittest.TestCase):
             fields,
             {'key': 'myprefix/${filename}'})
 
+    @async_test
     def test_generate_presigned_post_expires(self):
         self.client.generate_presigned_post(
             self.bucket, self.key, ExpiresIn=50)
@@ -488,6 +500,7 @@ class TestGeneratePresignedPost(unittest.TestCase):
             fields,
             {'key': 'mykey'})
 
+    @async_test
     def test_generate_presigned_post_with_prefilled(self):
         conditions = [{'acl': 'public-read'}]
         fields = {'acl': 'public-read'}
@@ -508,7 +521,8 @@ class TestGeneratePresignedPost(unittest.TestCase):
         self.assertEqual(
             fields, {'key': 'mykey', 'acl': 'public-read'})
 
+    @async_test
     def test_generate_presigned_post_non_s3_client(self):
-        self.client = self.session.create_client('ec2', 'us-west-2')
+        self.client = yield from self.session.create_client('ec2', 'us-west-2')
         with self.assertRaises(AttributeError):
             self.client.generate_presigned_post()

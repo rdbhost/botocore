@@ -105,8 +105,8 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'OK'
 
         session = yieldfrom.botocore.session.get_session()
-        service_model = session.get_service_model('s3')
-        operation_model = yield from service_model.operation_model('GetObject')
+        service_model = yield from session.get_service_model('s3')
+        operation_model = service_model.operation_model('GetObject')
 
         res = yield from response.get_response(operation_model, http_response)
         self.assertTrue(isinstance(res[1]['Body'], response.StreamingBody))
@@ -133,7 +133,7 @@ class TestGetResponse(unittest.TestCase):
         operation_model = service_model.operation_model('GetObject')
 
         self.assertEqual(
-            (yield from response.get_response(operation_model, http_response)[1],
+            (yield from response.get_response(operation_model, http_response))[1],
             {'Error': {'Message': 'Access Denied',
                        'Code': 'AccessDenied',},
              'ResponseMetadata': {'HostId': 'AAAAAAAAAAAAAAAAAAA',
@@ -159,8 +159,8 @@ class TestGetResponse(unittest.TestCase):
         http_response.request = Request()
 
         session = yieldfrom.botocore.session.get_session()
-        service_model = session.get_service_model('s3')
-        operation_model = yield from service_model.operation_model('ListObjects')
+        service_model = yield from session.get_service_model('s3')
+        operation_model = service_model.operation_model('ListObjects')
 
         self.assertEqual(
             (yield from response.get_response(operation_model, http_response))[1],
@@ -189,8 +189,8 @@ class TestGetResponse(unittest.TestCase):
         http_response.request = Request()
 
         session = yieldfrom.botocore.session.get_session()
-        service_model = session.get_service_model('s3')
-        operation_model = yield from service_model.operation_model('ListObjects')
+        service_model = yield from session.get_service_model('s3')
+        operation_model = service_model.operation_model('ListObjects')
 
         body = yield from response.get_response(operation_model, http_response)
 

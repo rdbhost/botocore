@@ -38,7 +38,7 @@ from .provider import get_provider
 from .parsers import ResponseParserFactory
 from . import regions
 from .model import ServiceModel
-from . import service as botoservice
+# from . import service as botoservice
 from . import waiter
 import asyncio
 from . import retryhandler, translate

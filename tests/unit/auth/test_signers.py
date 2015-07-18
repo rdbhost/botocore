@@ -429,10 +429,10 @@ class TestS3SigV2Presign(BasePresignTest):
     def setUp(self):
         self.access_key = 'access_key'
         self.secret_key = 'secret_key'
-        self.credentials = botocore.credentials.Credentials(self.access_key,
+        self.credentials = yieldfrom.botocore.credentials.Credentials(self.access_key,
                                                             self.secret_key)
         self.expires = 3000
-        self.auth = botocore.auth.HmacV1QueryAuth(
+        self.auth = yieldfrom.botocore.auth.HmacV1QueryAuth(
             self.credentials, expires=self.expires)
 
         self.current_epoch_time = 1427427247.465591
@@ -601,7 +601,7 @@ class BaseS3PresignPostTest(unittest.TestCase):
     def setUp(self):
         self.access_key = 'access_key'
         self.secret_key = 'secret_key'
-        self.credentials = botocore.credentials.Credentials(
+        self.credentials = yieldfrom.botocore.credentials.Credentials(
             self.access_key, self.secret_key)
 
         self.service_name = 'myservice'
@@ -632,7 +632,7 @@ class BaseS3PresignPostTest(unittest.TestCase):
 class TestS3SigV2Post(BaseS3PresignPostTest):
     def setUp(self):
         super(TestS3SigV2Post, self).setUp()
-        self.auth = botocore.auth.HmacV1PostAuth(self.credentials)
+        self.auth = yieldfrom.botocore.auth.HmacV1PostAuth(self.credentials)
 
         self.current_epoch_time = 1427427247.465591
         self.time_patch = mock.patch('time.time')
@@ -661,7 +661,7 @@ class TestS3SigV2Post(BaseS3PresignPostTest):
 
     def test_presign_post_with_security_token(self):
         self.credentials.token = 'my-token'
-        self.auth = botocore.auth.HmacV1PostAuth(self.credentials)
+        self.auth = yieldfrom.botocore.auth.HmacV1PostAuth(self.credentials)
         self.auth.add_auth(self.request)
         result_fields = self.request.context['s3-presign-post-fields']
         self.assertEqual(result_fields['x-amz-security-token'], 'my-token')
@@ -683,10 +683,10 @@ class TestS3SigV2Post(BaseS3PresignPostTest):
 class TestS3SigV4Post(BaseS3PresignPostTest):
     def setUp(self):
         super(TestS3SigV4Post, self).setUp()
-        self.auth = botocore.auth.S3SigV4PostAuth(
+        self.auth = yieldfrom.botocore.auth.S3SigV4PostAuth(
             self.credentials, self.service_name, self.region_name)
         self.datetime_patcher = mock.patch.object(
-            botocore.auth.datetime, 'datetime',
+            yieldfrom.botocore.auth.datetime, 'datetime',
             mock.Mock(wraps=datetime.datetime)
         )
         mocked_datetime = self.datetime_patcher.start()
@@ -723,7 +723,7 @@ class TestS3SigV4Post(BaseS3PresignPostTest):
 
     def test_presign_post_with_security_token(self):
         self.credentials.token = 'my-token'
-        self.auth = botocore.auth.S3SigV4PostAuth(
+        self.auth = yieldfrom.botocore.auth.S3SigV4PostAuth(
             self.credentials, self.service_name, self.region_name)
         self.auth.add_auth(self.request)
         result_fields = self.request.context['s3-presign-post-fields']

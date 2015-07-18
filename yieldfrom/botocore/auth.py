@@ -23,6 +23,7 @@ from operator import itemgetter
 import functools
 import time
 import calendar
+import json
 
 from .exceptions import NoCredentialsError
 from .utils import normalize_url_path, percent_encode_sequence

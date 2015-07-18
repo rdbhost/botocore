@@ -25,8 +25,9 @@ from dateutil.tz import tzutc, tzoffset
 import datetime
 
 from yieldfrom.botocore import xform_name
+from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.exceptions import InvalidExpressionError, ConfigNotFound
-from yieldfrom.botocore.utils import remove_dot_segments
+from yieldfrom.botocore.utils import remove_dot_segments, fix_s3_host
 from yieldfrom.botocore.utils import normalize_url_path
 from yieldfrom.botocore.utils import validate_jmespath_for_set
 from yieldfrom.botocore.utils import set_value_from_jmespath

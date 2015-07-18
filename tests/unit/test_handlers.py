@@ -79,7 +79,7 @@ class TestHandlers(BaseSessionTest):
             self.assertEqual(
                 params['headers']['x-amz-copy-source'], 'foo%2B%2Bbar.txt')
 
-	@async_test
+    @async_test
     def test_presigned_url_already_present(self):
         params = {'body': {'PresignedUrl': 'https://foo'}}
         yield from handlers.copy_snapshot_encrypted(params, None)
@@ -481,7 +481,7 @@ class TestRetryHandlerOrder(BaseSessionTest):
 
     @async_test
     def test_s3_special_case_is_before_other_retry(self):
-        service_model = self.session.get_service_model('s3')
+        service_model = yield from self.session.get_service_model('s3')
         operation = service_model.operation_model('CopyObject')
         responses = yield from self.session.emit(
             'needs-retry.s3.CopyObject',

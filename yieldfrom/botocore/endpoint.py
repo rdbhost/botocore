@@ -24,7 +24,7 @@ from . import response as botoresponse
 from . import exceptions as botoexceptions
 from .exceptions import UnknownEndpointError
 from .exceptions import EndpointConnectionError, BaseEndpointResolverError
-from .awsrequest import AWSRequest
+from .awsrequest import AWSRequest, create_request_object, prepare_request_dict
 from .compat import urljoin, urlsplit, urlunsplit
 from .utils import percent_encode_sequence
 from .hooks import first_non_none_response

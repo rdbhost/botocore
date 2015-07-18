@@ -74,7 +74,7 @@ class TestEMRGetExtraResources(unittest.TestCase):
 
     @async_test
     def test_can_get_waiters(self):
-        waiter = yield from self.client.get_waiter('cluster_running')
+        waiter = self.client.get_waiter('cluster_running')
         self.assertTrue(hasattr(waiter, 'wait'))
 
     @async_test

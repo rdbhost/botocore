@@ -49,20 +49,19 @@ class TestS3Addressing(BaseSessionTest):
         self.mock_response.headers = {}
         self.mock_response.status_code = 200
 
-    def get_prepared_request(self, operation, params,
-                             force_hmacv1=False):
+    @asyncio.coroutine
+    def get_prepared_request(self, operation, params, force_hmacv1=False):
         if force_hmacv1:
             self.session.register('choose-signer', self.enable_hmacv1)
-        with patch('botocore.endpoint.PreserveAuthSession') as \
+        with patch('yieldfrom.botocore.endpoint.PreserveAuthSession') as \
                 mock_http_session:
             mock_send = mock_http_session.return_value.send
-            mock_send.return_value = self.mock_response
-            client = self.session.create_client('s3', self.region_name)
-            getattr(client, operation)(**params)
+            mock_send.return_value = future_wrapped(self.mock_response)
+            client = yield from self.session.create_client('s3', self.region_name)
+            _ = yield from getattr(client, operation)(**params)
             # Return the request that was sent over the wire.
             return mock_send.call_args[0][0]
 
-    @async_test
     def enable_hmacv1(self, **kwargs):
         return 's3'
 

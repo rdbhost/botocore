@@ -22,7 +22,7 @@ import dateutil.parser
 from dateutil.tz import tzlocal, tzutc
 
 from .exceptions import InvalidExpressionError, ConfigNotFound
-from .compat import json, quote, zip_longest, urlsplit
+from .compat import json, quote, zip_longest, urlsplit, urlunsplit
 from yieldfrom import requests
 from .compat import OrderedDict
 

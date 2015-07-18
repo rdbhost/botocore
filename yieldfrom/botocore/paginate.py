@@ -438,7 +438,8 @@ class ResultKeyIterator(object):
         r = yield from self._pages_iterator.next()
         if not r:
             return None
-        _, page = r
+        # _, page = r
+        page = r
         results = self.result_key.search(page)
         if results is None:
             results = []

@@ -32,6 +32,9 @@ from . import utils
 from . import translate
 from . import UNSIGNED
 #from . import auth as botoauth
+from .signers import add_generate_presigned_url
+from .signers import add_generate_presigned_post
+
 
 logger = logging.getLogger(__name__)
 
