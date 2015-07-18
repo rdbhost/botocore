@@ -228,7 +228,7 @@ class TestPagination(unittest.TestCase):
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
         users = []
-        pages = yield from self.paginator.paginate(PaginationConfig={'PageSize': 1}):
+        pages = yield from pump_paginator(self.paginator.paginate(PaginationConfig={'PageSize': 1}))
         for page in pages:
             users += page['Users']
         self.assertEqual(
@@ -612,7 +612,6 @@ class TestMultipleResultKeys(unittest.TestCase):
         pages = self.paginator.paginate(
             PaginationConfig={'MaxItems': 1})
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(max_items=1)
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": ["User1"], "Groups": ["Group1", "Group2"],

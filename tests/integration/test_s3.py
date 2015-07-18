@@ -814,8 +814,7 @@ class TestS3SigV4Client(BaseS3ClientTest):
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
         pageIterator = list_objs_paginator.paginate(Bucket=self.bucket_name,
-                                                     PaginationConfig={
-                                                         'PageSize': 2}):
+                                                 PaginationConfig={'PageSize': 2})
         response = yield from pageIterator.next()
         while response:
             for content in response['Contents']:
@@ -843,8 +842,7 @@ class TestS3SigV4Client(BaseS3ClientTest):
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
         pageIterator = list_objs_paginator.paginate(Bucket=self.bucket_name,
-                                                     PaginationConfig={
-                                                         'PageSize': 2}):
+                                                PaginationConfig={'PageSize': 2})
         response = yield from pageIterator.next()
         while response:
             for content in response['Contents']:
