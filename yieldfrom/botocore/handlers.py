@@ -444,4 +444,8 @@ BUILTIN_HANDLERS = [
      base64_encode_user_data),
     ('before-parameter-build.route53', fix_route53_ids),
     ('before-parameter-build.glacier', inject_account_id),
+    ('docs.*.glacier.*.complete-section',
+     AutoPopulatedParam('accountId').document_auto_populated_param),
+    ('docs.*.glacier.*.complete-section',
+     AutoPopulatedParam('checksum').document_auto_populated_param)
 ]

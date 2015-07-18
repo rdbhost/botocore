@@ -47,8 +47,9 @@ class ClientCreator(object):
     def create_client(self, service_name, region_name, is_secure=True,
                       endpoint_url=None, verify=None,
                       credentials=None, scoped_config=None,
+                      api_version=None,
                       client_config=None):
-        service_model = self._load_service_model(service_name)
+        service_model = self._load_service_model(service_name, api_version)
         cls = yield from self._create_client_class(service_name, service_model)
         client_args = self._get_client_args(
             service_model, region_name, is_secure, endpoint_url,
@@ -56,8 +57,8 @@ class ClientCreator(object):
         return cls(**client_args)
 
     @asyncio.coroutine
-    def create_client_class(self, service_name):
-        service_model = self._load_service_model(service_name)
+    def create_client_class(self, service_name, api_version=None):
+        service_model = self._load_service_model(service_name, api_version)
         return (yield from self._create_client_class(service_name, service_model))
 
     @asyncio.coroutine
@@ -72,8 +73,9 @@ class ClientCreator(object):
         cls = type(str(service_name), tuple(bases), class_attributes)
         return cls
 
-    def _load_service_model(self, service_name):
-        json_model = self._loader.load_service_model(service_name, 'service-2')
+    def _load_service_model(self, service_name, api_version=None):
+        json_model = self._loader.load_service_model(service_name, 'service-2',
+                                                     api_version=api_version)
         service_model = ServiceModel(json_model, service_name=service_name)
         self._register_retries(service_model)
         return service_model
