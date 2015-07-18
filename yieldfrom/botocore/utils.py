@@ -14,9 +14,9 @@ import re
 import logging
 import datetime
 import hashlib
-import math
 import binascii
 import asyncio
+import functools
 
 import dateutil.parser
 from dateutil.tz import tzlocal, tzutc
@@ -94,8 +94,8 @@ def remove_dot_segments(url):
 
 
 def validate_jmespath_for_set(expression):
-    # Validates a limited jmespath expression to determine if we can set a value
-    # based on it. Only works with dotted paths.
+    # Validates a limited jmespath expression to determine if we can set a
+    # value based on it. Only works with dotted paths.
     if not expression or expression == '.':
         raise InvalidExpressionError(expression=expression)
 
@@ -120,10 +120,10 @@ def set_value_from_jmespath(source, expression, value, is_first=True):
         raise InvalidExpressionError(expression=expression)
 
     if remainder:
-        if not current_key in source:
+        if current_key not in source:
             # We've got something in the expression that's not present in the
-            # source (new key). If there's any more bits, we'll set the key with
-            # an empty dictionary.
+            # source (new key). If there's any more bits, we'll set the key
+            # with an empty dictionary.
             source[current_key] = {}
 
         return set_value_from_jmespath(
@@ -226,7 +226,7 @@ def parse_key_val_file(filename, _open=open):
         with _open(filename) as f:
             contents = f.read()
             return parse_key_val_file_contents(contents)
-    except OSError as e:
+    except OSError:
         raise ConfigNotFound(path=filename)
 
 
@@ -647,3 +647,35 @@ def _is_get_bucket_location_request(request):
 
 def _allowed_region(region_name):
     return region_name not in RESTRICTED_REGIONS
+
+
+def instance_cache(func):
+    """Method decorator for caching method calls to a single instance.
+
+    **This is not a general purpose caching decorator.**
+
+    In order to use this, you *must* provide an ``_instance_cache``
+    attribute on the instance.
+
+    This decorator is used to cache method calls.  The cache is only
+    scoped to a single instance though such that multiple instances
+    will maintain their own cache.  In order to keep things simple,
+    this decorator requires that you provide an ``_instance_cache``
+    attribute on your instance.
+
+    """
+    func_name = func.__name__
+
+    @functools.wraps(func)
+    def _cache_guard(self, *args, **kwargs):
+        cache_key = (func_name, args)
+        if kwargs:
+            kwarg_items = tuple(sorted(kwargs.items()))
+            cache_key = (func_name, args, kwarg_items)
+        result = self._instance_cache.get(cache_key)
+        if result is not None:
+            return result
+        result = func(self, *args, **kwargs)
+        self._instance_cache[cache_key] = result
+        return result
+    return _cache_guard

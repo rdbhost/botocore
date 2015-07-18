@@ -28,7 +28,7 @@ from yieldfrom.botocore import xform_name
 from yieldfrom.botocore.awsrequest import AWSRequest
 from yieldfrom.botocore.exceptions import InvalidExpressionError, ConfigNotFound
 from yieldfrom.botocore.utils import remove_dot_segments, fix_s3_host
-from yieldfrom.botocore.utils import normalize_url_path
+from yieldfrom.botocore.utils import normalize_url_path, instance_cache
 from yieldfrom.botocore.utils import validate_jmespath_for_set
 from yieldfrom.botocore.utils import set_value_from_jmespath
 from yieldfrom.botocore.utils import parse_key_val_file_contents
@@ -556,6 +556,49 @@ class TestFixS3Host(unittest.TestCase):
         # The request url should not have been modified because this is
         # a request for GetBucketLocation.
         self.assertEqual(request.url, original_url)
+
+
+class TestInstanceCache(unittest.TestCase):
+    class DummyClass(object):
+        def __init__(self, cache):
+            self._instance_cache = cache
+
+        @instance_cache
+        def add(self, x, y):
+            return x + y
+
+        @instance_cache
+        def sub(self, x, y):
+            return x - y
+
+    def setUp(self):
+        self.cache = {}
+
+    def test_cache_single_method_call(self):
+        adder = self.DummyClass(self.cache)
+        self.assertEqual(adder.add(2, 1), 3)
+        # This should result in one entry in the cache.
+        self.assertEqual(len(self.cache), 1)
+        # When we call the method with the same args,
+        # we should reuse the same entry in the cache.
+        self.assertEqual(adder.add(2, 1), 3)
+        self.assertEqual(len(self.cache), 1)
+
+    def test_can_cache_multiple_methods(self):
+        adder = self.DummyClass(self.cache)
+        adder.add(2, 1)
+
+        # A different method results in a new cache entry,
+        # so now there should be two elements in the cache.
+        self.assertEqual(adder.sub(2, 1), 1)
+        self.assertEqual(len(self.cache), 2)
+        self.assertEqual(adder.sub(2, 1), 1)
+
+    def test_can_cache_kwargs(self):
+        adder = self.DummyClass(self.cache)
+        adder.add(x=2, y=1)
+        self.assertEqual(adder.add(x=2, y=1), 3)
+        self.assertEqual(len(self.cache), 1)
 
 
 if __name__ == '__main__':

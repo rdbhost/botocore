@@ -95,7 +95,6 @@ import base64
 import json
 import xml.etree.cElementTree
 import logging
-from pprint import pformat
 
 from http import client as http_client
 from .compat import XMLParseError
@@ -202,7 +201,7 @@ class ResponseParser(object):
             always be present.
 
         """
-        LOG.debug('Response headers:\n%s', pformat(dict(response['headers'])))
+        LOG.debug('Response headers: %s', response['headers'])
         LOG.debug('Response body:\n%s', response['body'])
         if response['status_code'] >= 301:
             parsed = self._do_error_parse(response, shape)
