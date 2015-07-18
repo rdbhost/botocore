@@ -12,23 +12,21 @@
 # language governing permissions and limitations under the License.
 import copy
 import logging
+import asyncio
 
 from .model import ServiceModel
 from .awsrequest import prepare_request_dict
-from .exceptions import DataNotFoundError
-from .exceptions import OperationNotPageableError
-from .exceptions import ClientError
-from . import waiter
-from . import xform_name
+from .exceptions import DataNotFoundError, OperationNotPageableError, ClientError
+from . import waiter, xform_name
 from .paginate import Paginator
 from .utils import CachedProperty
+from .hooks import first_non_none_response
 from . import validate as botovalidate
 from . import serialize as botoserialize
-from . import credentials as botocredentials
+# from . import credentials as botocredentials
 from . import parsers as botoparsers
 from .signers import RequestSigner
 from .endpoint import EndpointCreator
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -324,6 +322,17 @@ class BaseClient(object):
         # Given the API params provided by the user and the operation_model
         # we can serialize the request to a request_dict.
         operation_name = operation_model.name
+
+        # Emit an event that allows users to modify the parameters at the
+        # beginning of the method. It allows handlers to modify existing
+        # parameters or return a new set of parameters to use.
+        responses = self.meta.events.emit(
+            'provide-client-params.{endpoint_prefix}.{operation_name}'.format(
+                endpoint_prefix=self._service_model.endpoint_prefix,
+                operation_name=operation_name),
+            params=api_params, model=operation_model)
+        api_params = first_non_none_response(responses, default=api_params)
+
         event_name = (
             'before-parameter-build.{endpoint_prefix}.{operation_name}')
         yield from self.meta.events.emit(
