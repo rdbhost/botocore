@@ -23,7 +23,8 @@ import sys
 from nose.tools import assert_true
 
 import yieldfrom.botocore.session
-from yieldfrom.botocore.paginate import DeprecatedPageIterator
+from yieldfrom.botocore.paginate import PageIterator
+from yieldfrom.botocore.exceptions import OperationNotPageableError
 
 sys.path.append('..')
 from asyncio_test_utils import async_test
@@ -54,35 +55,32 @@ def _test_can_list_clusters_in_region(session, region):
 # testing more than a single unit, we're ensuring everything
 # accessible from the session works as expected.
 class TestEMRGetExtraResources(unittest.TestCase):
-
     @asyncio.coroutine
     def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
-        self.service = yield from self.session.get_service('emr')
-        self.endpoint = self.service.get_endpoint('us-west-2')
+        self.client = yield from self.session.create_client('emr', 'us-west-2')
 
     @async_test
     def test_can_access_pagination_configs(self):
         # Using an operation that we know will paginate.
-        operation = self.service.get_operation('ListClusters')
-        paginator = operation.paginate(self.endpoint)
-        self.assertIsInstance(paginator, DeprecatedPageIterator)
+        paginator = self.client.get_paginator('list_clusters')
+        page_iterator = paginator.paginate()
+        self.assertIsInstance(page_iterator, PageIterator)
 
     @async_test
     def test_operation_cant_be_paginated(self):
-        operation = self.service.get_operation('AddInstanceGroups')
-        with self.assertRaises(TypeError):
-            operation.paginate(self.endpoint)
+        with self.assertRaises(OperationNotPageableError):
+            self.client.get_paginator('add_instance_groups')
 
     @async_test
     def test_can_get_waiters(self):
-        waiter = yield from self.service.get_waiter('ClusterRunning', self.endpoint)
+        waiter = yield from self.client.get_waiter('cluster_running')
         self.assertTrue(hasattr(waiter, 'wait'))
 
     @async_test
     def test_waiter_does_not_exist(self):
         with self.assertRaises(ValueError):
-            yield from self.service.get_waiter('DoesNotExist', self.endpoint)
+            yield from self.client.get_waiter('does_not_exist')
 
 
 if __name__ == '__main__':

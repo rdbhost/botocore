@@ -105,10 +105,10 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'OK'
 
         session = yieldfrom.botocore.session.get_session()
-        s3 = yield from session.get_service('s3')
-        operation = s3.get_operation('GetObject')
+        service_model = session.get_service_model('s3')
+        operation_model = yield from service_model.operation_model('GetObject')
 
-        res = yield from response.get_response(operation.model, http_response)
+        res = yield from response.get_response(operation_model, http_response)
         self.assertTrue(isinstance(res[1]['Body'], response.StreamingBody))
         self.assertEqual(res[1]['ETag'],
                          '"00000000000000000000000000000000"')
@@ -129,18 +129,18 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'Forbidden'
 
         session = yieldfrom.botocore.session.get_session()
-        s3 = yield from session.get_service('s3')
-        operation = s3.get_operation('GetObject') # streaming operation
+        service_model = yield from session.get_service_model('s3')
+        operation_model = service_model.operation_model('GetObject')
 
         self.assertEqual(
-            (yield from response.get_response(operation.model, http_response))[1],
+            (yield from response.get_response(operation_model, http_response)[1],
             {'Error': {'Message': 'Access Denied',
                        'Code': 'AccessDenied',},
              'ResponseMetadata': {'HostId': 'AAAAAAAAAAAAAAAAAAA',
                                   'RequestId': 'XXXXXXXXXXXXXXXX',
                                   'HTTPStatusCode': 403},
              }
-            )
+        )
 
     @async_test
     def test_get_response_nonstreaming_ok(self):
@@ -159,11 +159,11 @@ class TestGetResponse(unittest.TestCase):
         http_response.request = Request()
 
         session = yieldfrom.botocore.session.get_session()
-        s3 = yield from session.get_service('s3')
-        operation = s3.get_operation('ListObjects') # non-streaming operation
+        service_model = session.get_service_model('s3')
+        operation_model = yield from service_model.operation_model('ListObjects')
 
         self.assertEqual(
-            (yield from response.get_response(operation.model, http_response))[1],
+            (yield from response.get_response(operation_model, http_response))[1],
             { 'ResponseMetadata': {'RequestId': 'XXXXXXXXXXXXXXXX',
                                    'HostId': 'AAAAAAAAAAAAAAAAAAA',
                                    'HTTPStatusCode': 403},
@@ -188,11 +188,11 @@ class TestGetResponse(unittest.TestCase):
         http_response.reason = 'ok'
         http_response.request = Request()
 
-        session = botosession.get_session()
-        s3 = yield from session.get_service('s3')
-        operation = s3.get_operation('ListObjects')  # non-streaming operation
+        session = yieldfrom.botocore.session.get_session()
+        service_model = session.get_service_model('s3')
+        operation_model = yield from service_model.operation_model('ListObjects')
 
-        body = yield from response.get_response(operation.model, http_response)
+        body = yield from response.get_response(operation_model, http_response)
 
         self.assertEqual(body[1],
             {u'Contents': [{u'ETag': '"00000000000000000000000000000000"',

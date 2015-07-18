@@ -204,21 +204,6 @@ class SessionTest(BaseSessionTest):
                 set(profiles),
                 set(['foo', 'default', 'newprofile']))
 
-    @async_test
-    def test_register_unregister(self):
-        calls = []
-        handler = lambda **kwargs: calls.append(kwargs)
-        self.session.register('service-created', handler)
-        service = yield from self.session.get_service('ec2')
-        self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0]['service'], service)
-
-        calls[:] = []
-        self.session.unregister('service-created', handler)
-        service = self.session.get_service('ec2')
-        self.assertEqual(len(calls), 0)
-
-    @async_test
     def test_emit_delegates_to_emitter(self):
         calls = []
         handler = lambda **kwargs: calls.append(kwargs)
@@ -452,18 +437,34 @@ class TestCreateClient(BaseSessionTest):
             mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY,
             scoped_config=mock.ANY, client_config=config)
 
-
-class TestPerformOperation(BaseSessionTest):
+    @async_test
+    def test_create_client_with_region(self):
+        ec2_client = yield from self.session.create_client(
+            'ec2', 'us-west-2')
+        self.assertEqual(ec2_client.meta.region_name, 'us-west-2')
 
     @async_test
-    def tst_s3(self):
-        service = yield from self.session.get_service('s3')  # uses aws/s3 DATA_OVERRID...
-        operation = service.get_operation('ListBuckets')
-        endpoint = service.get_endpoint('us-west-2')
-        endpoint._send_request = mock.Mock()
-        endpoint._send_request.return_value = [{}, {}]
-        response = yield from operation.call(endpoint)
-        self.assertEqual(response, endpoint._send_request.return_value)
+    def test_create_client_with_region_and_client_config(self):
+        config = client.Config()
+        # Use a client config with no region configured.
+        ec2_client = yield from self.session.create_client(
+            'ec2', region_name='us-west-2', config=config)
+        self.assertEqual(ec2_client.meta.region_name, 'us-west-2')
+
+        # If the region name is changed, it should not change the
+        # region of the client
+        config.region_name = 'us-east-1'
+        self.assertEqual(ec2_client.meta.region_name, 'us-west-2')
+
+        # Now make a new client with the updated client config.
+        ec2_client = yield from self.session.create_client(
+            'ec2', config=config)
+        self.assertEqual(ec2_client.meta.region_name, 'us-east-1')
+
+    @async_test
+    def test_create_client_no_region_and_no_client_config(self):
+        ec2_client = yield from self.session.create_client('ec2')
+        self.assertEqual(ec2_client.meta.region_name, 'moon-west-1')
 
 
 if __name__ == "__main__":

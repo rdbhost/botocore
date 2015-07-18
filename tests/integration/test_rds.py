@@ -31,31 +31,30 @@ import yieldfrom.botocore.session
 
 
 class TestRDSPagination(unittest.TestCase):
-
-    @asyncio.coroutine
-    def set_up(self):
+    def setUp(self):
         self.session = yieldfrom.botocore.session.get_session()
-        self.service = yield from self.session.get_service('rds')
-        self.endpoint = self.service.get_endpoint('us-west-2')
+        self.client = yield from self.session.create_client('rds', 'us-west-2')
 
     @async_test
     def test_can_paginate_reserved_instances(self):
         # Using an operation that we know will paginate.
-        operation = self.service.get_operation('DescribeReservedDBInstancesOfferings')
-        generator = operation.paginate(self.endpoint)
+        paginator = self.client.get_paginator(
+            'describe_reserved_db_instances_offerings')
+        generator = paginator.paginate()
         genResults = yield from pump_iter(generator)
         results = list(itertools.islice(genResults, 0, 3))
         self.assertEqual(len(results), 3)
-        self.assertTrue(results[0][1]['Marker'] != results[1][1]['Marker'])
+        self.assertTrue(results[0]['Marker'] != results[1]['Marker'])
 
     @async_test
     def test_can_paginate_orderable_db(self):
-        operation = self.service.get_operation('DescribeOrderableDBInstanceOptions')
-        generator = operation.paginate(self.endpoint, engine='mysql')
+        paginator = self.client.get_paginator(
+            'describe_orderable_db_instance_options')
+        generator = paginator.paginate(Engine='mysql')
         genResults = yield from pump_iter(generator)
         results = list(itertools.islice(genResults, 0, 2))
         self.assertEqual(len(results), 2)
-        self.assertTrue(results[0][1].get('Marker') != results[1][1].get('Marker'))
+        self.assertTrue(results[0].get('Marker') != results[1].get('Marker'))
 
 
 if __name__ == '__main__':

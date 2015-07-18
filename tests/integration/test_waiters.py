@@ -28,42 +28,6 @@ from yieldfrom.botocore.client import ClientError
 sys.path.append('..')
 from asyncio_test_utils import async_test
 
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-logging.basicConfig(level=logging.DEBUG)
-
-
-@attr('slow')
-class TestWaiterLegacy(unittest.TestCase):
-
-    @asyncio.coroutine
-    def set_up(self):
-        self.session = yieldfrom.botocore.session.get_session()
-        self.service = yield from self.session.get_service('dynamodb')
-        self.endpoint = self.service.get_endpoint('us-west-2')
-
-    @async_test
-    def test_create_table_and_wait(self):
-        table_name = 'botocoretestddb-%s' % random.randint(1, 10000)
-        operation = self.service.get_operation('CreateTable')
-        http, parsed = yield from operation.call(
-            self.endpoint, TableName=table_name,
-            ProvisionedThroughput={"ReadCapacityUnits": 5,
-                                   "WriteCapacityUnits": 5},
-            KeySchema=[{"AttributeName": "foo", "KeyType": "HASH"}],
-            AttributeDefinitions=[{"AttributeName": "foo",
-                                   "AttributeType": "S"}])
-        if http.status_code != 200:
-            self.fail("Could not create table.")
-        self.addCleanup(self.service.get_operation("DeleteTable").call,
-                        self.endpoint, TableName=table_name)
-        waiter = yield from self.service.get_waiter('TableExists', self.endpoint)
-        yield from waiter.wait(TableName=table_name)
-        parsed = yield from self.service.get_operation('DescribeTable').call(
-            self.endpoint, TableName=table_name)
-        parsed = parsed[1]
-        self.assertEqual(parsed['Table']['TableStatus'], 'ACTIVE')
-
-
 # This is the same test as above, except using the client interface.
 @attr('slow')
 class TestWaiterForDynamoDB(unittest.TestCase):

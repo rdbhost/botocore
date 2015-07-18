@@ -29,20 +29,17 @@ from asyncio_test_utils import async_test, future_wrapped, pump_iter
 import yieldfrom.botocore.session
 
 
-class TestRoute53Pagination(unittest.TestCase):
-
-    @asyncio.coroutine
-    def set_up(self):
+class TestRDSPagination(unittest.TestCase):
+    def setUp(self):
         self.session = yieldfrom.botocore.session.get_session()
-        self.service = yield from self.session.get_service('route53')
-        self.endpoint = self.service.get_endpoint('us-west-2')
+        self.client = self.session.create_client('route53', 'us-west-2')
 
     @async_test
     def test_paginate_with_max_items(self):
         # Route53 has a string type for MaxItems.  We need to ensure that this
         # still works without any issues.
-        operation = self.service.get_operation('ListHostedZones')
-        results = yield from pump_iter(operation.paginate(self.endpoint, max_items='1'))
+        paginator = self.client.get_paginator('list_hosted_zones')
+        results = list(paginator.paginate(max_items='1'))
         self.assertTrue(len(results) >= 0)
 
 
