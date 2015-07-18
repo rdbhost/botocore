@@ -228,7 +228,7 @@ class TestPagination(unittest.TestCase):
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
         users = []
-        pages = yield from pump_paginator(self.paginator.paginate(page_size=1))
+        pages = yield from self.paginator.paginate(PaginationConfig={'PageSize': 1}):
         for page in pages:
             users += page['Users']
         self.assertEqual(
@@ -297,7 +297,8 @@ class TestPaginatorPageSize(unittest.TestCase):
         self.assertEqual(kwargs, ref_kwargs)
 
     def test_page_size(self):
-        kwargs = {'arg1': 'foo', 'arg2': 'bar', 'page_size': 5}
+        kwargs = {'arg1': 'foo', 'arg2': 'bar',
+                  'PaginationConfig': {'PageSize': 5}}
         extracted_kwargs = {'arg1': 'foo', 'arg2': 'bar'}
         # Note that ``MaxKeys`` in ``setUp()`` is the parameter used for
         # the page size for pagination.
@@ -431,7 +432,8 @@ class TestKeyIterators(unittest.TestCase):
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
         self.assertEqual(
-            (yield from paginator.paginate(max_items=1).build_full_result()),
+            (yield from paginator.paginate(
+                PaginationConfig={'MaxItems': 1}).build_full_result()),
             {'Users': ['User1'], 'NextToken': 'm1'})
 
     @async_test
@@ -446,8 +448,9 @@ class TestKeyIterators(unittest.TestCase):
         ]
         self.method.side_effect = [future_wrapped(r) for r in responses]
         self.assertEqual(
-            # Note max_items is a string here.
-            (yield from paginator.paginate(max_items='1').build_full_result()),
+            # Note MaxItems is a string here.
+            (yield from paginator.paginate(
+                PaginationConfig={'MaxItems': '1'}).build_full_result()),
             {'Users': ['User1'], 'NextToken': 'm1'})
 
     @async_test
@@ -461,7 +464,8 @@ class TestKeyIterators(unittest.TestCase):
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
         self.assertEqual(
-            (yield from paginator.paginate(max_items=2).build_full_result()),
+            (yield from paginator.paginate(
+                PaginationConfig={'MaxItems': 2}).build_full_result()),
             {'Users': ['User1', 'User2'], 'NextToken': 'm2'})
 
     @async_test
@@ -478,14 +482,15 @@ class TestKeyIterators(unittest.TestCase):
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
         self.assertEqual(
-            (yield from paginator.paginate(max_items=4).build_full_result()),
-            #paginator.paginate(max_items=4).build_full_result(),
-            {'Users': ['User1', 'User2', 'User3', 'User4'], 'NextToken': 'm1___1'})
+            (yield from paginator.paginate(
+                PaginationConfig={'MaxItems': 4}).build_full_result()),
+            {'Users': ['User1', 'User2', 'User3', 'User4'],
+             'NextToken': 'm1___1'})
 
     @async_test
     def test_resume_next_marker_mid_page(self):
         # This is a simulation of picking up from the response
-        # from test_max_items_can_be_specified_truncates_response
+        # from test_MaxItems_can_be_specified_truncates_response
         # We got the first 4 users, when we pick up we should get
         # User5 - User7.
         paginator = Paginator(self.method, self.paginate_config)
@@ -493,10 +498,12 @@ class TestKeyIterators(unittest.TestCase):
             {"Users": ["User4", "User5", "User6"], "Marker": "m2"},
             {"Users": ["User7"]},
         ]
+        pagination_config = {'StartingToken': 'm1___1'}
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
         self.assertEqual(
-            (yield from paginator.paginate(starting_token='m1___1').build_full_result()),
+            (yield from paginator.paginate(
+                PaginationConfig=pagination_config).build_full_result()),
             {'Users': ['User5', 'User6', 'User7']})
         self.assertEqual(
             self.method.call_args_list,
@@ -516,7 +523,8 @@ class TestKeyIterators(unittest.TestCase):
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
         self.assertEqual(
-            (yield from paginator.paginate(max_items=10).build_full_result()),
+            (yield from paginator.paginate(
+                PaginationConfig={'MaxItems': 10}).build_full_result()),
             {'Users': ['User1', 'User2', 'User3']})
 
     @async_test
@@ -529,8 +537,9 @@ class TestKeyIterators(unittest.TestCase):
         self.method.side_effect = [future_wrapped(r) for r in responses]
         #self.operation.call.side_effect = responses
         with self.assertRaisesRegexp(ValueError, 'Bad starting token'):
+            pagination_config = {'StartingToken': 'bad___notanint'}
             (yield from self.paginator.paginate(
-                starting_token='bad___notanint').build_full_result())
+                PaginationConfig=pagination_config).build_full_result())
 
 
 class TestMultipleResultKeys(unittest.TestCase):
@@ -600,6 +609,8 @@ class TestMultipleResultKeys(unittest.TestCase):
             {"Users": ["User3"], "Groups": ["Group3"], "Marker": "m2"},
             {"Users": ["User4"], "Groups": ["Group4"]},
         ]
+        pages = self.paginator.paginate(
+            PaginationConfig={'MaxItems': 1})
         self.method.side_effect = [future_wrapped(r) for r in responses]
         pages = self.paginator.paginate(max_items=1)
         complete = yield from pages.build_full_result()
@@ -620,9 +631,10 @@ class TestMultipleResultKeys(unittest.TestCase):
             {"Users": ["User3"], "Groups": ["Group3"], "Marker": "m2"},
             {"Users": ["User4"], "Groups": ["Group4"]},
         ]
+        pages = self.paginator.paginate(
+            PaginationConfig={'MaxItems': 1,
+                              'StartingToken': "None___1"})
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(max_items=1,
-                                        starting_token="None___1")
         complete = yield from pages.build_full_result()
         # Note that the secondary keys ("Groups") are all truncated because
         # they were in the original (first) response.
@@ -652,8 +664,9 @@ class TestMultipleInputKeys(unittest.TestCase):
              "Marker1": "m3", "Marker2": "m4"},
             {"Users": ["User5"], "Groups": ["Group3"]}
         ]
+        pages = self.paginator.paginate(
+            PaginationConfig={'MaxItems': 3})
         self.method.side_effect = [future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(max_items=3)
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": ['User1', 'User2', 'User3'],
@@ -667,9 +680,10 @@ class TestMultipleInputKeys(unittest.TestCase):
              "Marker1": "m3", "Marker2": "m4"},
             {"Users": ["User5"], "Groups": ["Group3"]},
         ]
+        pages = self.paginator.paginate(
+            PaginationConfig={'MaxItems': 1,
+                              'StartingToken': 'm1___m2___1'})
         self.method.side_effect =[future_wrapped(r) for r in responses]
-        pages = self.paginator.paginate(max_items=1,
-                                        starting_token='m1___m2___1')
         complete = yield from pages.build_full_result()
         self.assertEqual(complete,
                          {"Users": ['User4'],
@@ -686,7 +700,7 @@ class TestMultipleInputKeys(unittest.TestCase):
         )
 
     def test_result_key_exposed_on_page_iterator(self):
-        pages = self.paginator.paginate(max_items=3)
+        pages = self.paginator.paginate(MaxItems=3)
         self.assertEqual(
             [rk.expression for rk in pages.result_keys],
             ['Users', 'Groups']

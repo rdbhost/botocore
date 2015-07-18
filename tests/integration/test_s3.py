@@ -122,7 +122,8 @@ class BaseS3ClientTest(unittest.TestCase):
         paginator = self.client.get_paginator(operation)
         for _ in range(num_attempts):
             pages = paginator.paginate(Bucket=self.bucket_name,
-                                       max_items=max_items)
+                                       PaginationConfig={
+                                           'MaxItems': max_items})
             iterators = yield from pages.result_key_iters()
             self.assertEqual(len(iterators), 2)
             self.assertEqual(iterators[0].result_key.expression, 'Uploads')
@@ -238,7 +239,7 @@ class TestS3Objects(TestS3BaseWithBucket):
         # Eventual consistency.
         time.sleep(3)
         paginator = self.client.get_paginator('list_objects')
-        generator = paginator.paginate(page_size=1,
+        generator = paginator.paginate(PaginationConfig={'PageSize': 1},
                                        Bucket=self.bucket_name)
         responses = []
         r = yield from generator.next()
@@ -307,17 +308,17 @@ class TestS3Objects(TestS3BaseWithBucket):
         yield from self.create_multipart_upload('bar/key1')
         yield from self.create_multipart_upload('bar/key2')
 
-        # Verify when we have max_items=None, we get back all 8 uploads.
+        # Verify when we have MaxItems=None, we get back all 8 uploads.
         self.assert_num_uploads_found('list_multipart_uploads',
                                       max_items=None, num_uploads=8)
 
-        # Verify when we have max_items=1, we get back 1 upload.
+        # Verify when we have MaxItems=1, we get back 1 upload.
         self.assert_num_uploads_found('list_multipart_uploads',
                                       max_items=1, num_uploads=1)
 
         paginator = self.client.get_paginator('list_multipart_uploads')
         # Works similar with build_full_result()
-        pages = paginator.paginate(max_items=1,
+        pages = paginator.paginate(PaginationConfig={'MaxItems': 1},
                                    Bucket=self.bucket_name)
         full_result = yield from pages.build_full_result()
         self.assertEqual(len(full_result['Uploads']), 1)
@@ -331,26 +332,26 @@ class TestS3Objects(TestS3BaseWithBucket):
         paginator = self.client.get_paginator('list_objects')
         # First do it without a max keys so we're operating on a single page of
         # results.
-        pages = paginator.paginate(max_items=1,
+        pages = paginator.paginate(PaginationConfig={'MaxItems': 1},
                                    Bucket=self.bucket_name)
         first = yield from pages.build_full_result()
         t1 = first['NextToken']
 
-        pages = paginator.paginate(max_items=1,
-                                   starting_token=t1,
-                                   Bucket=self.bucket_name)
+        pages = paginator.paginate(
+            PaginationConfig={'MaxItems': 1, 'StartingToken': t1},
+            Bucket=self.bucket_name)
         second = yield from pages.build_full_result()
         t2 = second['NextToken']
 
-        pages = paginator.paginate(max_items=1,
-                                   starting_token=t2,
-                                   Bucket=self.bucket_name)
+        pages = paginator.paginate(
+            PaginationConfig={'MaxItems': 1, 'StartingToken': t2},
+            Bucket=self.bucket_name)
         third = yield from pages.build_full_result()
         t3 = third['NextToken']
 
-        pages = paginator.paginate(max_items=1,
-                                   starting_token=t3,
-                                   Bucket=self.bucket_name)
+        pages = paginator.paginate(
+            PaginationConfig={'MaxItems': 1, 'StartingToken': t3},
+            Bucket=self.bucket_name)
         fourth = yield from pages.build_full_result()
 
         self.assertEqual(first['Contents'][-1]['Key'], 'a')
@@ -813,7 +814,8 @@ class TestS3SigV4Client(BaseS3ClientTest):
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
         pageIterator = list_objs_paginator.paginate(Bucket=self.bucket_name,
-                                                     page_size=2)
+                                                     PaginationConfig={
+                                                         'PageSize': 2}):
         response = yield from pageIterator.next()
         while response:
             for content in response['Contents']:
@@ -840,7 +842,9 @@ class TestS3SigV4Client(BaseS3ClientTest):
 
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
-        pageIterator = list_objs_paginator.paginate(Bucket=self.bucket_name, page_size=2)
+        pageIterator = list_objs_paginator.paginate(Bucket=self.bucket_name,
+                                                     PaginationConfig={
+                                                         'PageSize': 2}):
         response = yield from pageIterator.next()
         while response:
             for content in response['Contents']:
