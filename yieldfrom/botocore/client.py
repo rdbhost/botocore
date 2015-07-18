@@ -326,7 +326,7 @@ class BaseClient(object):
         # Emit an event that allows users to modify the parameters at the
         # beginning of the method. It allows handlers to modify existing
         # parameters or return a new set of parameters to use.
-        responses = self.meta.events.emit(
+        responses = yield from self.meta.events.emit(
             'provide-client-params.{endpoint_prefix}.{operation_name}'.format(
                 endpoint_prefix=self._service_model.endpoint_prefix,
                 operation_name=operation_name),
