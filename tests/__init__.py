@@ -19,12 +19,23 @@ import contextlib
 import tempfile
 import asyncio
 import unittest
+import binascii
 
 import mock
 import yieldfrom.botocore.loaders
 import yieldfrom.botocore.session
 
 _LOADER = yieldfrom.botocore.loaders.Loader()
+
+
+
+def random_chars(num_chars):
+    """Returns random hex characters.
+
+    Useful for creating resources with random names.
+
+    """
+    return binascii.hexlify(os.urandom(int(num_chars / 2))).decode('ascii')
 
 
 def create_session(**kwargs):

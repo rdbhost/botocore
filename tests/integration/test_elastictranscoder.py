@@ -11,6 +11,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+from tests import unittest, random_chars
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
@@ -20,7 +21,6 @@ import unittest
 import asyncio
 import sys
 import functools
-import random
 
 import yieldfrom.botocore.session
 
@@ -55,7 +55,7 @@ class TestElasticTranscoder(unittest.TestCase):
 
     @asyncio.coroutine
     def create_bucket(self):
-        bucket_name = 'ets-bucket-1-%s' % random.randint(1, 1000000)
+        bucket_name = 'ets-bucket-1-%s' % random_chars(50)
         yield from self.s3_client.create_bucket(Bucket=bucket_name)
         self.addCleanup(
             self.s3_client.delete_bucket, Bucket=bucket_name)
@@ -63,7 +63,7 @@ class TestElasticTranscoder(unittest.TestCase):
 
     @asyncio.coroutine
     def create_iam_role(self):
-        role_name = 'ets-role-name-1-%s' % random.randint(1, 1000000)
+        role_name = 'ets-role-name-1-%s' % random_chars(10)
         parsed = yield from self.iam_client.create_role(
             RoleName=role_name,
             AssumeRolePolicyDocument=DEFAULT_ROLE_POLICY)
@@ -89,7 +89,7 @@ class TestElasticTranscoder(unittest.TestCase):
         input_bucket = yield from self.create_bucket()
         output_bucket = yield from self.create_bucket()
         role = yield from self.create_iam_role()
-        pipeline_name = 'botocore-test-create-%s' % (random.randint(1, 1000000))
+        pipeline_name = 'botocore-test-create-%s' % random_chars(10)
 
         parsed = yield from self.client.create_pipeline(
             InputBucket=input_bucket, OutputBucket=output_bucket,

@@ -10,6 +10,7 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from tests import unittest, random_chars
 
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
@@ -44,7 +45,7 @@ class TestCloudformation(unittest.TestCase):
         # it handles the case when a stack does not exist.
         with self.assertRaises(ClientError):
             yield from self.client.get_template(
-                StackName='does-not-exist-%s' % random.randint(1, 10000))
+                StackName='does-not-exist-%s' % random_chars(10))
 
 
 if __name__ == '__main__':

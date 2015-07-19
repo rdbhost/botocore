@@ -19,6 +19,8 @@ import unittest
 import asyncio
 import sys, os
 import logging
+import time
+from tests import unittest, random_chars
 
 from nose.plugins.attrib import attr
 
@@ -39,7 +41,7 @@ class TestWaiterForDynamoDB(unittest.TestCase):
 
     @async_test
     def test_create_table_and_wait(self):
-        table_name = 'botocoretestddb-%s' % random.randint(1, 10000)
+        table_name = 'botocoretest-%s' % random_chars(10)
         yield from self.client.create_table(
             TableName=table_name,
             ProvisionedThroughput={"ReadCapacityUnits": 5,

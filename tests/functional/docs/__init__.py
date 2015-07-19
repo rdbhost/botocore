@@ -22,8 +22,8 @@ class BaseDocsFunctionalTest(unittest.TestCase):
         self.assertIn(line, contents)
 
     def assert_contains_lines_in_order(self, lines, contents):
-       contents = contents.decode('utf-8')
-       for line in lines:
+        contents = contents.decode('utf-8')
+        for line in lines:
             self.assertIn(line, contents)
             beginning = contents.find(line)
             contents = contents[(beginning + len(line)):]
@@ -44,7 +44,7 @@ class BaseDocsFunctionalTest(unittest.TestCase):
         self.assertNotEqual(start_index, -1, 'Method is not found in contents')
         contents = contents[start_index:]
         end_index = contents.find(
-            '  ..py:method::', len(start_method_document))
+            '  .. py:method::', len(start_method_document))
         contents = contents[:end_index]
         return contents.encode('utf-8')
 
@@ -59,18 +59,30 @@ class BaseDocsFunctionalTest(unittest.TestCase):
         return contents.encode('utf-8')
 
     @asyncio.coroutine
-    def assert_is_documented_as_autopopulated_param(
+    def get_parameter_documentation_from_service(
             self, service_name, method_name, param_name):
         sd = ServiceDocumenter(service_name)
         yield from sd.create_client()
         contents = sd.document_service()
 
+        #contents = ServiceDocumenter(service_name).document_service()
+        method_contents = self.get_method_document_block(
+            method_name, contents)
+        return self.get_parameter_document_block(
+            param_name, method_contents)
+
+    @asyncio.coroutine
+    def assert_is_documented_as_autopopulated_param(
+            self, service_name, method_name, param_name, doc_string=None):
+        sd = ServiceDocumenter(service_name)
+        yield from sd.create_client()
+        contents = sd.document_service()
         # Pick an arbitrary method that uses AccountId.
         method_contents = self.get_method_document_block(
             method_name, contents)
 
         # Ensure it is not in the example.
-        #self.assert_not_contains_line('%s=\'string\'' % param_name, method_contents)
+        self.assert_not_contains_line('%s=\'string\'' % param_name, method_contents)
 
         # Ensure it is in the params.
         param_contents = self.get_parameter_document_block(
@@ -80,5 +92,6 @@ class BaseDocsFunctionalTest(unittest.TestCase):
         self.assert_not_contains_line('REQUIRED', param_contents)
 
         # Ensure the note about autopopulation was added.
-        self.assert_contains_line(
-            'Note this parameter is autopopulated', param_contents) 
+        if doc_string is None:
+            doc_string = 'Please note that this parameter is automatically'
+        self.assert_contains_line(doc_string, param_contents)

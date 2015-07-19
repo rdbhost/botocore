@@ -10,6 +10,7 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from tests import unittest, random_chars
 
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
@@ -39,7 +40,7 @@ class TestCognitoIdentity(unittest.TestCase):
 
     @async_test
     def test_can_create_and_delete_identity_pool(self):
-        pool_name = 'botocoretest%s' % random.randint(1, 100000)
+        pool_name = 'test%s' % random_chars(10)
         response = yield from self.client.create_identity_pool(
             IdentityPoolName=pool_name, AllowUnauthenticatedIdentities=True)
         self.client.delete_identity_pool(IdentityPoolId=response['IdentityPoolId'])

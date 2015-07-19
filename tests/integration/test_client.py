@@ -17,9 +17,9 @@
 import asyncio
 import sys, os
 import time
-import random
 import logging
 import datetime
+from tests import unittest, random_chars
 import unittest
 from io import StringIO
 
@@ -35,13 +35,11 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class TestBucketWithVersions(unittest.TestCase):
-
     @asyncio.coroutine
     def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('s3', region_name='us-west-2')
-        self.bucket_name = 'botocoretest%s-%s' % (
-            int(time.time()), random.randint(1, 1000000))
+        self.bucket_name = 'botocoretest%s' % random_chars(50)
 
     def extract_version_ids(self, versions):
         version_ids = []

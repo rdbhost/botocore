@@ -20,6 +20,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 import time
+from tests import unittest, random_chars
 import random
 import unittest
 
@@ -40,25 +41,22 @@ class TestKinesisListStreams(unittest.TestCase):
     @asyncio.coroutine
     def set_up(self):
 
-    #@classmethod
-    #def setUpClass(cls):
-        cls = self
-        cls.session = yieldfrom.botocore.session.get_session()
-        cls.stream_name = 'botocore-test-%s-%s' % (int(time.time()),
-                                                   random.randint(1, 100))
-        client = yield from cls.session.create_client('kinesis', cls.REGION)
-        _t = yield from client.create_stream(StreamName=cls.stream_name, ShardCount=1)
+        self.session = yieldfrom.botocore.session.get_session()
+        self.stream_name = 'botocore-test-%s' % random_chars(10)
+        client = yield from self.session.create_client('kinesis', self.REGION)
+        yield from client.create_stream(StreamName=self.stream_name,
+                             ShardCount=1)
         waiter = client.get_waiter('stream_exists')
-        yield from waiter.wait(StreamName=cls.stream_name)
+        yield from waiter.wait(StreamName=self.stream_name)
         self.client = yield from self.session.create_client('kinesis', self.REGION)
 
     #@classmethod
-    #def tearDownClass(cls):
+    #def tearDownClass(self):
 
     @asyncio.coroutine
-    def tear_down(cls):
-        client = yield from cls.session.create_client('kinesis', cls.REGION)
-        yield from client.delete_stream(StreamName=cls.stream_name)
+    def tear_down(self):
+        client = yield from self.session.create_client('kinesis', self.REGION)
+        yield from client.delete_stream(StreamName=self.stream_name)
 
     @async_test
     def test_list_streams(self):

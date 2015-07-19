@@ -11,18 +11,25 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import os
 
 # This file altered by David Keeney 2015, as part of conversion to
 # asyncio.
 #
 import sys, os
 import time
+from tests import unittest, temporary_file, random_chars
 import random
 from collections import defaultdict
 import tempfile
 import shutil
 import unittest
 import mock
+import binascii
+try:
+    from itertools import izip_longest as zip_longest
+except ImportError:
+    from itertools import zip_longest
 import asyncio
 import io
 import logging
@@ -41,6 +48,12 @@ from yieldfrom.botocore.client import Config
 sys.path.extend(['..', '../..'])
 from asyncio_test_utils import async_test
 from tests import temporary_file
+
+def random_bucketname():
+    # 63 is the max bucket length.
+    bucket_name = 'botocoretest'
+    return bucket_name + random_chars(63 - len(bucket_name))
+
 
 os.environ['PYTHONASYNCIODEBUG'] = '1'
 logging.basicConfig(level=logging.DEBUG)
@@ -67,8 +80,7 @@ class BaseS3ClientTest(unittest.TestCase):
     def create_bucket(self, bucket_name=None):
         bucket_kwargs = {}
         if bucket_name is None:
-            bucket_name = 'botocoretest%s-%s' % (int(time.time()),
-                                                 random.randint(1, 1000))
+            bucket_name = random_bucketname()
         bucket_kwargs = {'Bucket': bucket_name}
         if self.region != 'us-east-1':
             bucket_kwargs['CreateBucketConfiguration'] = {
@@ -898,13 +910,11 @@ class TestCanSwitchToSigV4(unittest.TestCase):
 
 
 class TestSSEKeyParamValidation(unittest.TestCase):
-
     @asyncio.coroutine
     def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('s3', 'us-west-2')
-        self.bucket_name = 'botocoretest%s-%s' % (
-            int(time.time()), random.randint(1, 1000))
+        self.bucket_name = random_bucketname()
         yield from self.client.create_bucket(
             Bucket=self.bucket_name,
             CreateBucketConfiguration={
