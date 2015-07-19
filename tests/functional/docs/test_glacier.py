@@ -10,17 +10,24 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from tests.functional.docs import BaseDocsFunctionalTest
+import asyncio
+import sys
+
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test
+from docs import BaseDocsFunctionalTest
 
 class TestGlacierDocs(BaseDocsFunctionalTest):
+    @async_test
     def test_account_id(self):
-        self.assert_is_documented_as_autopopulated_param(
+        yield from self.assert_is_documented_as_autopopulated_param(
             service_name='glacier',
             method_name='abort_multipart_upload',
             param_name='accountId')
 
+    @async_test
     def test_checksum(self):
-        self.assert_is_documented_as_autopopulated_param(
+        yield from self.assert_is_documented_as_autopopulated_param(
             service_name='glacier',
             method_name='upload_archive',
             param_name='checksum')

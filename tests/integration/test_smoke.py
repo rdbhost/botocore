@@ -10,8 +10,10 @@ logging.basicConfig(level=logging.DEBUG)
 
 import mock
 import sys
+import asyncio
+
 sys.path.append('..')
-from asyncio_test_utils import async_test
+# from asyncio_test_utils import async_test
 
 from pprint import pformat
 import warnings
@@ -144,16 +146,18 @@ def _make_error_client_call(client, operation_name, kwargs):
                              "for %s.%s" % (client, operation_name))
 
 
+@asyncio.coroutine
 def test_client_can_retry_request_properly():
     session = yieldfrom.botocore.session.get_session()
     for service_name in SMOKE_TESTS:
-        client = session.create_client(service_name, region_name=REGION)
+        client = yield from session.create_client(service_name, region_name=REGION)
         for operation_name in SMOKE_TESTS[service_name]:
             kwargs = SMOKE_TESTS[service_name][operation_name]
             yield (_make_client_call_with_errors, client,
                    operation_name, kwargs)
 
 
+@asyncio.coroutine
 def _make_client_call_with_errors(client, operation_name, kwargs):
     operation = getattr(client, xform_name(operation_name))
     original_send = adapters.HTTPAdapter.send
@@ -162,8 +166,8 @@ def _make_client_call_with_errors(client, operation_name, kwargs):
             self._integ_test_error_raised = True
             raise ConnectionError("Simulated ConnectionError raised.")
         else:
-            return original_send(self, *args, **kwargs)
-    with mock.patch('botocore.vendored.requests.adapters.HTTPAdapter.send',
+            return (yield from original_send(self, *args, **kwargs))
+    with mock.patch('yieldfrom.botocore.vendored.requests.adapters.HTTPAdapter.send',
                     mock_http_adapter_send):
         try:
             response = operation(**kwargs)

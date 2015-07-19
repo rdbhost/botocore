@@ -846,22 +846,26 @@ class TestSearchOverResults(unittest.TestCase):
              'IsTruncated': True, 'NextToken': '2'},
             {'Foo': [{'a': 5}], 'IsTruncated': False, 'NextToken': '3'}
         ]
-        self.method.side_effect = responses
+        self.method.side_effect = [future_wrapped(r) for r in responses]
 
+    @async_test
     def test_yields_non_list_values(self):
-        result = list(self.paginator.paginate().search('Foo[0].a'))
+        result = yield from self.paginator.paginate().search('Foo[0].a')
         self.assertEqual([1, 3, 5], result)
 
+    @async_test
     def test_yields_individual_list_values(self):
-        result = list(self.paginator.paginate().search('Foo[].*[]'))
+        result = yield from self.paginator.paginate().search('Foo[].*[]')
         self.assertEqual([1, 2, 3, 4, 5], result)
 
+    @async_test
     def test_empty_when_no_match(self):
-        result = list(self.paginator.paginate().search('Foo[].qux'))
+        result = yield from self.paginator.paginate().search('Foo[].qux')
         self.assertEqual([], result)
 
+    @async_test
     def test_no_yield_when_no_match_on_page(self):
-        result = list(self.paginator.paginate().search('Foo[].b'))
+        result = yield from self.paginator.paginate().search('Foo[].b')
         self.assertEqual([2, 4], result)
 
 

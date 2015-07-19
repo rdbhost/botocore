@@ -10,10 +10,10 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from botocore import xform_name
-from botocore.compat import OrderedDict
-from botocore.docs.utils import DocumentedShape
-from botocore.docs.method import document_model_driven_method
+from .. import xform_name
+from ..compat import OrderedDict
+from .utils import DocumentedShape
+from .method import document_model_driven_method
 
 
 class PaginatorDocumenter(object):

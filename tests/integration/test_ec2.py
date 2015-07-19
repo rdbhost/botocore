@@ -57,6 +57,7 @@ class TestEC2Pagination(unittest.TestCase):
             'ec2', region_name='us-west-2')
 
     @async_test
+    @attr('slow')
     def test_can_paginate(self):
         # Using an operation that we know will paginate.
         paginator = self.client.get_paginator(
@@ -68,6 +69,7 @@ class TestEC2Pagination(unittest.TestCase):
         self.assertTrue(results[0]['NextToken'] != results[1]['NextToken'])
 
     @async_test
+    @attr('slow')
     def test_can_paginate_with_page_size(self):
         # Using an operation that we know will paginate.
         paginator = self.client.get_paginator(

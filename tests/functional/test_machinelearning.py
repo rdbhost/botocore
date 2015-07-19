@@ -11,27 +11,39 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import mock
+import asyncio
+
+import sys
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test, future_wrapped, pump_iter
 
 from tests import BaseSessionTest
 
 
 class TestMachineLearning(BaseSessionTest):
-    def setUp(self):
+
+    @asyncio.coroutine
+    def set_up(self):
         super(TestMachineLearning, self).setUp()
         self.region = 'us-west-2'
-        self.client = self.session.create_client(
+        self.client = yield from self.session.create_client(
             'machinelearning', self.region)
 
+    @async_test
     def test_predict(self):
-        with mock.patch('botocore.endpoint.Session.send') as \
+        with mock.patch('yieldfrom.botocore.endpoint.Session.send') as \
                 http_session_send_patch:
             http_response = mock.Mock()
             http_response.status_code = 200
-            http_response.content = b'{}'
+            hrc = asyncio.Future()
+            hrc.set_result(b'{}')
+            http_response.content = hrc
             http_response.headers = {}
-            http_session_send_patch.return_value = http_response
+            rv = asyncio.Future()
+            rv.set_result(http_response)
+            http_session_send_patch.return_value = rv
             custom_endpoint = 'https://myendpoint.amazonaws.com/'
-            self.client.predict(
+            _ = yield from self.client.predict(
                 MLModelId='ml-foo',
                 Record={'Foo': 'Bar'},
                 PredictEndpoint=custom_endpoint

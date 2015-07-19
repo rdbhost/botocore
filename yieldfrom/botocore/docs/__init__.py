@@ -10,10 +10,10 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-import os
+import os, sys
 
-import botocore.session
-from botocore.docs.service import ServiceDocumenter
+#sys.path.append('../..')
+from .service import ServiceDocumenter
 
 
 def generate_docs(root_dir):
@@ -26,14 +26,18 @@ def generate_docs(root_dir):
         service's reference documentation is loacated at
         root_dir/reference/services/service-name.rst
     """
+    from yieldfrom.botocore import session as botosession
+
     services_doc_path = os.path.join(root_dir, 'reference', 'services')
     if not os.path.exists(services_doc_path):
         os.makedirs(services_doc_path)
 
     # Generate reference docs and write them out.
-    session = botocore.session.get_session()
+    session = botosession.get_session()
     for service_name in session.get_available_services():
-        docs = ServiceDocumenter(service_name).document_service()
+        sd = ServiceDocumenter(service_name)
+        yield from sd.create_client()
+        docs = sd.document_service()
         service_doc_path = os.path.join(
             services_doc_path, service_name + '.rst')
         with open(service_doc_path, 'wb') as f:

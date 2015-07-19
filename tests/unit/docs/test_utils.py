@@ -12,12 +12,14 @@
 # language governing permissions and limitations under the License.
 import mock
 
-from tests import unittest
-from tests.unit.docs import BaseDocsTest
-from botocore.docs.utils import py_type_name
-from botocore.docs.utils import py_default
-from botocore.docs.utils import get_official_service_name
-from botocore.docs.utils import AutoPopulatedParam
+import sys
+sys.path.append('..')
+import unittest
+from docs import BaseDocsTest
+from yieldfrom.botocore.docs.utils import py_type_name
+from yieldfrom.botocore.docs.utils import py_default
+from yieldfrom.botocore.docs.utils import get_official_service_name
+from yieldfrom.botocore.docs.utils import AutoPopulatedParam
 
 
 class TestPythonTypeName(unittest.TestCase):

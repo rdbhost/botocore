@@ -10,23 +10,33 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-import os
 
+import os, sys
 import mock
+import unittest
+import asyncio
 
-from tests.unit.docs import BaseDocsTest
-from botocore.docs.service import ServiceDocumenter
+
+
+import sys
+sys.path.extend(['..', '../..'])
+from asyncio_test_utils import async_test
+from docs import BaseDocsTest
+from yieldfrom.botocore.docs import ServiceDocumenter
 
 
 class TestServiceDocumenter(BaseDocsTest):
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         super(TestServiceDocumenter, self).setUp()
         self.add_shape_to_params('Biz', 'String')
-        self.setup_client()
-        with mock.patch('botocore.session.create_loader',
+        yield from self.setup_client()
+        with mock.patch('yieldfrom.botocore.session.create_loader',
                         return_value=self.loader):
             self.service_documenter = ServiceDocumenter('myservice')
+            yield from self.service_documenter.create_client()
 
+    @async_test
     def test_document_service(self):
         # Note that not everything will be included as it is just
         # a smoke test to make sure all of the main parts are inluded.
@@ -60,11 +70,13 @@ class TestServiceDocumenter(BaseDocsTest):
         for line in lines:
             self.assertIn(line, contents)
 
+    @async_test
     def test_document_service_no_paginator(self):
         os.remove(self.paginator_model_file)
         contents = self.service_documenter.document_service().decode('utf-8')
         self.assertNotIn('Paginators', contents)
 
+    @async_test
     def test_document_service_no_waiter(self):
         os.remove(self.waiter_model_file)
         contents = self.service_documenter.document_service().decode('utf-8')

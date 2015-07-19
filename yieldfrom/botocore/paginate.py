@@ -155,6 +155,7 @@ class PageIterator(object):
                 self._previous_next_token = self._next_token
                 return response
 
+    @asyncio.coroutine
     def search(self, expression):
         """Applies a JMESPath expression to a paginator
 
@@ -172,14 +173,18 @@ class PageIterator(object):
             results.
         """
         compiled = jmespath.compile(expression)
-        for page in self:
+        out = []
+        page = yield from self.next()
+        while page:
             results = compiled.search(page)
             if isinstance(results, list):
                 for element in results:
-                    yield element
+                    out.append(element)
             else:
                 # Yield result directly if it is not a list.
-                yield results
+                out.append(results)
+            page = yield from self.next()
+        return out
 
     def _make_request(self, current_kwargs):
         return self._method(**current_kwargs)

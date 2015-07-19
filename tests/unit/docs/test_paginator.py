@@ -10,23 +10,32 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from tests.unit.docs import BaseDocsTest
-from botocore.docs.paginator import PaginatorDocumenter
-from botocore.paginate import PaginatorModel
+import sys
+import asyncio
+sys.path.extend(['../..', '..'])
+from asyncio_test_utils import async_test
+
+from docs import BaseDocsTest
+from yieldfrom.botocore.docs.paginator import PaginatorDocumenter
+from yieldfrom.botocore.paginate import PaginatorModel
 
 
 class TestPaginatorDocumenter(BaseDocsTest):
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         super(TestPaginatorDocumenter, self).setUp()
+        yield from self.setup_client()
         self.add_shape_to_params('Biz', 'String')
-        self.extra_setup()
+        yield from self.extra_setup()
 
+    @asyncio.coroutine
     def extra_setup(self):
-        self.setup_client()
+        yield from self.setup_client()
         paginator_model = PaginatorModel(self.paginator_json_model)
         self.paginator_documenter = PaginatorDocumenter(
             client=self.client, service_paginator_model=paginator_model)
 
+    @async_test
     def test_document_paginators(self):
         self.paginator_documenter.document_paginators(
             self.doc_structure)

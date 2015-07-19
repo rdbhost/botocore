@@ -10,24 +10,30 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-import os
+import os, sys
 import shutil
 import tempfile
 
 import mock
+import asyncio
 
-from tests.unit.docs import BaseDocsTest
-from botocore.docs import generate_docs
+sys.path.extend(['../..', '..'])
+from asyncio_test_utils import async_test
+
+from docs import BaseDocsTest
+from yieldfrom.botocore.docs import generate_docs
 
 
 class TestGenerateDocs(BaseDocsTest):
-    def setUp(self):
+    @asyncio.coroutine
+    def set_up(self):
         super(TestGenerateDocs, self).setUp()
+        yield from self.setup_client()
         self.docs_root = tempfile.mkdtemp()
         self.loader_patch = mock.patch(
-            'botocore.session.create_loader', return_value=self.loader)
+            'yieldfrom.botocore.session.create_loader', return_value=self.loader)
         self.available_service_patch = mock.patch(
-            'botocore.session.Session.get_available_services',
+            'yieldfrom.botocore.session.Session.get_available_services',
             return_value=['myservice'])
         self.loader_patch.start()
         self.available_service_patch.start()
@@ -38,9 +44,10 @@ class TestGenerateDocs(BaseDocsTest):
         self.loader_patch.stop()
         self.available_service_patch.stop()
 
+    @async_test
     def test_generate_docs(self):
         # Have the rst files get written to the temporary directory
-        generate_docs(self.docs_root)
+        yield from generate_docs(self.docs_root)
 
         reference_services_path = os.path.join(
             self.docs_root, 'reference', 'services')

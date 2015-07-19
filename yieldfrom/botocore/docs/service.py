@@ -10,24 +10,26 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import asyncio
+
 from bcdoc.restdoc import DocumentStructure
 
-import botocore.session
-from botocore.exceptions import DataNotFoundError
-from botocore.docs.utils import get_official_service_name
-from botocore.docs.client import ClientDocumenter
-from botocore.docs.waiter import WaiterDocumenter
-from botocore.docs.paginator import PaginatorDocumenter
+import yieldfrom.botocore
+import yieldfrom.botocore.session
+
+from yieldfrom.botocore.exceptions import DataNotFoundError
+from .utils import get_official_service_name
+from .client import ClientDocumenter
+from .waiter import WaiterDocumenter
+from .paginator import PaginatorDocumenter
 
 
 class ServiceDocumenter(object):
-    def __init__(self, service_name):
-        self._session = botocore.session.get_session()
-        self._service_name = service_name
 
-        self._client = self._session.create_client(
-            service_name, region_name='us-east-1', aws_access_key_id='foo',
-            aws_secret_access_key='bar')
+    def __init__(self, service_name):
+
+        self._session = yieldfrom.botocore.session.get_session()
+        self._service_name = service_name
 
         self.sections = [
             'title',
@@ -36,6 +38,13 @@ class ServiceDocumenter(object):
             'paginator-api',
             'waiter-api'
         ]
+
+    @asyncio.coroutine
+    def create_client(self):
+        self._client = yield from self._session.create_client(
+            self._service_name, region_name='us-east-1', aws_access_key_id='foo',
+            aws_secret_access_key='bar')
+
 
     def document_service(self):
         """Documents an entire service.

@@ -10,13 +10,15 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-import mock
+import mock, sys
 
-from tests.unit.docs import BaseDocsTest
-from botocore.hooks import HierarchicalEmitter
-from botocore.docs.params import RequestParamsDocumenter
-from botocore.docs.params import ResponseParamsDocumenter
-from botocore.docs.utils import DocumentedShape
+from yieldfrom.botocore.hooks import HierarchicalEmitter
+from yieldfrom.botocore.docs.params import RequestParamsDocumenter
+from yieldfrom.botocore.docs.params import ResponseParamsDocumenter
+from yieldfrom.botocore.docs.utils import DocumentedShape
+
+sys.path.extend(['..'])
+from docs import BaseDocsTest
 
 
 class BaseParamsDocumenterTest(BaseDocsTest):

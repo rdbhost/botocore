@@ -45,6 +45,8 @@ from tests import temporary_file
 os.environ['PYTHONASYNCIODEBUG'] = '1'
 logging.basicConfig(level=logging.DEBUG)
 
+from nose.plugins.attrib import attr
+
 
 class BaseS3ClientTest(unittest.TestCase):
     @asyncio.coroutine
@@ -208,8 +210,8 @@ class TestS3Objects(TestS3BaseWithBucket):
             Bucket=self.bucket_name, Key=key_name)
         self.assert_status_code(response, 204)
 
-    @async_test
     @attr('slow')
+    @async_test
     def test_can_paginate(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -230,8 +232,8 @@ class TestS3Objects(TestS3BaseWithBucket):
                      for el in responses]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
-    @async_test
     @attr('slow')
+    @async_test
     def test_can_paginate_with_page_size(self):
         for i in range(5):
             key_name = 'key%s' % i
@@ -251,8 +253,8 @@ class TestS3Objects(TestS3BaseWithBucket):
         key_names = [el['Contents'][0]['Key'] for el in data]
         self.assertEqual(key_names, ['key0', 'key1', 'key2', 'key3', 'key4'])
 
-    @async_test
     @attr('slow')
+    @async_test
     def tst_result_key_iters(self):
         for i in range(5):
             key_name = 'key/%s/%s' % (i, i)
@@ -275,8 +277,8 @@ class TestS3Objects(TestS3BaseWithBucket):
         self.assertIn('Contents', response)
         self.assertIn('CommonPrefixes', response)
 
-    @async_test
     @attr('slow')
+    @async_test
     def test_can_get_and_put_object(self):
         yield from self.create_object('foobarbaz', body='body contents')
         asyncio.sleep(3)
@@ -715,6 +717,7 @@ class TestCreateBucketInOtherRegion(TestS3BaseWithBucket):
             yield from self.client.delete_object(
                 Bucket=self.bucket_name, Key=key)
 
+    @attr('slow')
     @async_test
     def test_bucket_in_other_region(self):
         # This verifies expect 100-continue behavior.  We previously
@@ -732,6 +735,7 @@ class TestCreateBucketInOtherRegion(TestS3BaseWithBucket):
             self.assert_status_code(response, 200)
             self.keys.append('foo.txt')
 
+    @attr('slow')
     @async_test
     def test_bucket_in_other_region_using_http(self):
         client = yield from self.session.create_client(
@@ -796,8 +800,8 @@ class TestS3SigV4Client(BaseS3ClientTest):
             self.assert_status_code(response, 200)
             self.keys.append('foo.txt')
 
-    @async_test
     @attr('slow')
+    @async_test
     def test_paginate_list_objects_unicode(self):
         key_names = [
             u'non-ascii-key-\xe4\xf6\xfc-01.txt',
@@ -823,8 +827,8 @@ class TestS3SigV4Client(BaseS3ClientTest):
 
         self.assertEqual(key_names, key_refs)
 
-    @async_test
     @attr('slow')
+    @async_test
     def test_paginate_list_objects_safe_chars(self):
 
         key_names = [

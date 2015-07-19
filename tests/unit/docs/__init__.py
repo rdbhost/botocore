@@ -14,16 +14,17 @@ import os
 import json
 import tempfile
 import shutil
+import asyncio
 
 from bcdoc.restdoc import DocumentStructure
 import mock
 
-from tests import unittest
-from botocore.compat import OrderedDict
-from botocore.hooks import HierarchicalEmitter
-from botocore.model import ServiceModel, OperationModel
-from botocore.client import ClientCreator
-from botocore.loaders import Loader
+import unittest
+from yieldfrom.botocore.compat import OrderedDict
+from yieldfrom.botocore.hooks import HierarchicalEmitter
+from yieldfrom.botocore.model import ServiceModel, OperationModel
+from yieldfrom.botocore.client import ClientCreator
+from yieldfrom.botocore.loaders import Loader
 
 
 class BaseDocsTest(unittest.TestCase):
@@ -43,13 +44,14 @@ class BaseDocsTest(unittest.TestCase):
         self._setup_models()
         self.build_models()
         self.events = HierarchicalEmitter()
-        self.setup_client()
+        #self.setup_client()
         self.doc_name = 'MyDoc'
         self.doc_structure = DocumentStructure(self.doc_name)
 
     def tearDown(self):
         shutil.rmtree(self.root_dir)
 
+    @asyncio.coroutine
     def setup_client(self):
         with open(self.waiter_model_file, 'w') as f:
             json.dump(self.waiter_json_model, f)
@@ -74,7 +76,7 @@ class BaseDocsTest(unittest.TestCase):
             retry_handler_factory=mock.Mock(),
             retry_config_translator=mock.Mock())
 
-        self.client = self.creator.create_client('myservice', 'us-east-1')
+        self.client = yield from self.creator.create_client('myservice', 'us-east-1')
 
     def _setup_models(self):
         self.json_model = {
