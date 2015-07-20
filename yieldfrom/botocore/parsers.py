@@ -99,7 +99,7 @@ import logging
 from http import client as http_client
 from .compat import XMLParseError
 
-from .utils import parse_timestamp
+from .utils import parse_timestamp, merge_dicts
 
 LOG = logging.getLogger(__name__)
 
@@ -706,7 +706,9 @@ class RestXMLParser(BaseRestParser, BaseXMLResponseParser):
         elif 'RequestId' in parsed:
             # Other rest-xml serivces:
             parsed['ResponseMetadata'] = {'RequestId': parsed.pop('RequestId')}
-        return parsed
+        default = {'Error': {'Message': '', 'Code': ''}}
+        merge_dicts(default, parsed)
+        return default
 
 
 PROTOCOL_PARSERS = {

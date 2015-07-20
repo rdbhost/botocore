@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2012-2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2012-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You
 # may not use this file except in compliance with the License. A copy of
@@ -11,6 +11,7 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from tests import unittest, temporary_file, random_chars
 import os
 
 # This file altered by David Keeney 2015, as part of conversion to
@@ -61,6 +62,17 @@ logging.basicConfig(level=logging.DEBUG)
 from nose.plugins.attrib import attr
 
 
+def recursive_delete(client, bucket_name):
+    # Recursively deletes a bucket and all of its contents.
+    objects = client.get_paginator('list_objects').paginate(
+        Bucket=bucket_name)
+    keys = yield from objects.search('Contents[].Key')
+    for key in keys:
+        if key is not None:
+            yield from client.delete_object(Bucket=bucket_name, Key=key)
+    yield from client.delete_bucket(Bucket=bucket_name)
+
+
 class BaseS3ClientTest(unittest.TestCase):
     @asyncio.coroutine
     def set_up(self):
@@ -77,23 +89,35 @@ class BaseS3ClientTest(unittest.TestCase):
         )
 
     @asyncio.coroutine
-    def create_bucket(self, bucket_name=None):
+    def create_bucket(self, region_name, bucket_name=None):
         bucket_kwargs = {}
         if bucket_name is None:
             bucket_name = random_bucketname()
         bucket_kwargs = {'Bucket': bucket_name}
-        if self.region != 'us-east-1':
+        if region_name != 'us-east-1':
             bucket_kwargs['CreateBucketConfiguration'] = {
-                'LocationConstraint': self.region,
+                'LocationConstraint': region_name,
             }
         response = yield from self.client.create_bucket(**bucket_kwargs)
         self.assert_status_code(response, 200)
-        self.addCleanup(self.delete_bucket, bucket_name)
+        self.addCleanup(recursive_delete, self.client, bucket_name)
         return bucket_name
+
+    def make_tempdir(self):
+        tempdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tempdir)
+        return tempdir
+
+
+class TestS3BaseWithBucket(BaseS3ClientTest):
+    def setUp(self):
+        super(TestS3BaseWithBucket, self).setUp()
+        self.bucket_name = self.create_bucket(self.region)
+        self.caught_exceptions = []
+
 
     @asyncio.coroutine
     def create_object(self, key_name, body='foo'):
-        self.keys.append(key_name)
         yield from self.client.put_object(
             Bucket=self.bucket_name, Key=key_name,
             Body=body)
@@ -192,13 +216,6 @@ class TestS3Buckets(TestS3BaseWithBucket):
 
 
 class TestS3Objects(TestS3BaseWithBucket):
-
-    @asyncio.coroutine
-    def tear_down(self):
-        for key in self.keys:
-            yield from self.client.delete_object(
-                Bucket=self.bucket_name, Key=key)
-        #yield from TestS3BaseWithBucket.tear_down()
 
     def increment_auth(self, request, **kwargs):
         self.auth_paths.append(request.auth_path)
@@ -428,25 +445,21 @@ class TestS3Regions(BaseS3ClientTest):
         self.region = 'us-west-2'
         yield from BaseS3ClientTest.set_up(self)
 
-    @asyncio.coroutine
-    def tear_down(self):
+    def tearDown(self):
         shutil.rmtree(self.tempdir)
-        #yield from BaseS3Test.tear_down(self)
 
-    @async_test
+	@async_test
     def test_reset_stream_on_redirects(self):
         # Create a bucket in a non classic region.
-        bucket_name = yield from self.create_bucket()
+        bucket_name = yield from self.create_bucket(self.region)
         # Then try to put a file like object to this location.
-        filename = os.path.join(self.tempdir, 'foo')
+        tempdir = self.make_tempdir()
+        filename = os.path.join(tempdir, 'foo')
         with open(filename, 'wb') as f:
             f.write(b'foo' * 1024)
         with open(filename, 'rb') as f:
             yield from self.client.put_object(
                 Bucket=bucket_name, Key='foo', Body=f)
-
-        self.addCleanup(self.delete_object, key='foo',
-                        bucket_name=bucket_name)
 
         data = yield from self.client.get_object(
             Bucket=bucket_name, Key='foo')
@@ -471,7 +484,6 @@ class TestS3Copy(TestS3BaseWithBucket):
         yield from self.client.copy_object(
             Bucket=self.bucket_name, Key=key_name + 'bar',
             CopySource='%s/%s' % (self.bucket_name, key_name))
-        self.keys.append(key_name2)
 
         # Now verify we can retrieve the copied object.
         data = yield from self.client.get_object(
@@ -489,7 +501,6 @@ class TestS3Copy(TestS3BaseWithBucket):
             CopySource='%s/%s' % (self.bucket_name, key_name),
             MetadataDirective='REPLACE',
             Metadata={"mykey": "myvalue", "mykey2": "myvalue2"})
-        self.keys.append(copied_key)
         self.assert_status_code(parsed, 200)
         self.addCleanup(self.client.delete_object,
                         Bucket=self.bucket_name, Key=copied_key)
@@ -497,20 +508,20 @@ class TestS3Copy(TestS3BaseWithBucket):
 
 class BaseS3PresignTest(BaseS3ClientTest):
 
-    def tear_down(self):
-        for key in self.keys:
-            yield from self.client.delete_object(
-                Bucket=self.bucket_name, Key=key)
-        #yield from BaseS3ClientTest.tear_down()
-
     @asyncio.coroutine
     def setup_bucket(self):
         self.key = 'myobject'
-        self.bucket_name = yield from self.create_bucket()
+        self.bucket_name = yield from self.create_bucket(self.region)
         yield from self.create_object(key_name=self.key)
 
         self.addCleanup(self.client.delete_object,
                         Bucket=self.bucket_name, Key=self.key)
+        
+    @asyncio.coroutine
+    def create_object(self, key_name, body='foo'):
+        yield from self.client.put_object(
+            Bucket=self.bucket_name, Key=key_name,
+            Body=body)
 
 
 class TestS3PresignUsStandard(BaseS3PresignTest):
@@ -745,7 +756,6 @@ class TestCreateBucketInOtherRegion(TestS3BaseWithBucket):
                     Bucket=self.bucket_name,
                     Key='foo.txt', Body=body_file)
             self.assert_status_code(response, 200)
-            self.keys.append('foo.txt')
 
     @attr('slow')
     @async_test
@@ -760,7 +770,6 @@ class TestCreateBucketInOtherRegion(TestS3BaseWithBucket):
                     Bucket=self.bucket_name,
                     Key='foo.txt', Body=body_file)
             self.assert_status_code(response, 200)
-            self.keys.append('foo.txt')
 
 
 class TestS3SigV4Client(BaseS3ClientTest):
@@ -770,7 +779,7 @@ class TestS3SigV4Client(BaseS3ClientTest):
         yield from BaseS3ClientTest.set_up(self)
         self.region = 'eu-central-1'
         self.client = yield from self.session.create_client('s3', self.region)
-        self.bucket_name = yield from self.create_bucket()
+        self.bucket_name = yield from self.create_bucket(self.region)
         self.keys = []
 
     @asyncio.coroutine
@@ -810,7 +819,6 @@ class TestS3SigV4Client(BaseS3ClientTest):
             response = yield from self.client.put_object(Bucket=self.bucket_name,
                                               Key='foo.txt', Body=body)
             self.assert_status_code(response, 200)
-            self.keys.append('foo.txt')
 
     @attr('slow')
     @async_test
@@ -825,7 +833,6 @@ class TestS3SigV4Client(BaseS3ClientTest):
             response = yield from self.client.put_object(Bucket=self.bucket_name,
                                               Key=key, Body='')
             self.assert_status_code(response, 200)
-            self.keys.append(key)
 
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
@@ -853,7 +860,6 @@ class TestS3SigV4Client(BaseS3ClientTest):
             response = yield from self.client.put_object(Bucket=self.bucket_name,
                                               Key=key, Body='')
             self.assert_status_code(response, 200)
-            self.keys.append(key)
 
         list_objs_paginator = self.client.get_paginator('list_objects')
         key_refs = []
@@ -877,8 +883,8 @@ class TestS3SigV4Client(BaseS3ClientTest):
         self.assert_status_code(response, 200)
         upload_id = response['UploadId']
         self.addCleanup(
-            self.abort_multipart_upload,
-            bucket_name=self.bucket_name, key=key, upload_id=upload_id
+            self.client.abort_multipart_upload,
+            Bucket=self.bucket_name, Key=key, UploadId=upload_id
         )
 
         response = yield from self.client.list_multipart_uploads(
@@ -891,37 +897,13 @@ class TestS3SigV4Client(BaseS3ClientTest):
         self.assertEqual(response['Uploads'][0]['UploadId'], upload_id)
 
 
-class TestCanSwitchToSigV4(unittest.TestCase):
-
-    @asyncio.coroutine
-    def set_up(self):
-        self.environ = {}
-        self.environ_patch = mock.patch('os.environ', self.environ)
-        self.environ_patch.start()
-        self.session = yieldfrom.botocore.session.get_session()
-        self.tempdir = tempfile.mkdtemp()
-        self.config_filename = os.path.join(self.tempdir, 'config_file')
-        self.environ['AWS_CONFIG_FILE'] = self.config_filename
-
-    @asyncio.coroutine
-    def tear_down(self):
-        self.environ_patch.stop()
-        shutil.rmtree(self.tempdir)
-
-
-class TestSSEKeyParamValidation(unittest.TestCase):
+class TestSSEKeyParamValidation(BaseS3ClientTest):
+    
     @asyncio.coroutine
     def set_up(self):
         self.session = yieldfrom.botocore.session.get_session()
         self.client = yield from self.session.create_client('s3', 'us-west-2')
-        self.bucket_name = random_bucketname()
-        yield from self.client.create_bucket(
-            Bucket=self.bucket_name,
-            CreateBucketConfiguration={
-                'LocationConstraint': 'us-west-2',
-            }
-        )
-        self.addCleanup(self.client.delete_bucket, Bucket=self.bucket_name)
+        self.bucket_name = yield from self.create_bucket('us-west-2')
 
     @async_test
     def test_make_request_with_sse(self):
@@ -963,7 +945,7 @@ class TestS3UTF8Headers(BaseS3ClientTest):
 
     @async_test
     def test_can_set_utf_8_headers(self):
-        bucket_name = yield from self.create_bucket()
+        bucket_name = yield from self.create_bucket(self.region)
         body = io.BytesIO(b"Hello world!")
         response = yield from self.client.put_object(
             Bucket=bucket_name, Key="foo.txt", Body=body,
@@ -971,6 +953,46 @@ class TestS3UTF8Headers(BaseS3ClientTest):
         self.assert_status_code(response, 200)
         self.addCleanup(self.client.delete_object,
                         Bucket=bucket_name, Key="foo.txt")
+
+
+class TestSupportedPutObjectBodyTypes(TestS3BaseWithBucket):
+
+    def create_client(self):
+        # Even though the default signature_version is s3,
+        # we're being explicit in case this ever changes.
+        client_config = Config(signature_version='s3')
+        return self.session.create_client('s3', self.region,
+                                          config=client_config)
+
+    def assert_can_put_object(self, body):
+        client = self.create_client()
+        response = client.put_object(
+            Bucket=self.bucket_name, Key='foo',
+            Body=body)
+        self.assert_status_code(response, 200)
+        self.addCleanup(client.delete_object, Bucket=self.bucket_name,
+                        Key='foo')
+
+    def test_can_put_unicode_content(self):
+        self.assert_can_put_object(body=u'\u2713')
+
+    def test_can_put_non_ascii_bytes(self):
+        self.assert_can_put_object(body=u'\u2713'.encode('utf-8'))
+
+    def test_can_put_binary_file(self):
+        tempdir = self.make_tempdir()
+        filename = os.path.join(tempdir, 'foo')
+        with open(filename, 'wb') as f:
+            f.write(u'\u2713'.encode('utf-8'))
+        with open(filename, 'rb') as binary_file:
+            self.assert_can_put_object(body=binary_file)
+
+
+class TestSupportedPutObjectBodyTypesSigv4(TestSupportedPutObjectBodyTypes):
+    def create_client(self):
+        client_config = Config(signature_version='s3v4')
+        return self.session.create_client('s3', self.region,
+                                          config=client_config)
 
 
 if __name__ == '__main__':

@@ -12,12 +12,13 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-import unittest
+from tests import unittest
 import datetime
 import time
 import base64
 import json
 import io
+import tempfile
 
 import mock
 import yieldfrom.botocore.auth
@@ -323,6 +324,11 @@ class TestSigV4(unittest.TestCase):
         self.credentials = yieldfrom.botocore.credentials.Credentials(
             access_key='foo', secret_key='bar')
 
+    def create_signer(self, service_name='myservice', region='us-west-2'):
+        auth = botocore.auth.SigV4Auth(
+            self.credentials, service_name, region)
+        return auth
+
     def test_canonical_query_string(self):
         request = AWSRequest()
         request.url = (
@@ -333,8 +339,7 @@ class TestSigV4(unittest.TestCase):
             'fields%22%3A%5B%22directors%5E10%22%5D%7D&q=George%20Lucas'
         )
         request.method = 'GET'
-        auth = yieldfrom.botocore.auth.SigV4Auth(
-            self.credentials, 'cloudsearchdomain', 'us-west-2')
+        auth = self.create_signer('cloudsearchdomain', 'us-west-2')
         actual = auth.canonical_query_string(request)
         # Here 'q' should come before 'q.options'.
         expected = ("format=sdk&pretty=true&q=George%20Lucas&q.options=%7B%22"
@@ -352,8 +357,7 @@ class TestSigV4(unittest.TestCase):
             'fields%22%3A%5B%22directors%5E10%22%5D%7D&q=George%20Lucas'
         )
         request.method = 'GET'
-        auth = yieldfrom.botocore.auth.SigV4Auth(
-            self.credentials, 'cloudsearchdomain', 'us-west-2')
+        auth = self.create_signer('cloudsearchdomain', 'us-west-2')
         with mock.patch.object(
                 yieldfrom.botocore.auth.datetime, 'datetime',
                 mock.Mock(wraps=datetime.datetime)) as mock_datetime:
@@ -380,6 +384,24 @@ class TestSigV4(unittest.TestCase):
             sts = auth.string_to_sign(request, cr)
             self.assertIn('20140101T000000Z', sts)
             self.assertNotIn('20140102T000000Z', sts)
+
+    def test_payload_is_binary_file(self):
+        request = AWSRequest()
+        request.data = six.BytesIO(u'\u2713'.encode('utf-8'))
+        auth = self.create_signer()
+        payload = auth.payload(request)
+        self.assertEqual(
+            payload,
+            '1dabba21cdad44541f6b15796f8d22978fc7ea10c46aeceeeeb66c23b3ac7604')
+
+    def test_payload_is_bytes_type(self):
+        request = AWSRequest()
+        request.data = u'\u2713'.encode('utf-8')
+        auth = self.create_signer()
+        payload = auth.payload(request)
+        self.assertEqual(
+            payload,
+            '1dabba21cdad44541f6b15796f8d22978fc7ea10c46aeceeeeb66c23b3ac7604')
 
 
 class TestSigV4Resign(BaseTestWithFixedDate):

@@ -78,6 +78,22 @@ class TestHandlers(BaseSessionTest):
             self.assertEqual(
                 params['headers']['x-amz-copy-source'], 'foo%2B%2Bbar.txt')
 
+    def test_only_quote_url_path_not_query_string(self):
+        request = {
+            'headers': {'x-amz-copy-source': '/foo/bar++baz?versionId=123'}
+        }
+        handlers.quote_source_header(request)
+        self.assertEqual(request['headers']['x-amz-copy-source'],
+                         '/foo/bar%2B%2Bbaz?versionId=123')
+
+    def test_quote_source_header_needs_no_changes(self):
+        request = {
+            'headers': {'x-amz-copy-source': '/foo/bar?versionId=123'}
+        }
+        handlers.quote_source_header(request)
+        self.assertEqual(request['headers']['x-amz-copy-source'],
+                         '/foo/bar?versionId=123')
+
     @async_test
     def test_presigned_url_already_present(self):
         params = {'body': {'PresignedUrl': 'https://foo'}}
@@ -463,7 +479,7 @@ class TestHandlers(BaseSessionTest):
         url = 'https://machinelearning.us-east-1.amazonaws.com'
         new_endpoint = 'https://my-custom-endpoint.amazonaws.com'
         data = '{"PredictEndpoint":"%s"}' % new_endpoint
-        request.data = data
+        request.data = data.encode('utf-8')
         request.url = url
         handlers.switch_host_with_param(request, 'PredictEndpoint')
         self.assertEqual(request.url, new_endpoint)

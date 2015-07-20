@@ -59,12 +59,11 @@ class ClientDocumenter(object):
         section.write('These are the available methods:')
         section.style.new_line()
         for method_name in sorted(client_methods):
-            section.style.li(':py:meth:`%s.Client.%s`' % (
-                self._service_name, method_name))
+            section.style.li(':py:meth:`%s`' % (method_name))
 
     def _add_class_signature(self, section):
         section.style.start_sphinx_py_class(
-            class_name='%s.Client' % self._service_name)
+            class_name='%s.Client' % self._client.__class__.__name__)
 
     def _add_client_methods(self, section, client_methods):
         section = section.add_new_section('methods')
@@ -83,12 +82,7 @@ class ClientDocumenter(object):
         return method_name not in self._client.meta.method_to_api_mapping
 
     def _add_custom_method(self, section, method_name, method):
-        document_custom_signature(
-            section, method_name, method)
-        method_intro_section = section.add_new_section('method-intro')
-        doc_string = inspect.getdoc(method)
-        if doc_string is not None:
-            method_intro_section.style.write_py_doc_string(doc_string)
+        document_custom_method(section, method_name, method)
 
     def _add_model_driven_method(self, section, method_name):
         service_model = self._client.meta.service_model
