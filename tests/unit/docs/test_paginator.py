@@ -51,7 +51,7 @@ class TestPaginatorDocumenter(BaseDocsTest):
             '  .. py:method:: paginate(Biz=None, PaginationConfig=None)',
             ('    Creates an iterator that will paginate through responses'
              ' from :py:meth:`myservice.Client.sample_operation`.'),
-            '    **Example**',
+            '    **Request Syntax**',
             '    ::',
             '      response_iterator = paginator.paginate(',
             '          Biz=\'string\',',
@@ -72,7 +72,7 @@ class TestPaginatorDocumenter(BaseDocsTest):
             '      - **StartingToken** *(string) --*',
             '    :rtype: dict',
             '    :returns:',
-            '      **Response Example**',
+            '      **Response Syntax**',
             '      ::',
             '        {',
             '            \'Biz\': \'string\',',

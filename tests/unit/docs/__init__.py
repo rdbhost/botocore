@@ -16,7 +16,7 @@ import tempfile
 import shutil
 import asyncio
 
-from bcdoc.restdoc import DocumentStructure
+from botocore.docs.bcdoc.restdoc import DocumentStructure
 import mock
 
 import unittest

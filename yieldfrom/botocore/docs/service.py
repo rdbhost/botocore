@@ -22,6 +22,7 @@ from .utils import get_official_service_name
 from .client import ClientDocumenter
 from .waiter import WaiterDocumenter
 from .paginator import PaginatorDocumenter
+# from botocore.docs.bcdoc.restdoc import DocumentStructure
 
 
 class ServiceDocumenter(object):

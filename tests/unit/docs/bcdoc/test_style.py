@@ -20,12 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-import unittest
-
-import six
-
-from bcdoc.style import ReSTStyle
-from bcdoc.restdoc import ReSTDocument
+from tests import unittest
+from botocore.compat import six
+from botocore.docs.bcdoc.style import ReSTStyle
+from botocore.docs.bcdoc.restdoc import ReSTDocument
 
 
 class TestStyle(unittest.TestCase):
@@ -53,6 +51,13 @@ class TestStyle(unittest.TestCase):
         style = ReSTStyle(ReSTDocument())
         style.italics('foobar')
         self.assertEqual(style.doc.getvalue(), six.b('*foobar* '))
+
+    def test_p(self):
+        style = ReSTStyle(ReSTDocument())
+        style.start_p()
+        style.doc.write('foo')
+        style.end_p()
+        self.assertEqual(style.doc.getvalue(), six.b('\n\nfoo\n\n'))
 
     def test_code(self):
         style = ReSTStyle(ReSTDocument())

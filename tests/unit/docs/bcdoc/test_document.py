@@ -20,10 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-import six
-
 from tests import unittest
-from bcdoc.restdoc import ReSTDocument, DocumentStructure
+from botocore.compat import six
+from botocore.docs.bcdoc.restdoc import ReSTDocument, DocumentStructure
 
 
 class TestReSTDocument(unittest.TestCase):
@@ -132,3 +131,8 @@ class TestDocumentStructure(unittest.TestCase):
             self.doc_structure.available_sections,
             ['mysection', 'mysection2']
         )
+
+    def test_clear_text(self):
+        self.doc_structure.write('Foo')
+        self.doc_structure.clear_text()
+        self.assertEqual(self.doc_structure.flush_structure(), six.b(''))

@@ -32,7 +32,7 @@ from yieldfrom.botocore.model import OperationModel, ServiceModel
 from yieldfrom.botocore import handlers
 from yieldfrom.botocore.credentials import Credentials
 from yieldfrom.botocore.signers import RequestSigner
-from yieldfrom.botocore.hooks import first_non_none_response
+#from yieldfrom.botocore.hooks import first_non_none_response
 
 sys.path.extend(['..', '../..'])
 from asyncio_test_utils import async_test, future_wrapped
@@ -71,8 +71,7 @@ class TestHandlers(BaseSessionTest):
     @async_test
     def test_quote_source_header(self):
         for op in ('UploadPartCopy', 'CopyObject'):
-            event = self.session.create_event(
-                'before-call', 's3', op)
+            event = 'before-call.s3.%s' % op
             params = {'headers': {'x-amz-copy-source': 'foo++bar.txt'}}
             m = mock.Mock()
             yield from self.session.emit(event, params=params, model=m)
@@ -183,8 +182,7 @@ class TestHandlers(BaseSessionTest):
     def test_sse_params(self):
         for op in ('HeadObject', 'GetObject', 'PutObject', 'CopyObject',
                    'CreateMultipartUpload', 'UploadPart', 'UploadPartCopy'):
-            event = self.session.create_event(
-                'before-parameter-build', 's3', op)
+            event = 'before-parameter-build.s3.%s' % op
             params = {'SSECustomerKey': b'bar',
                       'SSECustomerAlgorithm': 'AES256'}
             yield from self.session.emit(event, params=params, model=mock.Mock())
@@ -194,19 +192,17 @@ class TestHandlers(BaseSessionTest):
 
     @async_test
     def test_sse_params_as_str(self):
-        event = self.session.create_event(
-            'before-parameter-build', 's3', 'PutObject')
+        event = 'before-parameter-build.s3.PutObject'
         params = {'SSECustomerKey': 'bar',
                   'SSECustomerAlgorithm': 'AES256'}
         yield from self.session.emit(event, params=params, model=mock.Mock())
         self.assertEqual(params['SSECustomerKey'], 'YmFy')
         self.assertEqual(params['SSECustomerKeyMD5'],
-                            'N7UdGUp1E+RbVvZSTy1R8g==')
+                         'N7UdGUp1E+RbVvZSTy1R8g==')
 
     @async_test
     def test_route53_resource_id(self):
-        event = self.session.create_event(
-            'before-parameter-build', 'route53', 'GetHostedZone')
+        event = 'before-parameter-build.route53.GetHostedZone'
         params = {'Id': '/hostedzone/ABC123',
                   'HostedZoneId': '/hostedzone/ABC123',
                   'ResourceId': '/hostedzone/DEF456',
@@ -265,9 +261,8 @@ class TestHandlers(BaseSessionTest):
 
     @async_test
     def test_route53_resource_id_missing_input_shape(self):
-        event = self.session.create_event(
-            'before-parameter-build', 'route53', 'GetHostedZone')
-        params = {'HostedZoneId': '/hostedzone/ABC123',}
+        event = 'before-parameter-build.route53.GetHostedZone'
+        params = {'HostedZoneId': '/hostedzone/ABC123'}
         operation_def = {
             'name': 'GetHostedZone'
         }
@@ -284,8 +279,7 @@ class TestHandlers(BaseSessionTest):
     def test_run_instances_userdata(self):
         user_data = b'This is a test'
         b64_user_data = base64.b64encode(user_data).decode('utf-8')
-        event = self.session.create_event(
-            'before-parameter-build', 'ec2', 'RunInstances')
+        event = 'before-parameter-build.ec2.RunInstances'
         params = dict(ImageId='img-12345678',
                       MinCount=1, MaxCount=5, UserData=user_data)
         yield from self.session.emit(event, params=params)
@@ -302,8 +296,7 @@ class TestHandlers(BaseSessionTest):
         # user data.
         user_data = b'\xc7\xa9This is a test'
         b64_user_data = base64.b64encode(user_data).decode('utf-8')
-        event = self.session.create_event(
-            'before-parameter-build', 'ec2', 'RunInstances')
+        event = 'before-parameter-build.ec2.RunInstances'
         params = dict(ImageId='img-12345678',
                       MinCount=1, MaxCount=5, UserData=user_data)
         yield from self.session.emit(event, params=params)
@@ -510,7 +503,3 @@ class TestRetryHandlerOrder(BaseSessionTest):
         self.assertTrue(s3_200_handler < general_retry_handler,
                         "S3 200 error handler was supposed to be before "
                         "the general retry handler, but it was not.")
-
-
-if __name__ == '__main__':
-    unittest.main()
