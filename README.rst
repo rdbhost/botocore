@@ -1,7 +1,7 @@
 botocore
 ========
 
-##My Apologies##
+**My Apologies**
 
 I had intended to keep this up-to-date through version 1 of boto/botocore.   Unfortunately, I seem to
 have overcommitted myself.   There is a lot of development effort and feature changes in the 250+ commits
