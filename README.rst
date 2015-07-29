@@ -1,9 +1,28 @@
 botocore
 ========
 
+# My Apologies
+
+I had intended to keep this up-to-date through version 1 of boto/botocore.   Unfortunately, I seem to
+have overcommitted myself.   There is a lot of development effort and feature changes in the 250+ commits
+in boto/botocore not merged here, and I do not expect to find the time to catchup.
+
+The time I do find to commit to asyncio stuff, and the yieldfrom project, will go to the lower-level libraries 
+such as yieldfromHttplib, yieldfromUrllib3, and yieldfromRequests.  Requests is much more widely used than 
+Botocore, and should get more time. I should note that yieldfromBotocore does depend on all of these, and 
+development there will, thus, indirectly support yieldfromBotocore.  
+
+
+If any of you need this updated, feel free to fork and run with it.
+
+
+-------------------
+
 This is an asyncio port of botocore.  The content below is from boto/botocore.
 
 -------------------
+
+
 
 A low-level interface to a growing number of Amazon Web Services. The
 botocore package is the foundation for
